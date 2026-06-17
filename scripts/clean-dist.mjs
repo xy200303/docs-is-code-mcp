@@ -8,7 +8,6 @@ if (!existsSync(distDir)) {
 }
 
 for (const entry of readdirSync(distDir, { withFileTypes: true })) {
-  if (entry.name === ".git") continue;
   rmSync(path.join(distDir, entry.name), {
     recursive: true,
     force: true,
