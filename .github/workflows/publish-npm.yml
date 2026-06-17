@@ -66,9 +66,10 @@ jobs:
         shell: bash
         run: |
           version="$(node -p "JSON.parse(require('fs').readFileSync('package.json', 'utf8')).version")"
-          if npm view "docs-is-code-mcp@$version" version >/dev/null 2>&1; then
+          package_name="$(node -p "JSON.parse(require('fs').readFileSync('package.json', 'utf8')).name")"
+          if npm view "$package_name@$version" version >/dev/null 2>&1; then
             echo "exists=true" >> "$GITHUB_OUTPUT"
-            echo "docs-is-code-mcp@$version already exists on npm."
+            echo "$package_name@$version already exists on npm."
           else
             echo "exists=false" >> "$GITHUB_OUTPUT"
           fi

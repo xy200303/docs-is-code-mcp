@@ -5,25 +5,25 @@ import { serveStdio } from "../server.js";
 
 function printHelp(): void {
   console.log([
-    "dic",
+    "specc - Spec Coding MCP",
     "",
     "Usage:",
-    "  dic              Start the MCP server over stdio",
-    "  dic serve        Start the MCP server over stdio",
-    "  dic init         Register this MCP server with AI coding tools",
-    "  dic --help       Show help"
+    "  specc              Start the MCP server over stdio",
+    "  specc serve        Start the MCP server over stdio",
+    "  specc init         Register this MCP server with AI coding tools",
+    "  specc --help       Show help"
   ].join("\n"));
 }
 
 async function runInit(): Promise<void> {
-  intro("Docs-Is-Code MCP");
+  intro("Spec Coding MCP");
   const scan = spinner();
   scan.start("Scanning installed coding tools");
   const tools = await detectProgrammingTools();
   scan.stop("Detected coding tools");
 
   const selected = await multiselect<ToolId>({
-    message: "Install Docs-Is-Code MCP for which tools?",
+    message: "Install Spec Coding MCP for which tools?",
     required: true,
     options: tools.map((tool) => ({
       value: tool.id,
@@ -73,7 +73,7 @@ export async function runCli(argv = process.argv): Promise<void> {
 const isEntry = process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1];
 if (isEntry) {
   runCli(process.argv).catch((error) => {
-    console.error("dic fatal error:", error);
+    console.error("specc fatal error:", error);
     process.exit(1);
   });
 }

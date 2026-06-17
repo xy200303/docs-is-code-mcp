@@ -7,7 +7,7 @@ import { promisify } from "node:util";
 import { ensureDir, pathExists } from "../shared/utils.js";
 
 const execFileAsync = promisify(execFile);
-const SERVER_NAME = "docs-is-code";
+const SERVER_NAME = "spec-coding";
 const SERVER_ENTRY = "dist/index.js";
 
 export type ToolId = "codex" | "claude" | "opencode";
@@ -120,7 +120,7 @@ async function defaultServerCommand(): Promise<ServerCommand> {
     };
   }
   return {
-    command: "dic",
+    command: "specc",
     args: ["serve"]
   };
 }

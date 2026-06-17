@@ -1,25 +1,25 @@
 {
-  "name": "docs-is-code-mcp",
+  "name": "spec-coding-mcp",
   "version": "0.1.2",
-  "description": "MCP service for document-driven programming without manual IDs or change logs.",
+  "description": "MCP service for spec coding: generate, review, implement, and archive lightweight specs.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/xy200303/docs-is-code-mcp.git"
+    "url": "git+https://github.com/xy200303/spec-coding-mcp.git"
   },
   "bugs": {
-    "url": "https://github.com/xy200303/docs-is-code-mcp/issues"
+    "url": "https://github.com/xy200303/spec-coding-mcp/issues"
   },
-  "homepage": "https://github.com/xy200303/docs-is-code-mcp#readme",
+  "homepage": "https://github.com/xy200303/spec-coding-mcp#readme",
   "keywords": [
     "mcp",
-    "docs-is-code",
+    "spec-coding",
     "specification",
     "codex",
-    "automerge"
+    "mcp"
   ],
   "files": [
     "dist",
@@ -29,7 +29,7 @@
     "package.json"
   ],
   "bin": {
-    "dic": "dist/index.js"
+    "specc": "dist/index.js"
   },
   "scripts": {
     "prebuild": "node scripts/clean-dist.mjs",
@@ -47,7 +47,6 @@
     "access": "public"
   },
   "dependencies": {
-    "@automerge/automerge": "^3.2.6",
     "@clack/prompts": "^1.5.1",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "zod": "^4.1.13"

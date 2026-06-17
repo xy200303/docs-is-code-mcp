@@ -1,72 +1,22 @@
-import { mkdtemp, rm, writeFile, mkdir } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { createModelContext } from "../context/model-context.js";
-import { initProject, markProjectSynced, planImplementation, scanProject } from "../core/project.js";
-import { generateSpecsFromPrompt, generateSpecsFromSource } from "../generation/generator.js";
+import { createSpecFromPrompt, generateSpecsFromSource, initSpecs, listSpecs, markSpecDone, specContext } from "../spec/service.js";
 import { registerTools, upsertCodexConfig, upsertOpenCodeConfig } from "./registry.js";
 
-const root = await mkdtemp(path.join(os.tmpdir(), "docs-is-code-mcp-"));
-const promptRoot = await mkdtemp(path.join(os.tmpdir(), "docs-is-code-prompt-"));
-const sourceRoot = await mkdtemp(path.join(os.tmpdir(), "docs-is-code-source-"));
+const root = await mkdtemp(path.join(os.tmpdir(), "spec-coding-mcp-"));
 
 try {
-  await initProject(root);
-  await mkdir(path.join(root, "docs", "features"), { recursive: true });
+  await mkdir(path.join(root, "src", "routes"), { recursive: true });
+  await mkdir(path.join(root, "src", "components"), { recursive: true });
+  await mkdir(path.join(root, "tests"), { recursive: true });
   await writeFile(
-    path.join(root, "docs", "features", "billing.md"),
-    [
-      "# 网关计费",
-      "",
-      "## 支付超时",
-      "",
-      "- 网关超时时不能扣款。",
-      "- 前端展示支付处理中。"
-    ].join("\n"),
-    "utf8"
-  );
-  const scan = await scanProject(root);
-  if (scan.changes.length === 0) {
-    throw new Error("Expected document changes after writing feature docs.");
-  }
-  const plan = await planImplementation(root, "docs", false);
-  if (typeof plan.markdown !== "string" || !plan.markdown.includes("支付超时")) {
-    throw new Error("Expected implementation plan to mention changed docs.");
-  }
-  const context = await createModelContext({ projectRoot: root, docsDir: "docs" });
-  if (!context.markdown.includes("Changed Blocks Full Text") || context.changeCount === 0) {
-    throw new Error("Expected model context to include changed block text.");
-  }
-  await markProjectSynced(root);
-  const after = await scanProject(root);
-  if (after.changes.length !== 0) {
-    throw new Error(`Expected no changes after mark synced, got ${after.changes.length}.`);
-  }
-
-  const promptResult = await generateSpecsFromPrompt({
-    projectRoot: promptRoot,
-    docsDir: "docs",
-    projectName: "网关系统",
-    prompt: "网关计费需要支持支付超时、失败不扣款、前端展示处理中，并生成接口和前端测试要求。"
-  });
-  if (!promptResult.featureDocs.some((file) => file.includes("billing"))) {
-    throw new Error("Expected prompt generation to create a billing feature doc.");
-  }
-  const promptContext = await createModelContext({ projectRoot: promptRoot, docsDir: "docs", maxBlocks: 50 });
-  if (!promptContext.markdown.includes("计费与支付")) {
-    throw new Error("Expected model context to include prompt-generated feature docs.");
-  }
-
-  await mkdir(path.join(sourceRoot, "src", "routes"), { recursive: true });
-  await mkdir(path.join(sourceRoot, "src", "components"), { recursive: true });
-  await mkdir(path.join(sourceRoot, "tests"), { recursive: true });
-  await writeFile(
-    path.join(sourceRoot, "package.json"),
+    path.join(root, "package.json"),
     JSON.stringify({ name: "source-demo", scripts: { test: "node --test" } }, null, 2),
     "utf8"
   );
   await writeFile(
-    path.join(sourceRoot, "src", "routes", "users.ts"),
+    path.join(root, "src", "routes", "users.ts"),
     [
       "import { Router } from 'express';",
       "export const router = Router();",
@@ -75,33 +25,58 @@ try {
     "utf8"
   );
   await writeFile(
-    path.join(sourceRoot, "src", "components", "UserProfile.tsx"),
+    path.join(root, "src", "components", "UserProfile.tsx"),
     "export function UserProfile() { return <section>User</section>; }\n",
     "utf8"
   );
-  await writeFile(path.join(sourceRoot, "tests", "users.test.ts"), "test('users route', () => {});\n", "utf8");
-  const sourceResult = await generateSpecsFromSource({
-    projectRoot: sourceRoot,
-    docsDir: "docs",
-    projectName: "用户系统"
+  await writeFile(path.join(root, "tests", "users.test.ts"), "test('users route', () => {});\n", "utf8");
+
+  const init = await initSpecs({ projectRoot: root, specsDir: "specs", projectName: "用户系统" });
+  if (!init.files.some((file) => file.path.endsWith("specs/README.md"))) {
+    throw new Error("Expected spec init to create specs README.");
+  }
+
+  const generated = await generateSpecsFromSource({ projectRoot: root, specsDir: "specs", projectName: "用户系统" });
+  if (!generated.source?.routeHints.length || !generated.specs.some((file) => file.includes("review"))) {
+    throw new Error("Expected source generation to create review specs with route hints.");
+  }
+
+  const created = await createSpecFromPrompt({
+    projectRoot: root,
+    specsDir: "specs",
+    title: "用户详情增加禁用态",
+    prompt: "用户详情页需要展示用户是否被禁用，禁用用户不能继续发起敏感操作。"
   });
-  if (sourceResult.source.routeHints.length === 0) {
-    throw new Error("Expected source generation to detect route hints.");
+  if (!created.specs[0]?.includes("specs/active")) {
+    throw new Error("Expected prompt-created spec under specs/active.");
   }
-  const sourceScan = await scanProject(sourceRoot, "docs");
-  if (sourceScan.changes.length === 0) {
-    throw new Error("Expected source-generated docs to be pending implementation.");
+
+  const listed = await listSpecs({ projectRoot: root, specsDir: "specs" });
+  if (listed.active.length !== 1 || listed.review.length === 0) {
+    throw new Error("Expected active and review specs to be listed.");
   }
+
+  const context = await specContext({ projectRoot: root, specsDir: "specs" });
+  if (!context.markdown.includes("用户详情增加禁用态") || !context.markdown.includes("Selected Specs")) {
+    throw new Error("Expected spec context to include active spec text.");
+  }
+
+  const done = await markSpecDone({ projectRoot: root, specsDir: "specs", file: created.specs[0], note: "smoke verified" });
+  if (!done.specs[0]?.includes("specs/done")) {
+    throw new Error("Expected done spec to move under specs/done.");
+  }
+
   const expectedServer = { command: process.execPath, args: [path.resolve("dist", "index.js")] };
   const codexConfig = upsertCodexConfig("[model]\nname = \"gpt-5\"\n", expectedServer);
-  if (!codexConfig.includes("[mcp_servers.docs-is-code]") || !codexConfig.includes(process.execPath.replace(/\\/g, "\\\\"))) {
-    throw new Error("Expected Codex config upsert to add docs-is-code MCP server.");
+  if (!codexConfig.includes("[mcp_servers.spec-coding]") || !codexConfig.includes(process.execPath.replace(/\\/g, "\\\\"))) {
+    throw new Error("Expected Codex config upsert to add spec-coding MCP server.");
   }
   const opencodeConfig = JSON.parse(upsertOpenCodeConfig("{}", expectedServer));
-  if (opencodeConfig.mcp["docs-is-code"].type !== "local" || opencodeConfig.mcp["docs-is-code"].command[0] !== process.execPath) {
-    throw new Error("Expected OpenCode config upsert to add docs-is-code MCP server.");
+  if (opencodeConfig.mcp["spec-coding"].type !== "local" || opencodeConfig.mcp["spec-coding"].command[0] !== process.execPath) {
+    throw new Error("Expected OpenCode config upsert to add spec-coding MCP server.");
   }
-  const registryRoot = await mkdtemp(path.join(os.tmpdir(), "docs-is-code-registry-"));
+
+  const registryRoot = await mkdtemp(path.join(os.tmpdir(), "spec-coding-registry-"));
   try {
     const results = await registerTools({
       tools: ["codex", "opencode"],
@@ -118,9 +93,8 @@ try {
   } finally {
     await rm(registryRoot, { recursive: true, force: true });
   }
-  console.log("docs-is-code MCP smoke test passed");
+
+  console.log("spec-coding MCP smoke test passed");
 } finally {
   await rm(root, { recursive: true, force: true });
-  await rm(promptRoot, { recursive: true, force: true });
-  await rm(sourceRoot, { recursive: true, force: true });
 }
