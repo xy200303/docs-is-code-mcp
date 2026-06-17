@@ -13,7 +13,7 @@
   "bugs": {
     "url": "https://github.com/xy200303/spec-coding-mcp/issues"
   },
-  "homepage": "https://github.com/xy200303/spec-coding-mcp#readme",
+  "homepage": "https://spec.xyun.dev",
   "keywords": [
     "mcp",
     "spec-coding",
@@ -38,6 +38,9 @@
     "dev": "tsx src/index.ts",
     "smoke": "node dist/cli/smoke.js",
     "test": "npm run build && npm run smoke",
+    "docs:dev": "npx -y vitepress@1.6.4 dev docs --host 127.0.0.1",
+    "docs:build": "npx -y vitepress@1.6.4 build docs",
+    "docs:preview": "npx -y vitepress@1.6.4 preview docs --host 127.0.0.1",
     "prepack": "npm run build"
   },
   "engines": {
