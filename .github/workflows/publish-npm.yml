@@ -1,6 +1,9 @@
 name: Publish npm
 
 on:
+  push:
+    tags:
+      - "v*"
   release:
     types:
       - published
@@ -34,11 +37,15 @@ jobs:
         run: npm install -g npm@latest
 
       - name: Verify release tag matches package version
-        if: github.event_name == 'release'
+        if: github.event_name == 'release' || startsWith(github.ref, 'refs/tags/')
         shell: bash
         run: |
           version="$(node -p "JSON.parse(require('fs').readFileSync('package.json', 'utf8')).version")"
-          tag="${{ github.event.release.tag_name }}"
+          if [ "${{ github.event_name }}" = "release" ]; then
+            tag="${{ github.event.release.tag_name }}"
+          else
+            tag="${GITHUB_REF_NAME}"
+          fi
           tag="${tag#v}"
           if [ "$tag" != "$version" ]; then
             echo "Release tag v$tag does not match package.json version $version."
@@ -54,6 +61,18 @@ jobs:
       - name: Smoke test
         run: npm run smoke
 
+      - name: Check npm version
+        id: npm_version
+        shell: bash
+        run: |
+          version="$(node -p "JSON.parse(require('fs').readFileSync('package.json', 'utf8')).version")"
+          if npm view "docs-is-code-mcp@$version" version >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "docs-is-code-mcp@$version already exists on npm."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Publish dry run
         if: github.event_name == 'workflow_dispatch' && inputs.dry_run
         run: npm publish --dry-run --access public
@@ -61,7 +80,11 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish to npm
-        if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && !inputs.dry_run)
+        if: (github.event_name == 'release' || startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && !inputs.dry_run)) && steps.npm_version.outputs.exists != 'true'
         run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Skip existing npm version
+        if: (github.event_name == 'release' || startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && !inputs.dry_run)) && steps.npm_version.outputs.exists == 'true'
+        run: echo "Package version already exists on npm; skipping publish."
