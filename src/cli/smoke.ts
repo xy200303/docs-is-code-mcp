@@ -92,12 +92,13 @@ try {
   if (sourceScan.changes.length === 0) {
     throw new Error("Expected source-generated docs to be pending implementation.");
   }
-  const codexConfig = upsertCodexConfig("[model]\nname = \"gpt-5\"\n", { command: "dic", args: ["serve"] });
-  if (!codexConfig.includes("[mcp_servers.docs-is-code]") || !codexConfig.includes("args = [\"serve\"]")) {
+  const expectedServer = { command: process.execPath, args: [path.resolve("dist", "index.js")] };
+  const codexConfig = upsertCodexConfig("[model]\nname = \"gpt-5\"\n", expectedServer);
+  if (!codexConfig.includes("[mcp_servers.docs-is-code]") || !codexConfig.includes(process.execPath.replace(/\\/g, "\\\\"))) {
     throw new Error("Expected Codex config upsert to add docs-is-code MCP server.");
   }
-  const opencodeConfig = JSON.parse(upsertOpenCodeConfig("{}", { command: "dic", args: ["serve"] }));
-  if (opencodeConfig.mcp["docs-is-code"].type !== "local" || opencodeConfig.mcp["docs-is-code"].command[0] !== "dic") {
+  const opencodeConfig = JSON.parse(upsertOpenCodeConfig("{}", expectedServer));
+  if (opencodeConfig.mcp["docs-is-code"].type !== "local" || opencodeConfig.mcp["docs-is-code"].command[0] !== process.execPath) {
     throw new Error("Expected OpenCode config upsert to add docs-is-code MCP server.");
   }
   const registryRoot = await mkdtemp(path.join(os.tmpdir(), "docs-is-code-registry-"));
@@ -109,7 +110,7 @@ try {
         codexConfig: path.join(registryRoot, ".codex", "config.toml"),
         opencodeConfig: path.join(registryRoot, ".config", "opencode", "opencode.json")
       },
-      server: { command: "dic", args: ["serve"] }
+      server: expectedServer
     });
     if (results.some((result) => result.status !== "registered")) {
       throw new Error("Expected Codex and OpenCode registry writes to succeed.");

@@ -2,13 +2,13 @@ import { execFile } from "node:child_process";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { ensureDir, pathExists } from "../shared/utils.js";
 
 const execFileAsync = promisify(execFile);
 const SERVER_NAME = "docs-is-code";
-const DEFAULT_COMMAND = "dic";
-const DEFAULT_ARGS = ["serve"];
+const SERVER_ENTRY = "dist/index.js";
 
 export type ToolId = "codex" | "claude" | "opencode";
 
@@ -106,21 +106,27 @@ export async function detectProgrammingTools(paths?: RegistryPaths): Promise<Too
   ]);
 }
 
-function defaultServerCommand(): ServerCommand {
-  if (process.platform === "win32") {
+function packageRootFromCurrentModule(): string {
+  return path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
+}
+
+async function defaultServerCommand(): Promise<ServerCommand> {
+  const packageRoot = packageRootFromCurrentModule();
+  const entry = path.join(packageRoot, SERVER_ENTRY);
+  if (await pathExists(entry)) {
     return {
-      command: "cmd",
-      args: ["/c", DEFAULT_COMMAND, ...DEFAULT_ARGS]
+      command: process.execPath,
+      args: [entry]
     };
   }
   return {
-    command: DEFAULT_COMMAND,
-    args: DEFAULT_ARGS
+    command: "dic",
+    args: ["serve"]
   };
 }
 
-function serverCommand(input?: ServerCommand): ServerCommand {
-  const fallback = defaultServerCommand();
+async function serverCommand(input?: ServerCommand): Promise<ServerCommand> {
+  const fallback = await defaultServerCommand();
   return {
     command: input?.command ?? fallback.command,
     args: input?.args ?? fallback.args
@@ -138,9 +144,23 @@ export function upsertCodexConfig(content: string, server: ServerCommand): strin
     `command = ${renderTomlString(server.command)}`,
     `args = [${server.args.map(renderTomlString).join(", ")}]`
   ].join("\n");
-  const pattern = new RegExp(`(?:^|\\n)\\[mcp_servers\\.${SERVER_NAME.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\][\\s\\S]*?(?=\\n\\[|$)`, "m");
-  if (pattern.test(normalized)) {
-    return normalized.replace(pattern, (match) => `${match.startsWith("\n") ? "\n" : ""}${block}`) + "\n";
+  const lines = normalized ? normalized.split("\n") : [];
+  const header = `[mcp_servers.${SERVER_NAME}]`;
+  const start = lines.findIndex((line) => line.trim() === header);
+  if (start !== -1) {
+    let end = lines.length;
+    for (let index = start + 1; index < lines.length; index += 1) {
+      if (/^\s*\[[^\]]+\]\s*$/.test(lines[index])) {
+        end = index;
+        break;
+      }
+    }
+    const next = [
+      ...lines.slice(0, start),
+      ...block.split("\n"),
+      ...lines.slice(end)
+    ].join("\n");
+    return `${next.trimEnd()}\n`;
   }
   return `${normalized ? `${normalized}\n\n` : ""}${block}\n`;
 }
@@ -199,7 +219,7 @@ async function registerClaude(server: ServerCommand, dryRun?: boolean): Promise<
 }
 
 export async function registerTools(options: RegisterOptions): Promise<RegisterResult[]> {
-  const server = serverCommand(options.server);
+  const server = await serverCommand(options.server);
   const results: RegisterResult[] = [];
   for (const tool of options.tools) {
     if (tool === "codex") {

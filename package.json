@@ -1,6 +1,6 @@
 {
   "name": "docs-is-code-mcp",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "MCP service for document-driven programming without manual IDs or change logs.",
   "type": "module",
   "main": "./dist/index.js",

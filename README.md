@@ -64,20 +64,22 @@ node dist/index.js serve
 
 ### 手动配置备用
 
-如果不想使用 `dic init`，可以手动把 MCP server 加到工具配置里。npm 全局安装后，Codex 可写成：
+如果不想使用 `dic init`，可以手动把 MCP server 加到工具配置里。npm 全局安装后，Codex 推荐写成：
 
 ```toml
 [mcp_servers.docs-is-code]
-command = "dic"
-args = ["serve"]
+command = "C:\\nvm4w\\nodejs\\node.exe"
+args = ["C:\\nvm4w\\nodejs\\node_modules\\docs-is-code-mcp\\dist\\index.js"]
 ```
 
-Windows 上如果工具无法直接解析 npm 全局 bin，可以写成：
+路径需要按你的 Node 全局安装目录调整；`dic init` 会自动解析并写入当前机器上的实际路径。避免使用 `cmd /c dic serve`，因为 Codex Windows 沙盒可能会把 shell shim 启动识别成需要重设的沙盒命令。
+
+macOS 或 Linux 通常类似：
 
 ```toml
 [mcp_servers.docs-is-code]
-command = "cmd"
-args = ["/c", "dic", "serve"]
+command = "/usr/local/bin/node"
+args = ["/usr/local/lib/node_modules/docs-is-code-mcp/dist/index.js"]
 ```
 
 唯一命令：
