@@ -40,6 +40,13 @@ export interface SpecResult {
   source?: SourceScanSummary;
 }
 
+export interface AgentFileResult {
+  projectRoot: string;
+  file: string;
+  files: GeneratedFile[];
+  nextSteps: string[];
+}
+
 export interface TodoItem {
   file: string;
   text: string;

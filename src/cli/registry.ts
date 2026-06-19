@@ -10,7 +10,7 @@ const execFileAsync = promisify(execFile);
 const SERVER_NAME = "spec-coding";
 const SERVER_ENTRY = "dist/index.js";
 
-export type ToolId = "codex" | "claude" | "opencode";
+export type ToolId = "codex" | "claude" | "opencode" | "cursor" | "continue" | "windsurf";
 
 export interface ToolInfo {
   id: ToolId;
@@ -23,6 +23,9 @@ export interface RegistryPaths {
   homeDir?: string;
   codexConfig?: string;
   opencodeConfig?: string;
+  cursorConfig?: string;
+  continueConfig?: string;
+  windsurfConfig?: string;
 }
 
 export interface ServerCommand {
@@ -61,6 +64,18 @@ export function opencodeConfigPath(paths?: RegistryPaths): string {
   );
 }
 
+export function cursorConfigPath(paths?: RegistryPaths): string {
+  return paths?.cursorConfig ?? path.join(homeDir(paths), ".cursor", "mcp.json");
+}
+
+export function continueConfigPath(paths?: RegistryPaths): string {
+  return paths?.continueConfig ?? path.join(homeDir(paths), ".continue", "config.yaml");
+}
+
+export function windsurfConfigPath(paths?: RegistryPaths): string {
+  return paths?.windsurfConfig ?? path.join(homeDir(paths), ".codeium", "mcp_config.json");
+}
+
 async function commandExists(command: string): Promise<boolean> {
   const checker = process.platform === "win32" ? "where.exe" : "sh";
   const args = process.platform === "win32" ? [command] : ["-c", `command -v ${JSON.stringify(command)}`];
@@ -69,6 +84,22 @@ async function commandExists(command: string): Promise<boolean> {
     return true;
   } catch {
     return false;
+  }
+}
+
+async function resolveCommandPath(command: string): Promise<string | undefined> {
+  if (process.platform !== "win32") return undefined;
+  try {
+    const { stdout } = await execFileAsync("where.exe", [command], { windowsHide: true });
+    const candidates = stdout
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean);
+    if (!candidates.length) return undefined;
+    const preferred = candidates.find((item) => /\.(cmd|exe|bat)$/i.test(item));
+    return preferred ?? candidates[0];
+  } catch {
+    return undefined;
   }
 }
 
@@ -98,11 +129,44 @@ async function detectOpenCode(paths?: RegistryPaths): Promise<ToolInfo> {
   return { id: "opencode", label: "OpenCode", detected: false, reason: "opencode command/config not found" };
 }
 
+async function detectCursor(paths?: RegistryPaths): Promise<ToolInfo> {
+  if (await commandExists("cursor")) {
+    return { id: "cursor", label: "Cursor", detected: true, reason: "detected cursor command" };
+  }
+  if (await pathExists(cursorConfigPath(paths))) {
+    return { id: "cursor", label: "Cursor", detected: true, reason: "found cursor mcp config" };
+  }
+  return { id: "cursor", label: "Cursor", detected: false, reason: "cursor command/config not found" };
+}
+
+async function detectContinue(paths?: RegistryPaths): Promise<ToolInfo> {
+  if ((await commandExists("cn")) || (await commandExists("continue"))) {
+    return { id: "continue", label: "Continue", detected: true, reason: "detected Continue CLI command" };
+  }
+  if (await pathExists(continueConfigPath(paths))) {
+    return { id: "continue", label: "Continue", detected: true, reason: "found Continue config" };
+  }
+  return { id: "continue", label: "Continue", detected: false, reason: "Continue command/config not found" };
+}
+
+async function detectWindsurf(paths?: RegistryPaths): Promise<ToolInfo> {
+  if ((await commandExists("windsurf")) || (await commandExists("devin"))) {
+    return { id: "windsurf", label: "Windsurf", detected: true, reason: "detected Windsurf/Devin command" };
+  }
+  if (await pathExists(windsurfConfigPath(paths))) {
+    return { id: "windsurf", label: "Windsurf", detected: true, reason: "found Windsurf mcp config" };
+  }
+  return { id: "windsurf", label: "Windsurf", detected: false, reason: "Windsurf command/config not found" };
+}
+
 export async function detectProgrammingTools(paths?: RegistryPaths): Promise<ToolInfo[]> {
   return Promise.all([
     detectCodex(paths),
     detectClaude(),
-    detectOpenCode(paths)
+    detectOpenCode(paths),
+    detectCursor(paths),
+    detectContinue(paths),
+    detectWindsurf(paths)
   ]);
 }
 
@@ -116,7 +180,7 @@ async function defaultServerCommand(): Promise<ServerCommand> {
   if (await pathExists(entry)) {
     return {
       command: process.execPath,
-      args: [entry]
+      args: [entry, "serve"]
     };
   }
   return {
@@ -204,13 +268,107 @@ async function registerOpenCode(paths: RegistryPaths | undefined, server: Server
   return { tool: "opencode", status: "registered", path: configPath, detail: `registered ${SERVER_NAME} in OpenCode config` };
 }
 
+function upsertJsonMcpServers(content: string, server: ServerCommand): string {
+  const parsed = content.trim() ? JSON.parse(content) : {};
+  const root = parsed && typeof parsed === "object" && !Array.isArray(parsed) ? { ...(parsed as Record<string, unknown>) } : {};
+  const mcpServers = root.mcpServers && typeof root.mcpServers === "object" && !Array.isArray(root.mcpServers)
+    ? { ...(root.mcpServers as Record<string, unknown>) }
+    : {};
+  mcpServers[SERVER_NAME] = {
+    command: server.command,
+    args: server.args
+  };
+  root.mcpServers = mcpServers;
+  return JSON.stringify(root, null, 2) + "\n";
+}
+
+async function registerCursor(paths: RegistryPaths | undefined, server: ServerCommand, dryRun?: boolean): Promise<RegisterResult> {
+  const configPath = cursorConfigPath(paths);
+  const existing = await pathExists(configPath) ? await fs.readFile(configPath, "utf8") : "";
+  const next = upsertJsonMcpServers(existing, server);
+  if (!dryRun) {
+    await ensureDir(path.dirname(configPath));
+    await fs.writeFile(configPath, next, "utf8");
+  }
+  return { tool: "cursor", status: "registered", path: configPath, detail: `registered ${SERVER_NAME} in Cursor config` };
+}
+
+function yamlString(value: string): string {
+  if (!value.trim()) return '""';
+  if (/^[A-Za-z0-9_./:-]+$/.test(value)) return value;
+  return JSON.stringify(value);
+}
+
+function renderContinueServer(server: ServerCommand): string {
+  return [
+    "  - name: spec-coding",
+    `    command: ${yamlString(server.command)}`,
+    "    args:",
+    ...server.args.map((arg) => `      - ${yamlString(arg)}`)
+  ].join("\n");
+}
+
+function renderContinueConfig(server: ServerCommand): string {
+  return [
+    "name: spec-coding",
+    "version: 0.0.1",
+    "schema: v1",
+    "mcpServers:",
+    renderContinueServer(server)
+  ].join("\n");
+}
+
+function upsertContinueConfig(content: string, server: ServerCommand): string {
+  const normalized = content.replace(/\r\n/g, "\n").trimEnd();
+  if (!normalized) return `${renderContinueConfig(server)}\n`;
+  if (!/^\s*mcpServers:\s*$/m.test(normalized)) {
+    return `${normalized}\n\nmcpServers:\n${renderContinueServer(server)}\n`;
+  }
+  const lines = normalized.split("\n");
+  const sectionIndex = lines.findIndex((line) => line.trim() === "mcpServers:");
+  if (sectionIndex === -1) return `${normalized}\n\n${renderContinueServer(server)}\n`;
+  let end = lines.length;
+  for (let index = sectionIndex + 1; index < lines.length; index += 1) {
+    if (/^[^\s-]/.test(lines[index]) && lines[index].trim()) {
+      end = index;
+      break;
+    }
+  }
+  const block = renderContinueServer(server).split("\n");
+  const next = [...lines.slice(0, end), ...block, ...lines.slice(end)].join("\n");
+  return `${next.trimEnd()}\n`;
+}
+
+async function registerContinue(paths: RegistryPaths | undefined, server: ServerCommand, dryRun?: boolean): Promise<RegisterResult> {
+  const configPath = continueConfigPath(paths);
+  const existing = await pathExists(configPath) ? await fs.readFile(configPath, "utf8") : "";
+  const next = upsertContinueConfig(existing, server);
+  if (!dryRun) {
+    await ensureDir(path.dirname(configPath));
+    await fs.writeFile(configPath, next, "utf8");
+  }
+  return { tool: "continue", status: "registered", path: configPath, detail: `registered ${SERVER_NAME} in Continue config` };
+}
+
+async function registerWindsurf(paths: RegistryPaths | undefined, server: ServerCommand, dryRun?: boolean): Promise<RegisterResult> {
+  const configPath = windsurfConfigPath(paths);
+  const existing = await pathExists(configPath) ? await fs.readFile(configPath, "utf8") : "";
+  const next = upsertJsonMcpServers(existing, server);
+  if (!dryRun) {
+    await ensureDir(path.dirname(configPath));
+    await fs.writeFile(configPath, next, "utf8");
+  }
+  return { tool: "windsurf", status: "registered", path: configPath, detail: `registered ${SERVER_NAME} in Windsurf config` };
+}
+
 async function registerClaude(server: ServerCommand, dryRun?: boolean): Promise<RegisterResult> {
   const args = ["mcp", "add", "--transport", "stdio", "--scope", "user", SERVER_NAME, "--", server.command, ...server.args];
+  const executable = (await resolveCommandPath("claude")) ?? "claude";
   if (dryRun) {
-    return { tool: "claude", status: "registered", detail: `would run: claude ${args.join(" ")}` };
+    return { tool: "claude", status: "registered", detail: `would run: ${executable} ${args.join(" ")}` };
   }
   try {
-    await execFileAsync("claude", args, { windowsHide: true });
+    await execFileAsync(executable, args, { windowsHide: true });
     return { tool: "claude", status: "registered", detail: `registered ${SERVER_NAME} with claude mcp add` };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -224,8 +382,14 @@ export async function registerTools(options: RegisterOptions): Promise<RegisterR
   for (const tool of options.tools) {
     if (tool === "codex") {
       results.push(await registerCodex(options.paths, server, options.dryRun));
+    } else if (tool === "cursor") {
+      results.push(await registerCursor(options.paths, server, options.dryRun));
+    } else if (tool === "continue") {
+      results.push(await registerContinue(options.paths, server, options.dryRun));
     } else if (tool === "opencode") {
       results.push(await registerOpenCode(options.paths, server, options.dryRun));
+    } else if (tool === "windsurf") {
+      results.push(await registerWindsurf(options.paths, server, options.dryRun));
     } else {
       results.push(await registerClaude(server, options.dryRun));
     }

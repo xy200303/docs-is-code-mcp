@@ -3,6 +3,8 @@ import { fileURLToPath } from "node:url";
 import { detectProgrammingTools, registerTools, type ToolId } from "./registry.js";
 import { serveStdio } from "../server.js";
 
+const VERSION = "0.1.5";
+
 function printHelp(): void {
   console.log([
     "specc - Spec Coding MCP",
@@ -11,8 +13,13 @@ function printHelp(): void {
     "  specc              Start the MCP server over stdio",
     "  specc serve        Start the MCP server over stdio",
     "  specc init         Register this MCP server with AI coding tools",
+    "  specc --version    Print the CLI version",
     "  specc --help       Show help"
   ].join("\n"));
+}
+
+function printVersion(): void {
+  console.log(VERSION);
 }
 
 async function runInit(): Promise<void> {
@@ -55,16 +62,20 @@ async function runInit(): Promise<void> {
 
 export async function runCli(argv = process.argv): Promise<void> {
   const command = argv[2];
-  if (!command || command === "serve") {
-    await serveStdio();
+  if (!command || command === "--help" || command === "-h" || command === "help") {
+    printHelp();
+    return;
+  }
+  if (command === "--version" || command === "-v" || command === "version") {
+    printVersion();
     return;
   }
   if (command === "init") {
     await runInit();
     return;
   }
-  if (command === "--help" || command === "-h" || command === "help") {
-    printHelp();
+  if (command === "serve") {
+    await serveStdio();
     return;
   }
   throw new Error(`Unknown command: ${command}`);

@@ -1,7 +1,7 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import { engineeringConstraints, specsReadme, reviewIndex, sourceInventory, sourceReviewSpec, specTemplate, todoSpec, userPromptSpec } from "./templates.js";
-import type { GeneratedFile, ReviewResult, SpecContext, SpecItem, SpecResult, TodoItem, VerificationItem } from "./types.js";
+import { agentsMd, engineeringConstraints, specsReadme, reviewIndex, sourceInventory, sourceReviewSpec, specTemplate, todoSpec, userPromptSpec } from "./templates.js";
+import type { AgentFileResult, GeneratedFile, ReviewResult, SpecContext, SpecItem, SpecResult, TodoItem, VerificationItem } from "./types.js";
 import { scanSource, specCandidatesFromSource } from "./source-scan.js";
 import { ensureDir, listMarkdownFiles, listTextFiles, nowIso, pathExists, relativePosix, slugifyAscii, unique } from "../shared/utils.js";
 
@@ -43,6 +43,28 @@ function inferTitle(prompt: string): string {
   const firstLine = prompt.split(/\r?\n/).map((line) => line.trim()).find(Boolean);
   if (!firstLine) return "未命名 Spec";
   return firstLine.replace(/^#+\s*/, "").slice(0, 48);
+}
+
+async function writeRootFile(root: string, relativeFile: string, content: string, overwrite: boolean, files: GeneratedFile[]): Promise<void> {
+  const absolute = path.join(root, relativeFile);
+  await ensureDir(path.dirname(absolute));
+  const normalized = content.trimEnd() + "\n";
+  if (await pathExists(absolute)) {
+    const old = await fs.readFile(absolute, "utf8");
+    if (old === normalized) {
+      files.push({ path: relativePosix(root, absolute), status: "skipped", reason: "内容未变化" });
+      return;
+    }
+    if (!overwrite) {
+      files.push({ path: relativePosix(root, absolute), status: "skipped", reason: "文件已存在且 overwrite=false" });
+      return;
+    }
+    await fs.writeFile(absolute, normalized, "utf8");
+    files.push({ path: relativePosix(root, absolute), status: "updated" });
+    return;
+  }
+  await fs.writeFile(absolute, normalized, "utf8");
+  files.push({ path: relativePosix(root, absolute), status: "created" });
 }
 
 export async function initSpecs(input: { projectRoot: string; specsDir?: string; projectName?: string; overwrite?: boolean }): Promise<SpecResult> {
@@ -171,6 +193,22 @@ export async function createTodoFromPrompt(input: {
     nextSteps: [
       `审阅并修改 ${relative}。`,
       "调用 spec_context 让 Codex 按未完成 TODO 顺序执行任务。"
+    ]
+  };
+}
+
+export async function generateAgentsFile(input: { projectRoot: string; projectName?: string; overwrite?: boolean }): Promise<AgentFileResult> {
+  const root = path.resolve(input.projectRoot);
+  const projectName = inferProjectName(root, input.projectName);
+  const files: GeneratedFile[] = [];
+  await writeRootFile(root, "AGENTS.md", agentsMd(projectName), input.overwrite ?? false, files);
+  return {
+    projectRoot: root,
+    file: "AGENTS.md",
+    files,
+    nextSteps: [
+      "把 AGENTS.md 放在项目根目录，作为模型的默认工程规范入口。",
+      "必要时继续维护 specs/ 和 AGENTS.md 的一致性。"
     ]
   };
 }
@@ -328,7 +366,7 @@ export async function specContext(input: { projectRoot: string; specsDir?: strin
     "每完成一个 TODO，必须同步把对应任务勾选为 [x]；无法完成时保留未勾选并写清阻塞原因。",
     "先阅读 spec 的目标、行为规则、验收标准和代码线索，再搜索代码。",
     "按 spec 更新实现和测试；不要根据旧对话记忆扩展范围。",
-    "必须遵守 Engineering Constraints（含 KISS、DRY、SOLID、Boy Scout Rule）；若 spec/TODO 与工程质量约束冲突，先保持实现边界清晰并向用户说明取舍。",
+    "必须遵守 Engineering Constraints（含 KISS、YAGNI、Clean Code、Clean Architecture、DDD、SOLID、SoC、Fail Fast、Boy Scout Rule）；若 spec/TODO 与工程质量约束冲突，先保持实现边界清晰并向用户说明取舍。",
     "新建或重写代码文件时，必须在文件顶部写文件注释；复杂逻辑必须写说明性注释，但不要写废话。",
     "优先使用成熟库而不是自己手搓已有轮子；如果要引入新库，先评估必要性、维护状态和影响。",
     "遇到不明确、影响面大或高风险的方案时，先向用户询问和确认，不要自行拍板。",

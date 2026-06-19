@@ -23,7 +23,6 @@
   ],
   "files": [
     "dist",
-    "!dist/cli/smoke.*",
     "README.md",
     "LICENSE",
     "package.json"
@@ -36,7 +35,7 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
     "dev": "tsx src/index.ts",
-    "smoke": "node dist/cli/smoke.js",
+    "smoke": "tsx test/smoke.ts",
     "test": "npm run build && npm run smoke",
     "docs:dev": "npx -y vitepress@1.6.4 dev docs --host 127.0.0.1",
     "docs:build": "npx -y vitepress@1.6.4 build docs",

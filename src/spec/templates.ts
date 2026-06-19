@@ -5,21 +5,26 @@ function list(items: string[], empty = "未识别到明显线索"): string[] {
 }
 
 export const engineeringConstraints = [
-  "KISS（Keep It Simple, Stupid）：优先简单直接的实现，能少一层就少一层，避免过度设计。",
-  "DRY（Don't Repeat Yourself）：消除重复，把重复规则、流程和文本收敛到单一来源。",
-  "SOLID：面向对象设计时遵守单一职责、开闭、里氏替换、接口隔离和依赖倒置原则，避免耦合过紧。",
-  "Boy Scout Rule：每次修改都顺手让代码比发现时更整洁一点，但不要借机做无关的大重构。",
-  "文件顶部必须写文件注释，说明这个文件的职责、边界和使用场景。",
-  "复杂逻辑必须写说明性注释，解释为什么这么做；注释要有信息量，不能写废话。",
-  "能使用成熟库解决的就优先使用成熟库，不要自己手搓已有轮子；如果要引入新库，先确认必要性、维护状态和对项目的影响。",
-  "遇到不明确、影响面大或高风险的方案、边界和行为时，必须先向用户询问和确认，不要自己瞎做决定。 ",
-  "代码必须清晰、必要、可维护，避免冗余封装、废话注释、重复逻辑和为了显得复杂而增加的代码。",
-  "遵循现有项目风格、命名、框架和目录约定；没有明确收益时不要引入新的架构、依赖或抽象层。",
-  "保持职责边界清楚：不要把所有代码塞进一个文件，也不要把所有文件堆在一个目录；按功能、层次或领域拆分模块。",
-  "优先让人类和 AI 都容易阅读：函数和组件保持聚焦，输入输出明确，副作用集中，复杂逻辑拆成有名字的步骤。",
-  "新增或修改 UI 时必须符合人类直觉，交互状态完整，文案简洁，布局信息层级清楚，不用反常控件或难以发现的操作。",
-  "实现前先理解周边代码和测试；修改范围要贴合 spec/TODO，不扩散到无关重构。",
-  "涉及测试、构建、校验时应优先复用项目已有命令，并在完成说明里记录验证结果。"
+  "KISS + YAGNI：先做最简单可用的方案，不为尚未发生的需求预埋复杂度。",
+  "Clean Code：命名自解释、函数短小、低嵌套、DRY、显式优于隐式、注释只解释为什么。",
+  "Clean Architecture：领域、应用、接口、基础设施分层清晰，依赖向内，按业务能力组织模块。",
+  "DDD：业务规则放在领域模型里，用统一语言表达实体、值对象和规则。",
+  "SOLID + SoC + 组合优于继承：职责单一，关注点分离，依赖抽象而不是实现。",
+  "Fail Fast：尽早校验输入、依赖和前置条件，发现无效状态就立即报错。",
+  "测试优先：核心逻辑必须可单测，优先写可测、确定性的代码。",
+  "代码必须简单、清晰、可读、可测试，围绕业务语义保持高内聚低耦合。",
+  "高内聚低耦合：文件和目录按业务语义拆分，避免单文件堆砌和目录平铺。",
+  "向后兼容：小步修改，尽量不破坏已有 API、数据和行为契约。",
+  "成熟库优先：能用成熟库解决的就不要手搓轮子；引入新依赖前先确认必要性。",
+  "风险先确认：不明确、影响面大或高风险的方案必须先问用户，不要自行拍板。",
+  "文件顶部必须写文件注释，复杂逻辑必须写说明性注释，但不要写废话。",
+  "UI/交互必须符合人类直觉，状态完整、文案简洁、布局清楚。",
+  "遵循现有项目风格、命名、框架和目录约定；优先复用项目已有命令并记录验证结果。",
+  "Boy Scout Rule：每次修改都顺手清理一点，但不要借机做无关的大重构。",
+  "禁止在一个文件里混合 UI、业务、数据访问逻辑；禁止在领域层引用 Web / DB 框架。",
+  "禁止为了模式而模式：不要无故引入接口、工厂、泛型、抽象层。",
+  "修改已有代码时：优先局部小步重构，不改无关逻辑，不重排无意义的代码结构。",
+  "性能与资源：避免不必要的高复杂度；必要时先说明原因并补测试，不阻塞主线程，不泄露连接、内存或文件句柄。"
 ];
 
 function engineeringConstraintSection(): string[] {
@@ -30,6 +35,41 @@ function engineeringConstraintSection(): string[] {
     "",
     ...engineeringConstraints.map((item) => `- ${item}`)
   ];
+}
+
+export function agentsMd(projectName: string): string {
+  return [
+    "# AGENTS.md",
+    "",
+    `Project: ${projectName}`,
+    "",
+    "## Operating Rules",
+    "",
+    "1. Follow the project specs and TODOs before making changes.",
+    "2. Make small, focused, reversible changes.",
+    "3. Prefer simple, clear, readable, testable code.",
+    "4. Use Clean Code, Clean Architecture, DDD, SOLID, SoC, Fail Fast, KISS, YAGNI.",
+    "5. Keep dependencies pointing inward; keep domain logic independent from frameworks.",
+    "6. Prefer mature libraries over hand-rolled implementations.",
+    "7. Ask the user before making unclear, risky, or high-impact decisions.",
+    "8. Update TODOs and record checkpoints after each completed item.",
+    "9. Keep code organized by business meaning, not by technical clutter.",
+    "10. Preserve backward compatibility unless explicitly requested otherwise.",
+    "11. Do not mix UI, business, and data access logic in one file; do not put domain logic on Web or DB frameworks.",
+    "12. Do not introduce interfaces, factories, generics, or abstraction layers without clear benefit.",
+    "13. Prefer local refactors over unrelated reshuffles; keep performance and resource usage explicit.",
+    "",
+    "## Engineering Principles",
+    "",
+    ...engineeringConstraints.map((item) => `- ${item}`),
+    "",
+    "## Project Notes",
+    "",
+    "- Configuration should be centralized.",
+    "- Example code and production code should stay separate.",
+    "- Readme and decision notes should stay up to date.",
+    "- Tests live in `test/` and core logic should remain easy to unit test."
+  ].join("\n");
 }
 
 export function specsReadme(projectName: string): string {

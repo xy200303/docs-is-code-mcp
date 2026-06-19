@@ -3,6 +3,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import {
   createSpecFromPrompt,
+  generateAgentsFile,
   createTodoFromPrompt,
   generateSpecsFromSource,
   initSpecs,
@@ -12,7 +13,7 @@ import {
   recordSpecReviewResult,
   specContext
 } from "./spec/service.js";
-import type { GeneratedFile, ReviewResult, SpecItem, SpecResult } from "./spec/types.js";
+import type { AgentFileResult, GeneratedFile, ReviewResult, SpecItem, SpecResult } from "./spec/types.js";
 
 const RootSchema = z.object({
   projectRoot: z.string().describe("Absolute or relative project root path."),
@@ -116,6 +117,23 @@ function renderReviewResult(title: string, result: ReviewResult): string {
   ].join("\n");
 }
 
+function renderAgentFileResult(title: string, result: AgentFileResult): string {
+  return [
+    `# ${title}`,
+    "",
+    `项目：${code(result.projectRoot)}`,
+    `文件：${code(result.file)}`,
+    "",
+    "## 文件",
+    "",
+    ...(result.files.length ? result.files.map(fileStatus) : ["- 无文件变更"]),
+    "",
+    "## 下一步",
+    "",
+    ...result.nextSteps.map((step) => `- ${step}`)
+  ].join("\n");
+}
+
 export function createSpecCodingServer(): McpServer {
   const server = new McpServer({
     name: "spec-coding",
@@ -149,6 +167,19 @@ export function createSpecCodingServer(): McpServer {
     },
     async ({ projectRoot, specsDir, projectName, overwrite, includePatterns, excludePatterns, maxFiles }) =>
       textResult(renderSpecResult("已从源码反推 Specs", await generateSpecsFromSource({ projectRoot, specsDir, projectName, overwrite, includePatterns, excludePatterns, maxFiles })))
+  );
+
+  server.registerTool(
+    "spec_generate_agents",
+    {
+      description: "Generate or update AGENTS.md in the project root with the project's engineering principles and operating rules.",
+      inputSchema: RootSchema.extend({
+        projectName: z.string().optional(),
+        overwrite: z.boolean().default(false)
+      })
+    },
+    async ({ projectRoot, projectName, overwrite }) =>
+      textResult(renderAgentFileResult("AGENTS.md 已生成", await generateAgentsFile({ projectRoot, projectName, overwrite })))
   );
 
   server.registerTool(
