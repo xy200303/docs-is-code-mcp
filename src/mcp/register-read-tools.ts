@@ -14,7 +14,8 @@ const SPEC_CONTEXT_GATE_DESCRIPTION = "This call unlocks write operations in the
 const ReadContextSchema = RootSchema.extend({
   files: z.array(z.string()).default([]).describe("Optional spec files to include. Defaults to all specs/active/*.md."),
   maxSpecChars: z.number().int().positive().default(8000),
-  candidateFileLimit: z.number().int().positive().default(40)
+  candidateFileLimit: z.number().int().positive().default(40),
+  contextMode: z.enum(["workflow", "hints", "full"]).default("workflow").describe("workflow omits source scans by default; hints adds lightweight search targets; full adds expanded source hints.")
 });
 
 export function registerReadTools(server: McpServer, guard: SessionGuardState): void {
@@ -78,8 +79,8 @@ export function registerReadTools(server: McpServer, guard: SessionGuardState): 
       description: `Return model-ready context for implementing active specs or selected review specs. ${SPEC_CONTEXT_GATE_DESCRIPTION}`,
       inputSchema: ReadContextSchema
     },
-    async ({ projectRoot, specsDir, files, maxSpecChars, candidateFileLimit }) => {
-      const context = await specContext({ projectRoot, specsDir, files, maxSpecChars, candidateFileLimit });
+    async ({ projectRoot, specsDir, files, maxSpecChars, candidateFileLimit, contextMode }) => {
+      const context = await specContext({ projectRoot, specsDir, files, maxSpecChars, candidateFileLimit, contextMode });
       markSpecContextSeen(guard);
       return textResult(context.markdown);
     }

@@ -149,6 +149,13 @@ try {
   if (!contextResult.content[0]?.text.includes("Spec Coding Context")) {
     throw new Error("Expected spec_context tool to return model-ready context.");
   }
+  if (contextResult.content[0].text.includes("Source Signals")) {
+    throw new Error("Expected default spec_context mode to omit source scan output.");
+  }
+  assertIncludesAll(contextResult.content[0].text, [
+    "当前没有可执行任务",
+    "当前没有 open TODO，也没有 selected spec；不要开始实现"
+  ], "Expected empty spec_context to stop the model from starting implementation");
   const createdAfterContext = await harness.call("spec_create", {
     projectRoot: root,
     specsDir: "specs",
@@ -186,6 +193,7 @@ try {
     "src/spec/context.ts",
     "src/spec/context-source.ts",
     "src/spec/context-markdown.ts",
+    "src/spec/behavior-record.ts",
     "src/spec/checkpoint-writer.ts",
     "src/spec/review-result-writer.ts",
     "src/spec/done-writer.ts"
@@ -206,6 +214,13 @@ try {
   if (!created.specs[0]?.includes("specs/active")) {
     throw new Error("Expected prompt-created spec under specs/active.");
   }
+  const createdSpecText = await readFile(path.join(root, created.specs[0]), "utf8");
+  assertIncludesAll(createdSpecText, [
+    "## AI 实现计划",
+    "## 实际行为记录",
+    "分支处理",
+    "默认值/配置"
+  ], "Expected active spec template to guide implementation planning and behavior recording");
 
   const todo = await createTodoFromPrompt({
     projectRoot: root,
@@ -216,6 +231,13 @@ try {
   if (!todo.specs[0]?.includes("specs/todo")) {
     throw new Error("Expected prompt-created TODO under specs/todo.");
   }
+  const todoSpecText = await readFile(path.join(root, todo.specs[0]), "utf8");
+  assertIncludesAll(todoSpecText, [
+    "## 实际行为记录",
+    "分支条件",
+    "默认参数行为",
+    "边界处理结果"
+  ], "Expected TODO spec template to guide final behavior recording");
 
   const listed = await listSpecs({ projectRoot: root, specsDir: "specs" });
   if (listed.active.length !== 1 || listed.todo.length !== 1 || listed.review.length === 0) {
@@ -230,13 +252,25 @@ try {
     "Engineering Constraints",
     "Business Confirmation Rules",
     "Current Task Protocol",
-    "Source Signals",
-    "package scripts",
+    "Context mode：`workflow`",
     ...engineeringConstraintBullets(),
     ...businessConfirmationBullets(),
     ...currentTaskInstructionBullets(),
     "高风险业务描述不完整时，停止实现"
   ], "Expected spec context to include required engineering constraints");
+  if (context.markdown.includes("Source Signals") || context.markdown.includes("Suggested Search Targets")) {
+    throw new Error("Expected workflow mode to omit source scan and search target output.");
+  }
+
+  const contextWithHints = await specContext({ projectRoot: root, specsDir: "specs", contextMode: "full" });
+  assertIncludesAll(contextWithHints.markdown, [
+    "Context mode：`full`",
+    "Source Signals",
+    "Suggested Search Targets",
+    "这些条目只是搜索线索，不是源码事实",
+    "Source Hints",
+    "package scripts"
+  ], "Expected full spec context to include source hints as non-authoritative search targets");
 
   const checkpoint = await recordSpecCheckpoint({
     projectRoot: root,
@@ -246,13 +280,22 @@ try {
     completedTodos: ["补充禁用态字段"],
     changedFiles: ["src/routes/users.ts", "tests/users.test.ts"],
     verification: [{ command: "npm test", status: "passed", note: "smoke" }],
+    behaviorRecords: [{
+      scenario: "禁用用户",
+      condition: "用户 disabled 为 true",
+      result: "不能发起敏感操作",
+      defaultBehavior: "未禁用用户保持原流程",
+      edgeCase: "缺少禁用态字段时按未禁用处理",
+      verification: "npm test",
+      relatedFiles: ["src/routes/users.ts", "tests/users.test.ts"]
+    }],
     risks: ["禁用态敏感操作仍需后续覆盖"]
   });
   if (!checkpoint.nextSteps.some((step) => step.includes("已勾选 1 个 TODO"))) {
     throw new Error("Expected checkpoint to mark one TODO.");
   }
   const checkpointText = await readFile(path.join(root, todo.specs[0]), "utf8");
-  if (!checkpointText.includes("- [x] 补充禁用态字段") || !checkpointText.includes("## Checkpoint") || !checkpointText.includes("### Summary") || !checkpointText.includes("passed `npm test`")) {
+  if (!checkpointText.includes("- [x] 补充禁用态字段") || !checkpointText.includes("## Checkpoint") || !checkpointText.includes("### Summary") || !checkpointText.includes("passed `npm test`") || !checkpointText.includes("用户 disabled 为 true") || !checkpointText.includes("不能发起敏感操作") || !checkpointText.includes("| 场景 | 条件 | 结果 | 默认行为 | 边界处理 | 验证 | 关联文件 |")) {
     throw new Error("Expected checkpoint to update TODO and append verification.");
   }
 
@@ -265,19 +308,46 @@ try {
     incompleteTodos: ["更新用户详情测试"],
     changedFiles: ["src/routes/users.ts"],
     verification: [{ command: "npm test", status: "passed" }],
+    behaviorRecords: [{
+      scenario: "默认禁用态",
+      condition: "接口未返回禁用态",
+      result: "按 false 处理",
+      verification: "npm test"
+    }],
     blockers: ["测试覆盖待补齐"]
   });
   if (reviewResult.incompleteTodos.length !== 1 || reviewResult.completedTodos.length !== 1) {
     throw new Error("Expected review result to return structured TODO lists.");
   }
   const reviewText = await readFile(path.join(root, todo.specs[0]), "utf8");
-  if (!reviewText.includes("## Review Result") || !reviewText.includes("### Incomplete TODOs") || !reviewText.includes("测试覆盖待补齐")) {
+  if (!reviewText.includes("## Review Result") || !reviewText.includes("### Incomplete TODOs") || !reviewText.includes("测试覆盖待补齐") || !reviewText.includes("接口未返回禁用态") || !reviewText.includes("按 false 处理")) {
     throw new Error("Expected review result to append structured review output.");
   }
 
-  const done = await markSpecDone({ projectRoot: root, specsDir: "specs", file: created.specs[0], note: "smoke verified" });
+  const done = await markSpecDone({
+    projectRoot: root,
+    specsDir: "specs",
+    file: created.specs[0],
+    note: "smoke verified",
+    behaviorRecords: [{
+      scenario: "权限不足",
+      condition: "当前用户没有敏感操作权限",
+      result: "返回可理解错误",
+      edgeCase: "不产生未声明副作用",
+      verification: "npm test",
+      relatedFiles: ["src/routes/users.ts"]
+    }]
+  });
   if (!done.specs[0]?.includes("specs/done")) {
     throw new Error("Expected done spec to move under specs/done.");
+  }
+  const doneText = await readFile(path.join(root, done.specs[0]), "utf8");
+  if (!doneText.includes("- status: done") || !doneText.includes("## 最终行为契约") || !doneText.includes("当前用户没有敏感操作权限") || !doneText.includes("返回可理解错误")) {
+    throw new Error("Expected archived spec meta status to be done.");
+  }
+  const listedAfterDone = await listSpecs({ projectRoot: root, specsDir: "specs" });
+  if (listedAfterDone.done[0]?.status !== "done") {
+    throw new Error("Expected done spec list status to be done.");
   }
 
   const originalLog = console.log;

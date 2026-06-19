@@ -59,36 +59,36 @@ export function registerWriteTools(server: McpServer, guard: SessionGuardState):
   server.registerTool(
     "spec_checkpoint",
     {
-      description: specContextRequiredDescription("Record implementation progress back into a spec or TODO file, including completed TODOs, changed files, verification, risks, and blockers."),
+      description: specContextRequiredDescription("Record implementation progress back into a spec or TODO file, including completed TODOs, changed files, verification, actual behavior notes, risks, and blockers."),
       inputSchema: SpecCheckpointSchema
     },
-    async ({ projectRoot, specsDir, file, summary, completedTodos, changedFiles, verification, risks, blockers, note }) =>
+    async ({ projectRoot, specsDir, file, summary, completedTodos, changedFiles, verification, behaviorRecords, risks, blockers, note }) =>
       withSpecContext(guard, async () =>
-        textResult(renderSpecResult("Spec Checkpoint 已记录", await recordSpecCheckpoint({ projectRoot, specsDir, file, summary, completedTodos, changedFiles, verification, risks, blockers, note })))
+        textResult(renderSpecResult("Spec Checkpoint 已记录", await recordSpecCheckpoint({ projectRoot, specsDir, file, summary, completedTodos, changedFiles, verification, behaviorRecords, risks, blockers, note })))
       )
   );
 
   server.registerTool(
     "spec_review_result",
     {
-      description: specContextRequiredDescription("Write a structured implementation result back into a spec, including completed and incomplete TODOs, verification, changed files, risks, and blockers."),
+      description: specContextRequiredDescription("Write a structured implementation result back into a spec, including completed and incomplete TODOs, verification, actual behavior notes, changed files, risks, and blockers."),
       inputSchema: SpecReviewResultSchema
     },
-    async ({ projectRoot, specsDir, file, summary, completedTodos, incompleteTodos, changedFiles, verification, risks, blockers, note }) =>
+    async ({ projectRoot, specsDir, file, summary, completedTodos, incompleteTodos, changedFiles, verification, behaviorRecords, risks, blockers, note }) =>
       withSpecContext(guard, async () =>
-        textResult(renderReviewResult("Spec Review Result 已记录", await recordSpecReviewResult({ projectRoot, specsDir, file, summary, completedTodos, incompleteTodos, changedFiles, verification, risks, blockers, note })))
+        textResult(renderReviewResult("Spec Review Result 已记录", await recordSpecReviewResult({ projectRoot, specsDir, file, summary, completedTodos, incompleteTodos, changedFiles, verification, behaviorRecords, risks, blockers, note })))
       )
   );
 
   server.registerTool(
     "spec_done",
     {
-      description: specContextRequiredDescription("Move an implemented spec into specs/done after code and tests have been verified."),
+      description: specContextRequiredDescription("Move an implemented spec into specs/done after code and tests have been verified, preserving final actual behavior notes."),
       inputSchema: SpecDoneSchema
     },
-    async ({ projectRoot, specsDir, file, note }) =>
+    async ({ projectRoot, specsDir, file, behaviorRecords, note }) =>
       withSpecContext(guard, async () =>
-        textResult(renderSpecResult("Spec 已完成", await markSpecDone({ projectRoot, specsDir, file, note })))
+        textResult(renderSpecResult("Spec 已完成", await markSpecDone({ projectRoot, specsDir, file, behaviorRecords, note })))
       )
   );
 }

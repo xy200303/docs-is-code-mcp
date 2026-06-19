@@ -61,6 +61,16 @@ export interface VerificationItem {
   note?: string;
 }
 
+export interface BehaviorRecord {
+  scenario: string;
+  condition: string;
+  result: string;
+  defaultBehavior?: string;
+  edgeCase?: string;
+  verification?: string;
+  relatedFiles?: string[];
+}
+
 export interface TodoResult {
   task: string;
   status: "done" | "blocked";
@@ -78,9 +88,12 @@ export interface SpecItem {
   updatedAt?: string;
 }
 
+export type ContextMode = "workflow" | "hints" | "full";
+
 export interface SpecContext {
   projectRoot: string;
   specsDir: string;
+  contextMode: ContextMode;
   source?: SourceScanSummary;
   activeSpecs: SpecItem[];
   reviewSpecs: SpecItem[];
@@ -98,6 +111,7 @@ export interface ReviewResult {
   completedTodos: string[];
   incompleteTodos: string[];
   verification: VerificationItem[];
+  behaviorRecords: BehaviorRecord[];
   changedFiles: string[];
   risks: string[];
   blockers: string[];

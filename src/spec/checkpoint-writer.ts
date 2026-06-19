@@ -2,8 +2,9 @@
 import { promises as fs } from "node:fs";
 import { bulletList, markCompletedTodos, normalizeTodoText, verificationLines } from "./todo-files.js";
 import { resolveInsideRoot } from "./spec-files.js";
-import type { SpecResult, VerificationItem } from "./types.js";
+import type { BehaviorRecord, SpecResult, VerificationItem } from "./types.js";
 import { nowIso, relativePosix } from "../shared/utils.js";
+import { behaviorRecordLines } from "./behavior-record.js";
 
 export async function recordSpecCheckpoint(input: {
   projectRoot: string;
@@ -13,6 +14,7 @@ export async function recordSpecCheckpoint(input: {
   completedTodos?: string[];
   changedFiles?: string[];
   verification?: VerificationItem[];
+  behaviorRecords?: BehaviorRecord[];
   risks?: string[];
   blockers?: string[];
   note?: string;
@@ -47,6 +49,8 @@ export async function recordSpecCheckpoint(input: {
     "### Verification",
     "",
     ...verificationLines(input.verification ?? []),
+    "",
+    ...behaviorRecordLines("### 实际行为记录", input.behaviorRecords),
     "",
     "### Risks",
     "",

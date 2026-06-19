@@ -93,10 +93,10 @@ specs/
 | `spec_create` | 根据用户描述创建 active spec |
 | `spec_todo` | 根据用户描述创建可执行 TODO 清单 |
 | `spec_list` | 列出 review、active、todo、done specs |
-| `spec_context` | 返回给 Codex 实现代码所需的 spec 和 TODO 上下文 |
-| `spec_checkpoint` | 实现后记录完成 TODO、变更文件、验证结果、风险和阻塞 |
-| `spec_review_result` | 结构化记录完成、阻塞、验证命令和关联文件 |
-| `spec_done` | 验证通过后把 spec 移到 done |
+| `spec_context` | 返回 spec、TODO、工程约束和可选搜索线索；默认不替模型扫描源码 |
+| `spec_checkpoint` | 实现后记录完成 TODO、变更文件、验证结果、实际行为、风险和阻塞 |
+| `spec_review_result` | 结构化记录完成、阻塞、验证命令、关联文件和实际行为 |
+| `spec_done` | 验证通过后把 spec 移到 done，并保留最终实际行为记录 |
 
 ## 推荐工作流
 
@@ -127,6 +127,8 @@ specs/
 7. 阶段性完成后调用 `spec_checkpoint` 记录完成情况。
 8. 验证通过后调用 `spec_done`。
 
+`spec_context` 默认使用 `contextMode: "workflow"`，只输出任务流程、spec/TODO 和约束。需要源码线索时显式传入 `contextMode: "hints"`；需要完整源码扫描线索时再使用 `contextMode: "full"`。这些线索只是搜索入口，不是事实来源，模型修改前必须自行读取相关文件确认。
+
 ### 写操作硬约束
 
 `spec_create`、`spec_todo`、`spec_generate_agents`、`spec_checkpoint`、`spec_review_result`、`spec_done` 都要求当前会话先调用过 `spec_context`。
@@ -155,7 +157,11 @@ TODO 可以放在 `specs/todo/*.md`，也可以写在 active spec 的 `## TODO` 
 - 已完成并自动勾选的 TODO
 - 本次变更文件
 - 验证命令和结果
+- 实际行为记录：业务分支条件、默认参数行为、边界处理结果
+- 结构化 `behaviorRecords`：场景、条件、结果、默认行为、边界处理、验证和关联文件
 - 已知风险
+
+`spec_done` 会把结构化行为记录渲染为 `## 最终行为契约`。如果没有提供 `behaviorRecords`，工具会在 next steps 中提示补充分支条件、默认参数行为、边界处理和验证结果。
 - 阻塞项
 
 它适合复杂项目里的阶段性开发，让下一轮 AI 或人类能直接看到已经完成什么、验证过什么、还剩什么。

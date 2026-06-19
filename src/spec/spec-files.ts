@@ -53,7 +53,7 @@ export async function listSpecsIn(root: string, specsDir: string, subdir: string
     items.push({
       file: relativePosix(root, absolute),
       title: titleFromMarkdown(text, path.basename(absolute, ".md")),
-      status: readMeta(text, "status", subdir),
+      status: subdir === "done" ? "done" : readMeta(text, "status", subdir),
       source: readMeta(text, "source", subdir),
       updatedAt: stat.mtime.toISOString()
     });

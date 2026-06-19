@@ -2,8 +2,9 @@
 import { promises as fs } from "node:fs";
 import { bulletList, verificationLines } from "./todo-files.js";
 import { resolveInsideRoot } from "./spec-files.js";
-import type { ReviewResult } from "./types.js";
+import type { BehaviorRecord, ReviewResult } from "./types.js";
 import { nowIso, relativePosix } from "../shared/utils.js";
+import { behaviorRecordLines } from "./behavior-record.js";
 
 export async function recordSpecReviewResult(input: {
   projectRoot: string;
@@ -14,6 +15,7 @@ export async function recordSpecReviewResult(input: {
   incompleteTodos?: string[];
   changedFiles?: string[];
   verification?: ReviewResult["verification"];
+  behaviorRecords?: BehaviorRecord[];
   risks?: string[];
   blockers?: string[];
   note?: string;
@@ -45,6 +47,8 @@ export async function recordSpecReviewResult(input: {
     "",
     ...verificationLines(input.verification ?? []),
     "",
+    ...behaviorRecordLines("### 实际行为记录", input.behaviorRecords),
+    "",
     "### Risks",
     "",
     ...bulletList(input.risks ?? [], "无"),
@@ -60,6 +64,7 @@ export async function recordSpecReviewResult(input: {
     completedTodos: input.completedTodos ?? [],
     incompleteTodos: input.incompleteTodos ?? [],
     verification: input.verification ?? [],
+    behaviorRecords: input.behaviorRecords ?? [],
     changedFiles: input.changedFiles ?? [],
     risks: input.risks ?? [],
     blockers: input.blockers ?? []

@@ -2,8 +2,9 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { resolveInsideRoot } from "./spec-files.js";
-import type { SpecResult } from "./types.js";
+import type { BehaviorRecord, SpecResult } from "./types.js";
 import { nowIso, pathExists, relativePosix } from "../shared/utils.js";
+import { behaviorRecordLines, hasBehaviorRecords } from "./behavior-record.js";
 
 async function unusedDoneFile(doneDir: string, sourceFile: string): Promise<string> {
   const parsed = path.parse(sourceFile);
@@ -16,21 +17,30 @@ async function unusedDoneFile(doneDir: string, sourceFile: string): Promise<stri
   return target;
 }
 
-export async function markSpecDone(input: { projectRoot: string; specsDir?: string; file: string; note?: string }): Promise<SpecResult> {
+function markArchivedStatus(text: string): string {
+  if (/^-\s*status:\s*.+?\s*$/im.test(text)) {
+    return text.replace(/^-\s*status:\s*.+?\s*$/im, "- status: done");
+  }
+  return text;
+}
+
+export async function markSpecDone(input: { projectRoot: string; specsDir?: string; file: string; note?: string; behaviorRecords?: BehaviorRecord[] }): Promise<SpecResult> {
   const root = input.projectRoot;
   const specsDir = input.specsDir ?? "specs";
   const source = resolveInsideRoot(root, input.file, "Spec file");
   const doneDir = path.join(root, specsDir, "done");
   await fs.mkdir(doneDir, { recursive: true });
   const target = await unusedDoneFile(doneDir, path.basename(source));
-  const text = await fs.readFile(source, "utf8");
+  const text = markArchivedStatus(await fs.readFile(source, "utf8"));
   const doneText = [
     text.trimEnd(),
     "",
     "## Done",
     "",
     `- doneAt: ${nowIso()}`,
-    input.note ? `- note: ${input.note}` : "- note: verified by user/Codex"
+    input.note ? `- note: ${input.note}` : "- note: verified by user/Codex",
+    "",
+    ...behaviorRecordLines("## 最终行为契约", input.behaviorRecords)
   ].join("\n");
   await fs.writeFile(target, `${doneText}\n`, "utf8");
   await fs.rm(source);
@@ -39,6 +49,11 @@ export async function markSpecDone(input: { projectRoot: string; specsDir?: stri
     specsDir,
     files: [{ path: relativePosix(root, target), status: "created" }],
     specs: [relativePosix(root, target)],
-    nextSteps: ["Spec 已归档到 done/。"]
+    nextSteps: [
+      "Spec 已归档到 done/。",
+      ...(hasBehaviorRecords(input.behaviorRecords)
+        ? ["最终行为契约已记录。"]
+        : ["Warning: 未提供最终行为契约；请补充分支条件、默认参数行为、边界处理和验证结果。"])
+    ]
   };
 }

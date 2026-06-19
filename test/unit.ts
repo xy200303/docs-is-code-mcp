@@ -52,11 +52,22 @@ async function testCheckpointWriter(): Promise<void> {
       completedTodos: ["补充字段", "不存在的 TODO"],
       changedFiles: ["src/demo.ts"],
       verification: [{ command: "npm test", status: "passed" }],
+      behaviorRecords: [{
+        scenario: "字段补充",
+        condition: "字段存在",
+        result: "返回新值",
+        defaultBehavior: "字段缺失时保持旧行为",
+        verification: "npm test",
+        relatedFiles: ["src/demo.ts"]
+      }],
       risks: ["剩余测试待补"]
     });
     const nextText = await readFile(file, "utf8");
     assertIncludes(nextText, "- [x] 补充字段", "Expected checkpoint to mark matched TODO.");
     assertIncludes(nextText, "- [ ] 更新测试", "Expected checkpoint to preserve open TODO.");
+    assertIncludes(nextText, "### 实际行为记录", "Expected checkpoint to include behavior records.");
+    assertIncludes(nextText, "| 场景 | 条件 | 结果 | 默认行为 | 边界处理 | 验证 | 关联文件 |", "Expected checkpoint behavior records to render as a table.");
+    assertIncludes(nextText, "字段缺失时保持旧行为", "Expected checkpoint to record actual behavior.");
     assert(result.nextSteps.some((step) => step.includes("未匹配")), "Expected unmatched TODO next step.");
   } finally {
     await rm(root, { recursive: true, force: true });
@@ -83,20 +94,31 @@ async function testDoneWriterAvoidsOverwrites(): Promise<void> {
     const existingDoneFile = path.join(root, "specs", "done", "demo.md");
     await mkdir(path.dirname(todoFile), { recursive: true });
     await mkdir(path.dirname(existingDoneFile), { recursive: true });
-    await writeFile(todoFile, "# New Demo\n", "utf8");
+    await writeFile(todoFile, "# New Demo\n\n## Meta\n\n- status: todo\n- source: user-prompt\n", "utf8");
     await writeFile(existingDoneFile, "# Existing Demo\n", "utf8");
 
     const result = await markSpecDone({
       projectRoot: root,
       specsDir: "specs",
       file: "specs/todo/demo.md",
-      note: "unit"
+      note: "unit",
+      behaviorRecords: [{
+        scenario: "默认配置",
+        condition: "未传配置",
+        result: "使用系统默认值",
+        verification: "unit"
+      }]
     });
 
     const existingDoneText = await readFile(existingDoneFile, "utf8");
     const archivedText = await readFile(path.join(root, "specs", "done", "demo-2.md"), "utf8");
     assert(existingDoneText === "# Existing Demo\n", "Expected existing done spec to be preserved.");
     assertIncludes(archivedText, "# New Demo", "Expected new done spec to use a collision-free name.");
+    assertIncludes(archivedText, "- status: done", "Expected archived spec meta status to be done.");
+    assertIncludes(archivedText, "## 最终行为契约", "Expected archived spec to include final behavior contract.");
+    assertIncludes(archivedText, "未传配置", "Expected archived spec to preserve behavior condition.");
+    assertIncludes(archivedText, "使用系统默认值", "Expected archived spec to preserve behavior result.");
+    assert(result.nextSteps.some((step) => step.includes("最终行为契约已记录")), "Expected done result to confirm behavior contract.");
     assert(result.specs[0] === "specs/done/demo-2.md", "Expected result to report collision-free done path.");
   } finally {
     await rm(root, { recursive: true, force: true });
