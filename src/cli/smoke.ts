@@ -1,7 +1,7 @@
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { createSpecFromPrompt, generateSpecsFromSource, initSpecs, listSpecs, markSpecDone, specContext } from "../spec/service.js";
+import { createSpecFromPrompt, createTodoFromPrompt, generateSpecsFromSource, initSpecs, listSpecs, markSpecDone, recordSpecCheckpoint, recordSpecReviewResult, specContext } from "../spec/service.js";
 import { registerTools, upsertCodexConfig, upsertOpenCodeConfig } from "./registry.js";
 
 const root = await mkdtemp(path.join(os.tmpdir(), "spec-coding-mcp-"));
@@ -51,14 +51,76 @@ try {
     throw new Error("Expected prompt-created spec under specs/active.");
   }
 
+  const todo = await createTodoFromPrompt({
+    projectRoot: root,
+    specsDir: "specs",
+    title: "用户详情 TODO",
+    prompt: "补充禁用态字段\n更新用户详情测试"
+  });
+  if (!todo.specs[0]?.includes("specs/todo")) {
+    throw new Error("Expected prompt-created TODO under specs/todo.");
+  }
+
   const listed = await listSpecs({ projectRoot: root, specsDir: "specs" });
-  if (listed.active.length !== 1 || listed.review.length === 0) {
-    throw new Error("Expected active and review specs to be listed.");
+  if (listed.active.length !== 1 || listed.todo.length !== 1 || listed.review.length === 0) {
+    throw new Error("Expected active, todo, and review specs to be listed.");
   }
 
   const context = await specContext({ projectRoot: root, specsDir: "specs" });
-  if (!context.markdown.includes("用户详情增加禁用态") || !context.markdown.includes("Selected Specs")) {
-    throw new Error("Expected spec context to include active spec text.");
+  if (
+    !context.markdown.includes("用户详情增加禁用态") ||
+    !context.markdown.includes("Open TODOs") ||
+    !context.markdown.includes("补充禁用态字段") ||
+    !context.markdown.includes("Engineering Constraints") ||
+    !context.markdown.includes("不要把所有代码塞进一个文件") ||
+    !context.markdown.includes("KISS（Keep It Simple, Stupid）") ||
+    !context.markdown.includes("DRY（Don't Repeat Yourself）") ||
+    !context.markdown.includes("Boy Scout Rule") ||
+    !context.markdown.includes("Source Signals") ||
+    !context.markdown.includes("package scripts") ||
+    !context.markdown.includes("文件顶部必须写文件注释") ||
+    !context.markdown.includes("成熟库解决的就优先使用成熟库") ||
+    !context.markdown.includes("先向用户询问和确认") ||
+    !context.markdown.includes("这些规则是强制约束，不是建议")
+  ) {
+    throw new Error("Expected spec context to include active spec text, open TODOs, and engineering constraints.");
+  }
+
+  const checkpoint = await recordSpecCheckpoint({
+    projectRoot: root,
+    specsDir: "specs",
+    file: todo.specs[0],
+    summary: "完成用户详情禁用态第一步",
+    completedTodos: ["补充禁用态字段"],
+    changedFiles: ["src/routes/users.ts", "tests/users.test.ts"],
+    verification: [{ command: "npm test", status: "passed", note: "smoke" }],
+    risks: ["禁用态敏感操作仍需后续覆盖"]
+  });
+  if (!checkpoint.nextSteps.some((step) => step.includes("已勾选 1 个 TODO"))) {
+    throw new Error("Expected checkpoint to mark one TODO.");
+  }
+  const checkpointText = await readFile(path.join(root, todo.specs[0]), "utf8");
+  if (!checkpointText.includes("- [x] 补充禁用态字段") || !checkpointText.includes("## Checkpoint") || !checkpointText.includes("### Summary") || !checkpointText.includes("passed `npm test`")) {
+    throw new Error("Expected checkpoint to update TODO and append verification.");
+  }
+
+  const reviewResult = await recordSpecReviewResult({
+    projectRoot: root,
+    specsDir: "specs",
+    file: todo.specs[0],
+    summary: "完成禁用态第一阶段并留下后续项",
+    completedTodos: ["补充禁用态字段"],
+    incompleteTodos: ["更新用户详情测试"],
+    changedFiles: ["src/routes/users.ts"],
+    verification: [{ command: "npm test", status: "passed" }],
+    blockers: ["测试覆盖待补齐"]
+  });
+  if (reviewResult.incompleteTodos.length !== 1 || reviewResult.completedTodos.length !== 1) {
+    throw new Error("Expected review result to return structured TODO lists.");
+  }
+  const reviewText = await readFile(path.join(root, todo.specs[0]), "utf8");
+  if (!reviewText.includes("## Review Result") || !reviewText.includes("### Incomplete TODOs") || !reviewText.includes("测试覆盖待补齐")) {
+    throw new Error("Expected review result to append structured review output.");
   }
 
   const done = await markSpecDone({ projectRoot: root, specsDir: "specs", file: created.specs[0], note: "smoke verified" });

@@ -38,6 +38,7 @@ specs/
   README.md
   review/
   active/
+  todo/
   done/
   templates/
 ```
@@ -69,5 +70,41 @@ spec_context
 AI 读取上下文后实现代码和测试。验证通过后调用：
 
 ```text
+spec_checkpoint
+```
+
+记录本次完成的 TODO、变更文件、验证结果、风险和阻塞。全部完成后调用：
+
+```text
 spec_done
 ```
+
+如果需要更正式的阶段回顾，可以调用：
+
+```text
+spec_review_result
+```
+
+`spec_context` 会自动附带全局工程质量约束，要求 AI 避免冗余代码，保持项目结构清晰、文件边界分明，并让 UI 交互符合人类直觉。这些规则是强制约束，不是建议。
+
+其中也包括：能用成熟库解决的就优先用成熟库，不要自己手搓已有轮子；遇到不明确、影响面大或高风险的方案时，先向用户询问和确认。
+
+## TODO 任务
+
+短任务可以用 TODO 清单表达：
+
+```text
+spec_todo
+```
+
+它会创建 `specs/todo/*.md`。也可以直接在 active spec 里写：
+
+```md
+## TODO
+
+- [ ] 定位相关实现。
+- [ ] 更新测试。
+- [ ] 运行验证。
+```
+
+`spec_context` 会把未勾选 TODO 提取出来，要求 AI 按顺序执行并在完成后勾选。

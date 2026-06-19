@@ -7,6 +7,7 @@ export interface GeneratedFile {
 export interface SourceScanSummary {
   totalFiles: number;
   manifests: string[];
+  packageScripts: string[];
   apiFiles: string[];
   uiFiles: string[];
   dataFiles: string[];
@@ -14,6 +15,9 @@ export interface SourceScanSummary {
   routeHints: string[];
   componentHints: string[];
   modelHints: string[];
+  exportHints: string[];
+  importHints: string[];
+  referenceHints: string[];
 }
 
 export interface SourceSpecCandidate {
@@ -36,6 +40,28 @@ export interface SpecResult {
   source?: SourceScanSummary;
 }
 
+export interface TodoItem {
+  file: string;
+  text: string;
+  checked: boolean;
+  line: number;
+}
+
+export interface VerificationItem {
+  command: string;
+  status: "passed" | "failed" | "not-run";
+  note?: string;
+}
+
+export interface TodoResult {
+  task: string;
+  status: "done" | "blocked";
+  note?: string;
+  verificationCommands?: string[];
+  relatedFiles?: string[];
+  blocker?: string;
+}
+
 export interface SpecItem {
   file: string;
   title: string;
@@ -47,10 +73,24 @@ export interface SpecItem {
 export interface SpecContext {
   projectRoot: string;
   specsDir: string;
+  source?: SourceScanSummary;
   activeSpecs: SpecItem[];
   reviewSpecs: SpecItem[];
+  todoSpecs: SpecItem[];
   selectedSpecs: Array<SpecItem & { text: string }>;
+  todos: TodoItem[];
   candidateFiles: string[];
   instructions: string[];
   markdown: string;
+}
+
+export interface ReviewResult {
+  file: string;
+  summary: string;
+  completedTodos: string[];
+  incompleteTodos: string[];
+  verification: VerificationItem[];
+  changedFiles: string[];
+  risks: string[];
+  blockers: string[];
 }

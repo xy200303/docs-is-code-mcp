@@ -68,6 +68,49 @@ function normalizeLine(value: string): string {
   return value.replace(/\s+/g, " ").trim();
 }
 
+function manifestScriptsFromContent(relativeFile: string, content: string): string[] {
+  if (path.basename(relativeFile).toLowerCase() !== "package.json") return [];
+  try {
+    const parsed = JSON.parse(content) as { scripts?: Record<string, string> };
+    return Object.entries(parsed.scripts ?? {}).map(([name, script]) => `${relativeFile} script:${name} -> ${normalizeLine(script).slice(0, 140)}`);
+  } catch {
+    return [];
+  }
+}
+
+function exportHintsFromContent(relativeFile: string, content: string): string[] {
+  const hints = new Set<string>();
+  const regexes = [
+    /export\s+(?:default\s+)?(function|class|const|let|var|interface|type)\s+([A-Za-z0-9_]+)/g,
+    /export\s*\{\s*([^}]+)\s*\}/g,
+    /module\.exports\s*=\s*\{([^}]+)\}/g,
+    /exports\.(\w+)\s*=/g
+  ];
+  for (const regex of regexes) {
+    for (const match of content.matchAll(regex)) {
+      hints.add(`${relativeFile} ${normalizeLine(match[0]).slice(0, 160)}`);
+      if (hints.size >= 16) break;
+    }
+  }
+  return [...hints];
+}
+
+function importHintsFromContent(relativeFile: string, content: string): string[] {
+  const hints = new Set<string>();
+  const regexes = [
+    /import\s+[^;]+?from\s+["'`]([^"'`]+)["'`]/g,
+    /require\(\s*["'`]([^"'`]+)["'`]\s*\)/g,
+    /from\s+["'`]([^"'`]+)["'`]/g
+  ];
+  for (const regex of regexes) {
+    for (const match of content.matchAll(regex)) {
+      hints.add(`${relativeFile} -> ${match[1]}`);
+      if (hints.size >= 20) break;
+    }
+  }
+  return [...hints];
+}
+
 function shouldIncludeSourceFile(relativeFile: string, includePatterns: string[], excludePatterns: string[]): boolean {
   const posix = relativeFile.replace(/\\/g, "/");
   if (excludePatterns.some((pattern) => posix.includes(pattern.replace(/\\/g, "/")))) return false;
@@ -155,13 +198,17 @@ export async function scanSource(input: {
   const summary: SourceScanSummary = {
     totalFiles: files.length,
     manifests: [],
+    packageScripts: [],
     apiFiles: [],
     uiFiles: [],
     dataFiles: [],
     testFiles: [],
     routeHints: [],
     componentHints: [],
-    modelHints: []
+    modelHints: [],
+    exportHints: [],
+    importHints: [],
+    referenceHints: []
   };
 
   for (const absolute of files) {
@@ -172,20 +219,24 @@ export async function scanSource(input: {
     if (kind === "ui") summary.uiFiles.push(relative);
     if (kind === "data") summary.dataFiles.push(relative);
     if (kind === "test") summary.testFiles.push(relative);
-    if (["api", "ui", "data", "code"].includes(kind)) {
+    if (["manifest", "api", "ui", "data", "code"].includes(kind)) {
       let content = "";
       try {
         content = await fs.readFile(absolute, "utf8");
       } catch {
         continue;
       }
+      if (kind === "manifest") summary.packageScripts.push(...manifestScriptsFromContent(relative, content));
       if (kind === "api" || kind === "code") summary.routeHints.push(...routeHintsFromContent(relative, content));
       if (kind === "ui" || kind === "code") summary.componentHints.push(...componentHintsFromContent(relative, content));
       if (kind === "data" || kind === "code") summary.modelHints.push(...modelHintsFromContent(relative, content));
+      summary.exportHints.push(...exportHintsFromContent(relative, content));
+      summary.importHints.push(...importHintsFromContent(relative, content));
     }
   }
 
   summary.manifests = unique(summary.manifests).slice(0, 30);
+  summary.packageScripts = unique(summary.packageScripts).slice(0, 40);
   summary.apiFiles = unique(summary.apiFiles).slice(0, 80);
   summary.uiFiles = unique(summary.uiFiles).slice(0, 80);
   summary.dataFiles = unique(summary.dataFiles).slice(0, 80);
@@ -193,6 +244,9 @@ export async function scanSource(input: {
   summary.routeHints = unique(summary.routeHints).slice(0, 60);
   summary.componentHints = unique(summary.componentHints).slice(0, 60);
   summary.modelHints = unique(summary.modelHints).slice(0, 60);
+  summary.exportHints = unique(summary.exportHints).slice(0, 80);
+  summary.importHints = unique(summary.importHints).slice(0, 80);
+  summary.referenceHints = unique([...summary.importHints, ...summary.exportHints]).slice(0, 100);
   return summary;
 }
 
@@ -205,6 +259,7 @@ function domainFromFile(file: string, fallback: string): string {
 
 export function specCandidatesFromSource(summary: SourceScanSummary): SourceSpecCandidate[] {
   const candidates: SourceSpecCandidate[] = [];
+  const packageScriptFiles = summary.packageScripts.map((item) => item.split(" script:")[0]);
   const routeGroups = new Map<string, string[]>();
   for (const hint of summary.routeHints) {
     const file = hint.split(" ")[0];
@@ -224,6 +279,7 @@ export function specCandidatesFromSource(summary: SourceScanSummary): SourceSpec
       components: summary.componentHints.filter((item) => relatedFiles.some((file) => item.startsWith(file))).slice(0, 8),
       models: summary.modelHints.filter((item) => item.includes(domain)).slice(0, 8),
       tests: summary.testFiles.filter((item) => item.toLowerCase().includes(domain)).slice(0, 8)
+        .concat(packageScriptFiles.filter((item) => item.toLowerCase().includes(domain)).slice(0, 4))
     });
   }
 
@@ -238,6 +294,7 @@ export function specCandidatesFromSource(summary: SourceScanSummary): SourceSpec
       components: summary.componentHints.slice(0, 12),
       models: [],
       tests: summary.testFiles.filter((item) => /ui|component|frontend|web/i.test(item)).slice(0, 8)
+        .concat(packageScriptFiles.slice(0, 4))
     });
   }
 
@@ -252,6 +309,7 @@ export function specCandidatesFromSource(summary: SourceScanSummary): SourceSpec
       components: [],
       models: summary.modelHints.slice(0, 12),
       tests: summary.testFiles.filter((item) => /data|model|db|repository/i.test(item)).slice(0, 8)
+        .concat(packageScriptFiles.slice(0, 4))
     });
   }
 
@@ -265,7 +323,7 @@ export function specCandidatesFromSource(summary: SourceScanSummary): SourceSpec
       routes: summary.routeHints.slice(0, 12),
       components: summary.componentHints.slice(0, 12),
       models: summary.modelHints.slice(0, 12),
-      tests: summary.testFiles.slice(0, 8)
+      tests: summary.testFiles.slice(0, 8).concat(packageScriptFiles.slice(0, 4))
     });
   }
 

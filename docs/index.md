@@ -18,6 +18,10 @@ features:
     details: 扫描现有源码，生成 review specs，让用户先看懂系统事实，再决定下一步需求。
   - title: 每次开发都有 active spec
     details: 新功能、修复、删除都先进入 specs/active，AI 按最新规格改代码。
+  - title: TODO 可以直接驱动执行
+    details: 把短任务写进 specs/todo 或 spec 的 TODO 段，AI 按未勾选项顺序完成。
+  - title: Checkpoint 记录实现事实
+    details: 阶段性完成后写回完成 TODO、变更文件、验证结果、风险和阻塞。
   - title: 完成后归档
     details: 验证通过后把 spec 移到 done，保留清楚的需求和实现记录。
 ---
@@ -40,11 +44,11 @@ features:
     </div>
     <div class="workflow-step">
       <strong>3. 实现</strong>
-      <span>AI 调用 spec_context，按最新 spec 修改代码和测试。</span>
+      <span>AI 调用 spec_context，按最新 spec 和未完成 TODO 修改代码和测试。</span>
     </div>
     <div class="workflow-step">
       <strong>4. 归档</strong>
-      <span>验证通过后调用 spec_done，把规格移入 done。</span>
+      <span>先用 spec_checkpoint 记录实现事实，验证通过后调用 spec_done。</span>
     </div>
   </div>
 

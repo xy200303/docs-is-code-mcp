@@ -4,6 +4,34 @@ function list(items: string[], empty = "未识别到明显线索"): string[] {
   return items.length ? items.map((item) => `- \`${item}\``) : [`- ${empty}`];
 }
 
+export const engineeringConstraints = [
+  "KISS（Keep It Simple, Stupid）：优先简单直接的实现，能少一层就少一层，避免过度设计。",
+  "DRY（Don't Repeat Yourself）：消除重复，把重复规则、流程和文本收敛到单一来源。",
+  "SOLID：面向对象设计时遵守单一职责、开闭、里氏替换、接口隔离和依赖倒置原则，避免耦合过紧。",
+  "Boy Scout Rule：每次修改都顺手让代码比发现时更整洁一点，但不要借机做无关的大重构。",
+  "文件顶部必须写文件注释，说明这个文件的职责、边界和使用场景。",
+  "复杂逻辑必须写说明性注释，解释为什么这么做；注释要有信息量，不能写废话。",
+  "能使用成熟库解决的就优先使用成熟库，不要自己手搓已有轮子；如果要引入新库，先确认必要性、维护状态和对项目的影响。",
+  "遇到不明确、影响面大或高风险的方案、边界和行为时，必须先向用户询问和确认，不要自己瞎做决定。 ",
+  "代码必须清晰、必要、可维护，避免冗余封装、废话注释、重复逻辑和为了显得复杂而增加的代码。",
+  "遵循现有项目风格、命名、框架和目录约定；没有明确收益时不要引入新的架构、依赖或抽象层。",
+  "保持职责边界清楚：不要把所有代码塞进一个文件，也不要把所有文件堆在一个目录；按功能、层次或领域拆分模块。",
+  "优先让人类和 AI 都容易阅读：函数和组件保持聚焦，输入输出明确，副作用集中，复杂逻辑拆成有名字的步骤。",
+  "新增或修改 UI 时必须符合人类直觉，交互状态完整，文案简洁，布局信息层级清楚，不用反常控件或难以发现的操作。",
+  "实现前先理解周边代码和测试；修改范围要贴合 spec/TODO，不扩散到无关重构。",
+  "涉及测试、构建、校验时应优先复用项目已有命令，并在完成说明里记录验证结果。"
+];
+
+function engineeringConstraintSection(): string[] {
+  return [
+    "## 工程质量约束",
+    "",
+    "这些规则是强制约束，不是建议。",
+    "",
+    ...engineeringConstraints.map((item) => `- ${item}`)
+  ];
+}
+
 export function specsReadme(projectName: string): string {
   return [
     `# ${projectName} Specs`,
@@ -23,12 +51,14 @@ export function specsReadme(projectName: string): string {
     "- `source-derived/current-code`：从现有源码反推，表示当前代码大概率已有对应实现，待用户审查。",
     "- `draft`：用户正在描述需求，尚未实现。",
     "- `active`：准备实现或正在实现。",
+    "- `todo`：轻量任务清单，AI 应按未勾选项顺序执行。",
     "- `done`：代码和测试已按该 spec 完成。",
     "",
     "## 目录",
     "",
     "- `review/`：从源码反推的待审查 specs。",
     "- `active/`：当前要实现的 specs。",
+    "- `todo/`：可执行 TODO 清单，适合拆分小任务或补充实现步骤。",
     "- `done/`：已经完成的 specs。",
     "- `templates/`：新建 feature、bugfix、removal spec 的模板。"
   ].join("\n");
@@ -65,6 +95,14 @@ export function specTemplate(kind: "feature" | "bugfix" | "removal"): string {
     "## 验收标准",
     "",
     "- 待补充可验证结果。",
+    "",
+    ...engineeringConstraintSection(),
+    "",
+    "## TODO",
+    "",
+    "- [ ] 按本 spec 定位相关代码。",
+    "- [ ] 更新实现和测试。",
+    "- [ ] 运行验证并记录结果。",
     "",
     "## 代码线索",
     "",
@@ -198,6 +236,46 @@ export function userPromptSpec(title: string, prompt: string): string {
     "## 验收标准",
     "",
     "- 代码行为符合本 spec。",
-    "- 测试覆盖正常流程和关键失败分支。"
+    "- 测试覆盖正常流程和关键失败分支。",
+    "",
+    ...engineeringConstraintSection(),
+    "",
+    "## TODO",
+    "",
+    "- [ ] 定位相关实现和测试。",
+    "- [ ] 按本 spec 修改代码。",
+    "- [ ] 新增或更新测试。",
+    "- [ ] 运行验证命令并记录结果。"
+  ].join("\n");
+}
+
+export function todoSpec(title: string, prompt: string): string {
+  const tasks = prompt
+    .split(/\r?\n/)
+    .map((line) => line.trim().replace(/^[-*]\s*/, "").replace(/^\[[ xX]\]\s*/, ""))
+    .filter(Boolean);
+  return [
+    `# ${title}`,
+    "",
+    "## Meta",
+    "",
+    "- status: todo",
+    "- source: user-prompt",
+    "",
+    "## 用户原始描述",
+    "",
+    prompt,
+    "",
+    "## TODO",
+    "",
+    ...(tasks.length ? tasks.map((task) => `- [ ] ${task}`) : ["- [ ] 待补充任务。"]),
+    "",
+    "## 执行要求",
+    "",
+    "- AI 必须按未勾选 TODO 从上到下执行。",
+    "- 完成任务后把对应项改成 `[x]`。",
+    "- 无法完成的任务保持 `[ ]`，并在任务下方写明阻塞原因。",
+    "",
+    ...engineeringConstraintSection()
   ].join("\n");
 }

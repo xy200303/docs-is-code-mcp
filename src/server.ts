@@ -3,17 +3,26 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import {
   createSpecFromPrompt,
+  createTodoFromPrompt,
   generateSpecsFromSource,
   initSpecs,
   listSpecs,
   markSpecDone,
+  recordSpecCheckpoint,
+  recordSpecReviewResult,
   specContext
 } from "./spec/service.js";
-import type { GeneratedFile, SpecItem, SpecResult } from "./spec/types.js";
+import type { GeneratedFile, ReviewResult, SpecItem, SpecResult } from "./spec/types.js";
 
 const RootSchema = z.object({
   projectRoot: z.string().describe("Absolute or relative project root path."),
   specsDir: z.string().default("specs").describe("Specs directory relative to project root.")
+});
+
+const VerificationSchema = z.object({
+  command: z.string().min(1),
+  status: z.enum(["passed", "failed", "not-run"]),
+  note: z.string().optional()
 });
 
 function textResult(markdown: string) {
@@ -72,6 +81,41 @@ function renderSpecItems(title: string, items: SpecItem[]): string[] {
   ];
 }
 
+function renderReviewResult(title: string, result: ReviewResult): string {
+  return [
+    `# ${title}`,
+    "",
+    `文件：${code(result.file)}`,
+    `摘要：${result.summary}`,
+    "",
+    "## Completed TODOs",
+    "",
+    ...(result.completedTodos.length ? result.completedTodos.map((item) => `- ${item}`) : ["- 无"]),
+    "",
+    "## Incomplete TODOs",
+    "",
+    ...(result.incompleteTodos.length ? result.incompleteTodos.map((item) => `- ${item}`) : ["- 无"]),
+    "",
+    "## Changed Files",
+    "",
+    ...(result.changedFiles.length ? result.changedFiles.map((item) => `- \`${item}\``) : ["- 未记录"]),
+    "",
+    "## Verification",
+    "",
+    ...(result.verification.length
+      ? result.verification.map((item) => `- ${item.status} \`${item.command}\`${item.note ? `（${item.note}）` : ""}`)
+      : ["- 无"]),
+    "",
+    "## Risks",
+    "",
+    ...(result.risks.length ? result.risks.map((item) => `- ${item}`) : ["- 无"]),
+    "",
+    "## Blockers",
+    "",
+    ...(result.blockers.length ? result.blockers.map((item) => `- ${item}`) : ["- 无"])
+  ].join("\n");
+}
+
 export function createSpecCodingServer(): McpServer {
   const server = new McpServer({
     name: "spec-coding",
@@ -81,7 +125,7 @@ export function createSpecCodingServer(): McpServer {
   server.registerTool(
     "spec_init",
     {
-      description: "Initialize a lightweight spec-coding directory with review, active, done, and templates folders.",
+      description: "Initialize a lightweight spec-coding directory with review, active, todo, done, and templates folders.",
       inputSchema: RootSchema.extend({
         projectName: z.string().optional(),
         overwrite: z.boolean().default(false)
@@ -122,6 +166,20 @@ export function createSpecCodingServer(): McpServer {
   );
 
   server.registerTool(
+    "spec_todo",
+    {
+      description: "Create a lightweight executable TODO spec. Models must follow unchecked TODO items in order when spec_context is called.",
+      inputSchema: RootSchema.extend({
+        prompt: z.string().min(1).describe("TODO text. Each non-empty line becomes an unchecked task."),
+        title: z.string().optional(),
+        overwrite: z.boolean().default(false)
+      })
+    },
+    async ({ projectRoot, specsDir, prompt, title, overwrite }) =>
+      textResult(renderSpecResult("已创建 TODO Spec", await createTodoFromPrompt({ projectRoot, specsDir, prompt, title, overwrite })))
+  );
+
+  server.registerTool(
     "spec_list",
     {
       description: "List review, active, and done specs.",
@@ -136,6 +194,8 @@ export function createSpecCodingServer(): McpServer {
         `Specs：${code(result.specsDir)}`,
         "",
         ...renderSpecItems("Active", result.active),
+        "",
+        ...renderSpecItems("TODO", result.todo),
         "",
         ...renderSpecItems("Review", result.review),
         "",
@@ -158,6 +218,45 @@ export function createSpecCodingServer(): McpServer {
       const context = await specContext({ projectRoot, specsDir, files, maxSpecChars, candidateFileLimit });
       return textResult(context.markdown);
     }
+  );
+
+  server.registerTool(
+    "spec_checkpoint",
+    {
+      description: "Record implementation progress back into a spec or TODO file, including completed TODOs, changed files, verification, risks, and blockers.",
+      inputSchema: RootSchema.extend({
+        file: z.string().describe("Spec or TODO file path to update, usually under specs/active or specs/todo."),
+        summary: z.string().min(1).describe("Concise implementation summary."),
+        completedTodos: z.array(z.string()).default([]).describe("TODO texts completed in this checkpoint. Matching unchecked tasks will be marked [x]."),
+        changedFiles: z.array(z.string()).default([]),
+        verification: z.array(VerificationSchema).default([]),
+        risks: z.array(z.string()).default([]),
+        blockers: z.array(z.string()).default([]),
+        note: z.string().optional()
+      })
+    },
+    async ({ projectRoot, specsDir, file, summary, completedTodos, changedFiles, verification, risks, blockers, note }) =>
+      textResult(renderSpecResult("Spec Checkpoint 已记录", await recordSpecCheckpoint({ projectRoot, specsDir, file, summary, completedTodos, changedFiles, verification, risks, blockers, note })))
+  );
+
+  server.registerTool(
+    "spec_review_result",
+    {
+      description: "Write a structured implementation result back into a spec, including completed and incomplete TODOs, verification, changed files, risks, and blockers.",
+      inputSchema: RootSchema.extend({
+        file: z.string().describe("Spec or TODO file path to update."),
+        summary: z.string().min(1),
+        completedTodos: z.array(z.string()).default([]),
+        incompleteTodos: z.array(z.string()).default([]),
+        changedFiles: z.array(z.string()).default([]),
+        verification: z.array(VerificationSchema).default([]),
+        risks: z.array(z.string()).default([]),
+        blockers: z.array(z.string()).default([]),
+        note: z.string().optional()
+      })
+    },
+    async ({ projectRoot, specsDir, file, summary, completedTodos, incompleteTodos, changedFiles, verification, risks, blockers, note }) =>
+      textResult(renderReviewResult("Spec Review Result 已记录", await recordSpecReviewResult({ projectRoot, specsDir, file, summary, completedTodos, incompleteTodos, changedFiles, verification, risks, blockers, note })))
   );
 
   server.registerTool(
