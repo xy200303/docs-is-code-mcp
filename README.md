@@ -1,6 +1,45 @@
-# Spec Coding MCP
+<p align="center">
+  <img src="./docs/public/favicon.svg" width="96" height="96" alt="Spec Coding MCP logo" />
+</p>
 
-这是一个面向 **spec coding** 的本地 MCP 服务。
+<h1 align="center">Spec Coding MCP</h1>
+
+<p align="center">
+  <strong>给 AI 编程工具使用的 spec / TODO / checkpoint 本地 MCP 工作流</strong>
+</p>
+
+<p align="center">
+  先审查规格，再执行任务，最后把实现事实写回项目。
+</p>
+
+<p align="center">
+  <a href="https://spec.xyun.dev/">文档与网站</a>
+  ·
+  <a href="https://spec.xyun.dev/guide/getting-started">快速开始</a>
+  ·
+  <a href="https://spec.xyun.dev/guide/mcp-tools">MCP 工具</a>
+  ·
+  <a href="https://www.npmjs.com/package/@dev_xiaoyun/spec-coding-mcp">npm 包</a>
+</p>
+
+<p align="center">
+  <a href="https://www.npmjs.com/package/@dev_xiaoyun/spec-coding-mcp"><img alt="npm version" src="https://img.shields.io/npm/v/%40dev_xiaoyun%2Fspec-coding-mcp?style=flat-square&color=0f766e" /></a>
+  <a href="https://github.com/xy200303/spec-coding-mcp/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/xy200303/spec-coding-mcp/ci.yml?branch=main&style=flat-square&label=CI" /></a>
+  <a href="https://github.com/xy200303/spec-coding-mcp/actions/workflows/deploy-docs.yml"><img alt="Docs" src="https://img.shields.io/github/actions/workflow/status/xy200303/spec-coding-mcp/deploy-docs.yml?branch=main&style=flat-square&label=docs" /></a>
+  <img alt="Node.js >= 22" src="https://img.shields.io/badge/Node.js-%3E%3D22-3c873a?style=flat-square" />
+  <img alt="MCP server" src="https://img.shields.io/badge/MCP-server-334155?style=flat-square" />
+  <a href="./LICENSE"><img alt="License MIT" src="https://img.shields.io/badge/license-MIT-b45309?style=flat-square" /></a>
+</p>
+
+<p align="center">
+  <code>npm install -g @dev_xiaoyun/spec-coding-mcp</code>
+  <br />
+  <code>specc init</code>
+</p>
+
+---
+
+Spec Coding MCP 是一个面向 **spec coding** 的本地 MCP 服务。
 
 核心思路很简单：先写或审查一份小规格，再让 AI 按规格修改代码和测试。它不再尝试把整个系统永久文档化，也不维护复杂的 CRDT 状态。
 

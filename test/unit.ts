@@ -1,5 +1,6 @@
 /* Focused unit tests for spec parsing, progress writing, MCP guard, and registry compatibility contracts. */
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { readFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { APP_VERSION } from "../src/shared/meta.js";
@@ -103,12 +104,14 @@ async function testDoneWriterAvoidsOverwrites(): Promise<void> {
 }
 
 async function testRegistryContracts(): Promise<void> {
+  const packageJson = JSON.parse(readFileSync("package.json", "utf8")) as { version: string };
+
   assert(SUPPORTED_TOOL_IDS.join(",") === "codex,claude,opencode,cursor,continue,windsurf", "Expected supported tool order to stay stable.");
   assert(CLI_HELP_LINES.some((line) => line.includes("specc serve")), "Expected CLI help contract to include serve.");
   assert(MCP_SERVER_NAME === "spec-coding", "Expected stable MCP server name.");
   assert(MCP_DIST_ENTRY === "dist/index.js", "Expected stable dist entry.");
   assert(MCP_START_COMMAND === "serve", "Expected stable MCP start command.");
-  assert(APP_VERSION.length > 0, "Expected package version to be exported.");
+  assert(APP_VERSION === packageJson.version, "Expected APP_VERSION to come from package.json.");
 
   const server = { command: "node", args: ["dist/index.js", "serve"] };
   assertIncludes(upsertCodexConfig("", server), "[mcp_servers.spec-coding]", "Expected Codex config block.");

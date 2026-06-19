@@ -19,15 +19,9 @@ function assertIncludes(text, expected, file) {
   assert(text.includes(expected), `${file} is missing: ${expected}`);
 }
 
-function appVersionFromSource(text) {
-  const match = /APP_VERSION\s*=\s*"([^"]+)"/.exec(text);
-  assert(match, "src/shared/meta.ts must export APP_VERSION.");
-  return match[1];
-}
-
 function assertVersionContract(packageJson, packageLock, metaText) {
-  const appVersion = appVersionFromSource(metaText);
-  assert(packageJson.version === appVersion, "package.json version must match APP_VERSION.");
+  assertIncludes(metaText, "APP_VERSION = packageJson.version", "src/shared/meta.ts");
+  assert(!/APP_VERSION\s*=\s*\"[^\"]+\"/.test(metaText), "APP_VERSION must read package.json instead of hardcoding a second version.");
   assert(packageLock.version === packageJson.version, "package-lock.json root version must match package.json.");
   assert(packageLock.packages?.[""]?.version === packageJson.version, "package-lock package version must match package.json.");
 }
