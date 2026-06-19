@@ -10,8 +10,10 @@
 - 用户开发前先修改或新增 spec。
 - 用户可以用 TODO 清单拆分任务，模型按未勾选项顺序执行。
 - 工具会把全局工程质量约束注入模型上下文，强制约束代码风格、项目结构和 UI 直觉性。
-- 工具强制遵守 KISS、DRY、Clean Code、Clean Architecture、DDD、Fail Fast、SOLID 和 Boy Scout Rule。
-- 工具还会防止混层、过度抽象和不必要的复杂度，把代码组织成适合大型项目的结构。
+- 工具强制遵守 KISS、YAGNI、Clean Code、Clean Architecture、DDD、Fail Fast、SOLID、SoC 和 Boy Scout Rule。
+- 工具还会防止混层、过度抽象和不必要的复杂度，把代码组织成适合大型项目、也适合人读的结构。
+- 工具强制业务不确定性先确认：遇到金额、费率、结算、分账、退款、折扣、税费、状态机流转、并发、幂等、重试、回滚、规则来源不明或角色行为不一致时，必须先停下并向用户确认。
+- 工具禁止靠常识猜业务规则；不清楚时要先说清哪里不清楚，再给出 2 到 3 种可能解释，等用户确认后再继续。
 - Codex 读取 active spec，按最新规格实现代码和测试。
 - 验证通过后把 spec 归档到 `done/`。
 
@@ -61,9 +63,10 @@ specs/
 
 ### 先生成项目手册
 
-1. 调用 `spec_generate_agents`。
-2. 检查项目根目录的 `AGENTS.md`。
-3. 按 `AGENTS.md`、`specs/` 和 TODO 开始开发。
+1. 在任何代码或文档变更前，先调用 `spec_context`。
+2. 调用 `spec_generate_agents`。
+3. 检查项目根目录的 `AGENTS.md`。
+4. 按 `AGENTS.md`、`specs/` 和 TODO 开始开发。
 
 ### 旧系统第一次接入
 
@@ -76,13 +79,20 @@ specs/
 
 ### 新需求开发
 
-1. 调用 `spec_create`，根据用户描述生成 active spec。
-2. 用户审阅并修改 `specs/active/*.md`。
-3. 如需拆任务，可调用 `spec_todo` 或在 spec 里写 `## TODO`。
-4. 调用 `spec_context`。
-5. Codex 按 spec 和未勾选 TODO 顺序实现代码和测试。
-6. 阶段性完成后调用 `spec_checkpoint` 记录完成情况。
-7. 验证通过后调用 `spec_done`。
+1. 在任何代码或文档变更前，先调用 `spec_context`。
+2. 调用 `spec_create`，根据用户描述生成 active spec。
+3. 用户审阅并修改 `specs/active/*.md`。
+4. 如需拆任务，可调用 `spec_todo` 或在 spec 里写 `## TODO`。
+5. 再次调用 `spec_context`，确认当前 spec、TODO 和工程约束。
+6. Codex 按 spec 和未勾选 TODO 顺序实现代码和测试。
+7. 阶段性完成后调用 `spec_checkpoint` 记录完成情况。
+8. 验证通过后调用 `spec_done`。
+
+### 写操作硬约束
+
+`spec_create`、`spec_todo`、`spec_generate_agents`、`spec_checkpoint`、`spec_review_result`、`spec_done` 都要求当前会话先调用过 `spec_context`。
+
+如果跳过 `spec_context`，这些写操作会直接失败，并明确提示先读取模型上下文。
 
 ### TODO 驱动任务
 
@@ -115,20 +125,18 @@ TODO 可以放在 `specs/todo/*.md`，也可以写在 active spec 的 `## TODO` 
 
 ### 全局工程质量约束
 
-每次 `spec_context` 都会强制附带这些约束：
+工程质量约束的单一可信来源在 `src/templates/constraints.ts`，Markdown 渲染统一由 `src/templates/markdown.ts` 完成。
 
-- 代码清晰、必要、可维护，避免冗余封装、废话注释和重复逻辑。
-- 遵循现有项目风格和目录约定，不随意引入新架构、依赖或抽象层。
-- 职责边界清楚，不把所有代码放在一个文件，也不把所有文件堆在一个目录。
-- 模块、函数、组件要便于人类和 AI 阅读，复杂逻辑拆成有名字的步骤。
-- UI 设计符合人类直觉，交互状态完整，文案简洁，信息层级清楚。
-- 修改范围贴合 spec/TODO，不扩散到无关重构。
-- 优先复用项目已有测试、构建和校验命令。
-- 强制遵守 KISS、DRY、Clean Code、Clean Architecture、DDD、Fail Fast、SOLID 和 Boy Scout Rule。
-- 避免混合 UI、业务和数据访问逻辑，避免为了模式而模式。
-- 文件顶部必须写文件注释，复杂逻辑必须写说明性注释，但不能写废话。
-- 能用成熟库解决的就优先用成熟库，不要自己手搓已有轮子。
-- 遇到不明确、影响面大或高风险的方案时，先向用户询问和确认，不要自己拍板。
+`spec_context`、`AGENTS.md`、spec 模板和 TODO 模板都应通过这套模板模块输出同一组规则，避免 README、AGENTS 和上下文各自维护一份不一致的长清单。
+
+当前提示词协议分为三层：
+
+- Hard Rules：Fail Fast、风险确认、文件顶部注释、禁止混层、禁止无意义抽象、性能和资源底线。
+- Recommended Practices：KISS、YAGNI、Clean Code、Human Readable、Clean Architecture、DDD、SOLID、SoC、测试优先、成熟库优先、局部小步重构、AI 可生成且人类可维护。
+- Business Confirmation Rules：金额、费率、结算、分账、退款、折扣、税费、状态机、并发、幂等、重试、回滚、规则来源不明或角色行为不一致时，必须先向用户确认，不允许靠常识猜业务。
+- Current Task Protocol：当前任务必须如何读取 `spec_context`、执行 TODO、记录 checkpoint 和归档 done。
+
+提示词协议由 `src/templates/constraints.ts`、`src/templates/prompt-protocol.ts` 和 `src/templates/markdown.ts` 共同生成。
 
 ## 安装
 
@@ -137,14 +145,14 @@ npm install -g @dev_xiaoyun/spec-coding-mcp
 specc init
 ```
 
-`specc init` 会扫描本机的 Codex、Claude Code、OpenCode，并让你选择注册 MCP。
+`specc init` 会扫描本机的 Codex、Claude Code、OpenCode、Cursor、Continue 和 Windsurf，并让你选择注册 MCP。
 
 手动配置 Codex 时推荐使用 Node 直连入口：
 
 ```toml
 [mcp_servers.spec-coding]
 command = "C:\\nvm4w\\nodejs\\node.exe"
-args = ["C:\\nvm4w\\nodejs\\node_modules\\@dev_xiaoyun\\spec-coding-mcp\\dist\\index.js"]
+args = ["C:\\nvm4w\\nodejs\\node_modules\\@dev_xiaoyun\\spec-coding-mcp\\dist\\index.js", "serve"]
 ```
 
 路径需要按你的 Node 全局安装目录调整。
@@ -156,17 +164,38 @@ npm install
 npm test
 ```
 
+测试入口：
+
+- `npm run build`：TypeScript 构建。
+- `npm run unit`：细粒度单元测试，覆盖 TODO 解析、checkpoint 写回、MCP guard 和注册兼容契约。
+- `npm run smoke`：端到端 smoke 测试，覆盖 spec、AGENTS、CLI 和注册主流程。
+- `npm run release:check`：发布前契约检查，覆盖版本、CLI/MCP 启动参数和关键文档说明。
+- `npm run verify`：依次运行 build、unit、smoke、release:check。
+- `npm test`：等同于 `npm run verify`。
+
 启动 MCP server：
 
 ```bash
-specc
+specc serve
 ```
 
 或：
 
 ```bash
-node dist/index.js
+node dist/index.js serve
 ```
+
+## 发布
+
+发布前先运行：
+
+```bash
+npm run verify
+```
+
+npm 发布 workflow 使用 GitHub Actions secret `NPM_TOKEN`。发布前需要在仓库 secrets 中配置具备发布权限的 `NPM_TOKEN`。
+
+发布 workflow 会在 tag/release 触发时校验 `vX.Y.Z` 与 `package.json` 版本一致，运行 `npm run verify`，然后执行 npm publish。
 
 ## 设计边界
 

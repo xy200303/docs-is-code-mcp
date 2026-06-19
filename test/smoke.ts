@@ -6,9 +6,56 @@ import { execFile } from "node:child_process";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { createSpecFromPrompt, createTodoFromPrompt, generateAgentsFile, generateSpecsFromSource, initSpecs, listSpecs, markSpecDone, recordSpecCheckpoint, recordSpecReviewResult, specContext } from "../src/spec/service.js";
-import { detectProgrammingTools, registerTools, upsertCodexConfig, upsertOpenCodeConfig } from "../src/cli/registry.js";
+import { specContext } from "../src/spec/context.js";
+import { businessConfirmationBullets, currentTaskInstructionBullets, engineeringConstraintBullets } from "../src/templates/markdown.js";
+import { createSpecFromPrompt, createTodoFromPrompt, generateAgentsFile, generateSpecsFromSource, initSpecs, listSpecs } from "../src/spec/scaffold.js";
+import { markSpecDone } from "../src/spec/done-writer.js";
+import { recordSpecCheckpoint } from "../src/spec/checkpoint-writer.js";
+import { recordSpecReviewResult } from "../src/spec/review-result-writer.js";
+import { detectProgrammingTools } from "../src/cli/registry-detect.js";
+import { registerClaude, registerCodex, registerContinue, registerCursor, registerOpenCode, registerWindsurf, upsertCodexConfig, upsertOpenCodeConfig } from "../src/cli/registry-write.js";
 import { runCli } from "../src/cli/main.js";
+import { APP_VERSION } from "../src/shared/meta.js";
+import { SPEC_CONTEXT_REQUIRED_MESSAGE, createSessionGuard, markSpecContextSeen, requireSpecContext } from "../src/mcp/session-guard.js";
+import { registerReadTools } from "../src/mcp/register-read-tools.js";
+import { registerWriteTools } from "../src/mcp/register-write-tools.js";
+
+type RegisteredToolHandler = (input: Record<string, unknown>) => Promise<{ content: Array<{ type: "text"; text: string }> }>;
+
+function createToolHarness() {
+  const handlers = new Map<string, RegisteredToolHandler>();
+  const descriptions = new Map<string, string>();
+  return {
+    registerTool(name: string, definition: { description?: string }, handler: RegisteredToolHandler): void {
+      descriptions.set(name, definition.description ?? "");
+      handlers.set(name, handler);
+    },
+    async call(name: string, input: Record<string, unknown>) {
+      const handler = handlers.get(name);
+      if (!handler) {
+        throw new Error(`Missing test handler for ${name}`);
+      }
+      return handler(input);
+    },
+    description(name: string): string {
+      return descriptions.get(name) ?? "";
+    }
+  };
+}
+
+function assertIncludesAll(text: string, expected: string[], message: string): void {
+  const missing = expected.filter((item) => !text.includes(item));
+  if (!missing.length) return;
+  throw new Error(`${message}: ${missing.join(", ")}`);
+}
+
+function assertToolDescriptionRequiresSpecContext(text: string): void {
+  assertIncludesAll(text, [
+    "spec_context must be called first.",
+    "This session has not read model-ready context yet.",
+    "Write operations are blocked until spec_context unlocks the session."
+  ], "Expected write tool description to mention the spec_context guard");
+}
 
 const root = await mkdtemp(path.join(os.tmpdir(), "spec-coding-mcp-"));
 
@@ -52,8 +99,102 @@ try {
     throw new Error("Expected AGENTS.md to be generated at the project root.");
   }
   const agentsText = await readFile(path.join(root, "AGENTS.md"), "utf8");
-  if (!agentsText.includes("KISS + YAGNI") || !agentsText.includes("Clean Architecture") || !agentsText.includes("风险先确认") || !agentsText.includes("不要无故引入接口、工厂、泛型、抽象层") || !agentsText.includes("禁止在一个文件里混合 UI、业务、数据访问逻辑")) {
+  if (!agentsText.includes("Before any code or documentation change, call `spec_context`") || !engineeringConstraintBullets().every((item) => agentsText.includes(item)) || !businessConfirmationBullets().every((item) => agentsText.includes(item))) {
     throw new Error("Expected AGENTS.md to include project engineering principles.");
+  }
+  const packageReadmeText = await readFile(path.join(process.cwd(), "README.md"), "utf8");
+  const packageAgentsText = await readFile(path.join(process.cwd(), "AGENTS.md"), "utf8");
+  assertIncludesAll(packageReadmeText, [
+    "src/templates/constraints.ts",
+    "src/templates/prompt-protocol.ts",
+    "src/templates/markdown.ts",
+    "Hard Rules",
+    "Recommended Practices",
+    "Business Confirmation Rules",
+    "Current Task Protocol"
+  ], "Expected README to point to the shared template source of truth");
+  assertIncludesAll(packageAgentsText, [
+    "Before any code or documentation change, call `spec_context`",
+    "Engineering Principles",
+    "Business Confirmation Rules"
+  ], "Expected root AGENTS.md to match the shared rule output shape");
+  if (typeof registerClaude !== "function" || typeof registerOpenCode !== "function" || typeof detectProgrammingTools !== "function") {
+    throw new Error("Expected registry helpers to stay available after registry refactor.");
+  }
+  const guard = createSessionGuard();
+  const harness = createToolHarness();
+  registerReadTools(harness as never, guard);
+  registerWriteTools(harness as never, guard);
+  assertToolDescriptionRequiresSpecContext(harness.description("spec_create"));
+  assertToolDescriptionRequiresSpecContext(harness.description("spec_done"));
+  let blockedMessage = "";
+  try {
+    await harness.call("spec_create", {
+      projectRoot: root,
+      specsDir: "specs",
+      prompt: "先确认护栏是否阻止写操作",
+      title: "护栏校验"
+    });
+  } catch (error) {
+    blockedMessage = error instanceof Error ? error.message : String(error);
+  }
+  if (blockedMessage !== SPEC_CONTEXT_REQUIRED_MESSAGE) {
+    throw new Error(`Expected a hard spec_context guard message, got: ${blockedMessage}`);
+  }
+  const contextResult = await harness.call("spec_context", {
+    projectRoot: root,
+    specsDir: "specs",
+    files: []
+  });
+  if (!contextResult.content[0]?.text.includes("Spec Coding Context")) {
+    throw new Error("Expected spec_context tool to return model-ready context.");
+  }
+  const createdAfterContext = await harness.call("spec_create", {
+    projectRoot: root,
+    specsDir: "specs",
+    prompt: "先确认护栏是否阻止写操作",
+    title: "护栏校验"
+  });
+  if (!createdAfterContext.content[0]?.text.includes("已创建 Active Spec")) {
+    throw new Error("Expected write tool to work after spec_context.");
+  }
+  markSpecContextSeen(guard);
+  requireSpecContext(guard);
+  const fileCommentTargets = [
+    "src/server.ts",
+    "src/cli/compatibility-contract.ts",
+    "src/spec/scaffold.ts",
+    "src/templates/agents.ts",
+    "src/templates/prompt-protocol.ts",
+    "src/templates/spec-documents.ts",
+    "src/templates/prompt-documents.ts",
+    "src/templates/markdown.ts",
+    "src/templates/constraints.ts",
+    "src/spec/types.ts",
+    "src/mcp/render-core.ts",
+    "src/mcp/render-spec.ts",
+    "src/mcp/session-guard.ts",
+    "src/mcp/register-tools.ts",
+    "src/mcp/register-read-tools.ts",
+    "src/mcp/register-write-tools.ts",
+    "src/mcp/tool-schema.ts",
+    "src/mcp/write-schemas.ts",
+    "src/shared/meta.ts",
+    "src/spec/spec-files.ts",
+    "src/spec/todo-files.ts",
+    "src/spec/spec-reader.ts",
+    "src/spec/context.ts",
+    "src/spec/context-source.ts",
+    "src/spec/context-markdown.ts",
+    "src/spec/checkpoint-writer.ts",
+    "src/spec/review-result-writer.ts",
+    "src/spec/done-writer.ts"
+  ];
+  for (const relativeFile of fileCommentTargets) {
+    const text = await readFile(path.join(process.cwd(), relativeFile), "utf8");
+    if (!text.startsWith("/*")) {
+      throw new Error(`Expected file-top comment in ${relativeFile}.`);
+    }
   }
 
   const created = await createSpecFromPrompt({
@@ -82,34 +223,20 @@ try {
   }
 
   const context = await specContext({ projectRoot: root, specsDir: "specs" });
-  if (
-    !context.markdown.includes("用户详情增加禁用态") ||
-    !context.markdown.includes("Open TODOs") ||
-    !context.markdown.includes("补充禁用态字段") ||
-    !context.markdown.includes("Engineering Constraints") ||
-    !context.markdown.includes("KISS + YAGNI") ||
-    !context.markdown.includes("Clean Code") ||
-    !context.markdown.includes("Clean Architecture") ||
-    !context.markdown.includes("DDD") ||
-    !context.markdown.includes("Fail Fast") ||
-    !context.markdown.includes("测试优先") ||
-    !context.markdown.includes("Boy Scout Rule") ||
-    !context.markdown.includes("Source Signals") ||
-    !context.markdown.includes("package scripts") ||
-    !context.markdown.includes("文件顶部必须写文件注释") ||
-    !context.markdown.includes("成熟库优先") ||
-    !context.markdown.includes("先向用户询问和确认") ||
-    !context.markdown.includes("高内聚低耦合") ||
-    !context.markdown.includes("禁止在一个文件里混合 UI、业务、数据访问逻辑") ||
-    !context.markdown.includes("禁止为了模式而模式") ||
-    !context.markdown.includes("性能与资源") ||
-    !context.markdown.includes("禁止混层") ||
-    !context.markdown.includes("禁止过度抽象") ||
-    !context.markdown.includes("局部小步重构") ||
-    !context.markdown.includes("这些规则是强制约束，不是建议")
-  ) {
-    throw new Error("Expected spec context to include active spec text, open TODOs, and engineering constraints.");
-  }
+  assertIncludesAll(context.markdown, [
+    "Open TODOs",
+    "先读本次 `spec_context`；没有上下文不得实现或改文档。",
+    "selected specs 和 open TODOs 是唯一需求源，不按旧对话扩范围。",
+    "Engineering Constraints",
+    "Business Confirmation Rules",
+    "Current Task Protocol",
+    "Source Signals",
+    "package scripts",
+    ...engineeringConstraintBullets(),
+    ...businessConfirmationBullets(),
+    ...currentTaskInstructionBullets(),
+    "高风险业务描述不完整时，停止实现"
+  ], "Expected spec context to include required engineering constraints");
 
   const checkpoint = await recordSpecCheckpoint({
     projectRoot: root,
@@ -163,7 +290,7 @@ try {
   } finally {
     console.log = originalLog;
   }
-  if (versionLines[0] !== "0.2.1") {
+  if (versionLines[0] !== APP_VERSION) {
     throw new Error(`Expected CLI version output, got: ${versionLines.join(" | ")}`);
   }
 
@@ -179,6 +306,9 @@ try {
   if (!helpLines.join("\n").includes("Usage:") || !helpLines.join("\n").includes("specc serve")) {
     throw new Error(`Expected default CLI help output, got: ${helpLines.join(" | ")}`);
   }
+  if (!helpLines.join("\n").includes("specc init") || !helpLines.join("\n").includes("specc --version")) {
+    throw new Error("Expected CLI help to mention init and version commands.");
+  }
 
   const expectedServer = { command: process.execPath, args: [path.resolve("dist", "index.js"), "serve"] };
   const codexConfig = upsertCodexConfig("[model]\nname = \"gpt-5\"\n", expectedServer);
@@ -188,6 +318,10 @@ try {
   const opencodeConfig = JSON.parse(upsertOpenCodeConfig("{}", expectedServer));
   if (opencodeConfig.mcp["spec-coding"].type !== "local" || opencodeConfig.mcp["spec-coding"].command[0] !== process.execPath) {
     throw new Error("Expected OpenCode config upsert to add spec-coding MCP server.");
+  }
+  const registeredClaude = await registerClaude(expectedServer, true);
+  if (registeredClaude.tool !== "claude" || registeredClaude.status !== "registered") {
+    throw new Error("Expected Claude registration helper to stay available after registry refactor.");
   }
   const whereOutput = await new Promise<string>((resolve, reject) => {
     execFile("where.exe", ["claude"], { windowsHide: true }, (error, stdout) => {
@@ -216,20 +350,21 @@ try {
       throw new Error("Expected six detectable tools.");
     }
 
-    const results = await registerTools({
-      tools: ["codex", "cursor", "continue", "opencode", "windsurf"],
-      paths: {
-        homeDir: registryRoot,
-        codexConfig: path.join(registryRoot, ".codex", "config.toml"),
-        opencodeConfig: path.join(registryRoot, ".config", "opencode", "opencode.json"),
-        cursorConfig: path.join(registryRoot, ".cursor", "mcp.json"),
-        continueConfig: path.join(registryRoot, ".continue", "config.yaml"),
-        windsurfConfig: path.join(registryRoot, ".codeium", "mcp_config.json")
-      },
-      server: expectedServer
-    });
-    if (results.some((result) => result.status !== "registered")) {
-      throw new Error("Expected Codex and OpenCode registry writes to succeed.");
+    const registryPaths = {
+      homeDir: registryRoot,
+      codexConfig: path.join(registryRoot, ".codex", "config.toml"),
+      opencodeConfig: path.join(registryRoot, ".config", "opencode", "opencode.json"),
+      cursorConfig: path.join(registryRoot, ".cursor", "mcp.json"),
+      continueConfig: path.join(registryRoot, ".continue", "config.yaml"),
+      windsurfConfig: path.join(registryRoot, ".codeium", "mcp_config.json")
+    };
+    const codexResult = await registerCodex(registryPaths, expectedServer);
+    const openCodeResult = await registerOpenCode(registryPaths, expectedServer);
+    const cursorResult = await registerCursor(registryPaths, expectedServer);
+    const continueResult = await registerContinue(registryPaths, expectedServer);
+    const windsurfResult = await registerWindsurf(registryPaths, expectedServer);
+    if ([codexResult, openCodeResult, cursorResult, continueResult, windsurfResult].some((result) => result.status !== "registered")) {
+      throw new Error("Expected registry writes to succeed.");
     }
   } finally {
     await rm(registryRoot, { recursive: true, force: true });

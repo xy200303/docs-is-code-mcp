@@ -1,5 +1,7 @@
 node_modules/
 dist/
+docs/.vitepress/.temp/
+docs/.vitepress/cache/
 .docs-code/
 .dev-mesh/
 .tmp/

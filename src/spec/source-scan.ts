@@ -68,6 +68,50 @@ function normalizeLine(value: string): string {
   return value.replace(/\s+/g, " ").trim();
 }
 
+function collectMatchedLines(
+  content: string,
+  regexes: RegExp[],
+  format: (match: RegExpMatchArray) => string,
+  limit: number
+): string[] {
+  const hints = new Set<string>();
+  for (const regex of regexes) {
+    for (const match of content.matchAll(regex)) {
+      hints.add(format(match));
+      if (hints.size >= limit) return [...hints];
+    }
+  }
+  return [...hints];
+}
+
+function takeUnique(items: string[], limit: number): string[] {
+  return unique(items).slice(0, limit);
+}
+
+function addCandidateFromRoutes(
+  candidates: SourceSpecCandidate[],
+  summary: SourceScanSummary,
+  domain: string,
+  routes: string[]
+): void {
+  const relatedFiles = unique(routes.map((item) => item.split(" ")[0]));
+  const packageScriptFiles = summary.packageScripts.map((item) => item.split(" script:")[0]);
+  const relatedComponents = summary.componentHints.filter((item) => relatedFiles.some((file) => item.startsWith(file))).slice(0, 8);
+  const relatedModels = summary.modelHints.filter((item) => item.includes(domain)).slice(0, 8);
+  const relatedTests = summary.testFiles.filter((item) => item.toLowerCase().includes(domain)).slice(0, 8);
+  const relatedPackageScripts = packageScriptFiles.filter((item) => item.toLowerCase().includes(domain)).slice(0, 4);
+  candidates.push({
+    domain,
+    name: "api",
+    title: `${domain} API 能力`,
+    evidence: relatedFiles,
+    routes,
+    components: relatedComponents,
+    models: relatedModels,
+    tests: relatedTests.concat(relatedPackageScripts)
+  });
+}
+
 function manifestScriptsFromContent(relativeFile: string, content: string): string[] {
   if (path.basename(relativeFile).toLowerCase() !== "package.json") return [];
   try {
@@ -79,36 +123,30 @@ function manifestScriptsFromContent(relativeFile: string, content: string): stri
 }
 
 function exportHintsFromContent(relativeFile: string, content: string): string[] {
-  const hints = new Set<string>();
-  const regexes = [
-    /export\s+(?:default\s+)?(function|class|const|let|var|interface|type)\s+([A-Za-z0-9_]+)/g,
-    /export\s*\{\s*([^}]+)\s*\}/g,
-    /module\.exports\s*=\s*\{([^}]+)\}/g,
-    /exports\.(\w+)\s*=/g
-  ];
-  for (const regex of regexes) {
-    for (const match of content.matchAll(regex)) {
-      hints.add(`${relativeFile} ${normalizeLine(match[0]).slice(0, 160)}`);
-      if (hints.size >= 16) break;
-    }
-  }
-  return [...hints];
+  return collectMatchedLines(
+    content,
+    [
+      /export\s+(?:default\s+)?(function|class|const|let|var|interface|type)\s+([A-Za-z0-9_]+)/g,
+      /export\s*\{\s*([^}]+)\s*\}/g,
+      /module\.exports\s*=\s*\{([^}]+)\}/g,
+      /exports\.(\w+)\s*=/g
+    ],
+    (match) => `${relativeFile} ${normalizeLine(match[0]).slice(0, 160)}`,
+    16
+  );
 }
 
 function importHintsFromContent(relativeFile: string, content: string): string[] {
-  const hints = new Set<string>();
-  const regexes = [
-    /import\s+[^;]+?from\s+["'`]([^"'`]+)["'`]/g,
-    /require\(\s*["'`]([^"'`]+)["'`]\s*\)/g,
-    /from\s+["'`]([^"'`]+)["'`]/g
-  ];
-  for (const regex of regexes) {
-    for (const match of content.matchAll(regex)) {
-      hints.add(`${relativeFile} -> ${match[1]}`);
-      if (hints.size >= 20) break;
-    }
-  }
-  return [...hints];
+  return collectMatchedLines(
+    content,
+    [
+      /import\s+[^;]+?from\s+["'`]([^"'`]+)["'`]/g,
+      /require\(\s*["'`]([^"'`]+)["'`]\s*\)/g,
+      /from\s+["'`]([^"'`]+)["'`]/g
+    ],
+    (match) => `${relativeFile} -> ${match[1]}`,
+    20
+  );
 }
 
 function shouldIncludeSourceFile(relativeFile: string, includePatterns: string[], excludePatterns: string[]): boolean {
@@ -131,53 +169,44 @@ function classifyFile(relativeFile: string): "manifest" | "api" | "ui" | "data" 
 }
 
 function routeHintsFromContent(relativeFile: string, content: string): string[] {
-  const hints = new Set<string>();
-  const routeRegexes = [
-    /\b(app|router|route)\.(get|post|put|patch|delete)\s*\(\s*["'`]([^"'`]+)["'`]/gi,
-    /\b(GET|POST|PUT|PATCH|DELETE)\s+([/\w:.-]+)/g,
-    /@(Get|Post|Put|Patch|Delete)\s*\(\s*["'`]([^"'`]*)["'`]/gi,
-    /\b(method|path)\s*:\s*["'`]([^"'`]+)["'`]/gi
-  ];
-  for (const regex of routeRegexes) {
-    for (const match of content.matchAll(regex)) {
-      hints.add(`${relativeFile} ${normalizeLine(match[0]).slice(0, 140)}`);
-      if (hints.size >= 12) break;
-    }
-  }
-  return [...hints];
+  return collectMatchedLines(
+    content,
+    [
+      /\b(app|router|route)\.(get|post|put|patch|delete)\s*\(\s*["'`]([^"'`]+)["'`]/gi,
+      /\b(GET|POST|PUT|PATCH|DELETE)\s+([/\w:.-]+)/g,
+      /@(Get|Post|Put|Patch|Delete)\s*\(\s*["'`]([^"'`]*)["'`]/gi,
+      /\b(method|path)\s*:\s*["'`]([^"'`]+)["'`]/gi
+    ],
+    (match) => `${relativeFile} ${normalizeLine(match[0]).slice(0, 140)}`,
+    12
+  );
 }
 
 function componentHintsFromContent(relativeFile: string, content: string): string[] {
-  const hints = new Set<string>();
-  const regexes = [
-    /export\s+(default\s+)?function\s+([A-Z][A-Za-z0-9_]*)/g,
-    /function\s+([A-Z][A-Za-z0-9_]*)\s*\(/g,
-    /class\s+([A-Z][A-Za-z0-9_]*)/g,
-    /name\s*:\s*["'`]([A-Z][A-Za-z0-9_-]+)["'`]/g
-  ];
-  for (const regex of regexes) {
-    for (const match of content.matchAll(regex)) {
-      hints.add(`${relativeFile} ${match[2] ?? match[1]}`);
-      if (hints.size >= 12) break;
-    }
-  }
-  return [...hints];
+  return collectMatchedLines(
+    content,
+    [
+      /export\s+(default\s+)?function\s+([A-Z][A-Za-z0-9_]*)/g,
+      /function\s+([A-Z][A-Za-z0-9_]*)\s*\(/g,
+      /class\s+([A-Z][A-Za-z0-9_]*)/g,
+      /name\s*:\s*["'`]([A-Z][A-Za-z0-9_-]+)["'`]/g
+    ],
+    (match) => `${relativeFile} ${match[2] ?? match[1]}`,
+    12
+  );
 }
 
 function modelHintsFromContent(relativeFile: string, content: string): string[] {
-  const hints = new Set<string>();
-  const regexes = [
-    /\b(model|table|entity|class|interface|type)\s+([A-Z][A-Za-z0-9_]*)/g,
-    /CREATE\s+TABLE\s+["`]?([A-Za-z0-9_]+)/gi,
-    /\bmodel\s+([A-Z][A-Za-z0-9_]*)\s*\{/g
-  ];
-  for (const regex of regexes) {
-    for (const match of content.matchAll(regex)) {
-      hints.add(`${relativeFile} ${match[2] ?? match[1]}`);
-      if (hints.size >= 12) break;
-    }
-  }
-  return [...hints];
+  return collectMatchedLines(
+    content,
+    [
+      /\b(model|table|entity|class|interface|type)\s+([A-Z][A-Za-z0-9_]*)/g,
+      /CREATE\s+TABLE\s+["`]?([A-Za-z0-9_]+)/gi,
+      /\bmodel\s+([A-Z][A-Za-z0-9_]*)\s*\{/g
+    ],
+    (match) => `${relativeFile} ${match[2] ?? match[1]}`,
+    12
+  );
 }
 
 export async function scanSource(input: {
@@ -235,18 +264,18 @@ export async function scanSource(input: {
     }
   }
 
-  summary.manifests = unique(summary.manifests).slice(0, 30);
-  summary.packageScripts = unique(summary.packageScripts).slice(0, 40);
-  summary.apiFiles = unique(summary.apiFiles).slice(0, 80);
-  summary.uiFiles = unique(summary.uiFiles).slice(0, 80);
-  summary.dataFiles = unique(summary.dataFiles).slice(0, 80);
-  summary.testFiles = unique(summary.testFiles).slice(0, 80);
-  summary.routeHints = unique(summary.routeHints).slice(0, 60);
-  summary.componentHints = unique(summary.componentHints).slice(0, 60);
-  summary.modelHints = unique(summary.modelHints).slice(0, 60);
-  summary.exportHints = unique(summary.exportHints).slice(0, 80);
-  summary.importHints = unique(summary.importHints).slice(0, 80);
-  summary.referenceHints = unique([...summary.importHints, ...summary.exportHints]).slice(0, 100);
+  summary.manifests = takeUnique(summary.manifests, 30);
+  summary.packageScripts = takeUnique(summary.packageScripts, 40);
+  summary.apiFiles = takeUnique(summary.apiFiles, 80);
+  summary.uiFiles = takeUnique(summary.uiFiles, 80);
+  summary.dataFiles = takeUnique(summary.dataFiles, 80);
+  summary.testFiles = takeUnique(summary.testFiles, 80);
+  summary.routeHints = takeUnique(summary.routeHints, 60);
+  summary.componentHints = takeUnique(summary.componentHints, 60);
+  summary.modelHints = takeUnique(summary.modelHints, 60);
+  summary.exportHints = takeUnique(summary.exportHints, 80);
+  summary.importHints = takeUnique(summary.importHints, 80);
+  summary.referenceHints = takeUnique([...summary.importHints, ...summary.exportHints], 100);
   return summary;
 }
 
@@ -269,18 +298,7 @@ export function specCandidatesFromSource(summary: SourceScanSummary): SourceSpec
     routeGroups.set(domain, list);
   }
   for (const [domain, routes] of routeGroups) {
-    const relatedFiles = unique(routes.map((item) => item.split(" ")[0]));
-    candidates.push({
-      domain,
-      name: "api",
-      title: `${domain} API 能力`,
-      evidence: relatedFiles,
-      routes,
-      components: summary.componentHints.filter((item) => relatedFiles.some((file) => item.startsWith(file))).slice(0, 8),
-      models: summary.modelHints.filter((item) => item.includes(domain)).slice(0, 8),
-      tests: summary.testFiles.filter((item) => item.toLowerCase().includes(domain)).slice(0, 8)
-        .concat(packageScriptFiles.filter((item) => item.toLowerCase().includes(domain)).slice(0, 4))
-    });
+    addCandidateFromRoutes(candidates, summary, domain, routes);
   }
 
   if (candidates.length === 0 && summary.uiFiles.length) {
@@ -314,7 +332,7 @@ export function specCandidatesFromSource(summary: SourceScanSummary): SourceSpec
   }
 
   if (candidates.length === 0) {
-    const evidence = unique([...summary.apiFiles, ...summary.uiFiles, ...summary.dataFiles]).slice(0, 12);
+    const evidence = takeUnique([...summary.apiFiles, ...summary.uiFiles, ...summary.dataFiles], 12);
     candidates.push({
       domain: "core",
       name: "source-overview",

@@ -35,12 +35,15 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
     "dev": "tsx src/index.ts",
-    "smoke": "tsx test/smoke.ts",
-    "test": "npm run build && npm run smoke",
-    "docs:dev": "npx -y vitepress@1.6.4 dev docs --host 127.0.0.1",
-    "docs:build": "npx -y vitepress@1.6.4 build docs",
-    "docs:preview": "npx -y vitepress@1.6.4 preview docs --host 127.0.0.1",
-    "prepack": "npm run build"
+    "unit": "bun test/unit.ts",
+    "smoke": "bun test/smoke.ts",
+    "release:check": "bun scripts/release-check.mjs",
+    "verify": "npm run build && npm run unit && npm run smoke && npm run release:check",
+    "test": "npm run verify",
+    "docs:dev": "vitepress dev docs --host 127.0.0.1",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs --host 127.0.0.1",
+    "prepack": "npm run verify"
   },
   "engines": {
     "node": ">=22"
@@ -56,6 +59,7 @@
   "devDependencies": {
     "@types/node": "^22.19.1",
     "tsx": "^4.21.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitepress": "^1.6.4"
   }
 }

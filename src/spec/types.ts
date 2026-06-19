@@ -1,3 +1,4 @@
+/* Shared types for spec workflows and MCP session state. */
 export interface GeneratedFile {
   path: string;
   status: "created" | "updated" | "skipped";
@@ -100,4 +101,8 @@ export interface ReviewResult {
   changedFiles: string[];
   risks: string[];
   blockers: string[];
+}
+
+export interface SessionGuardState {
+  specContextSeen: boolean;
 }

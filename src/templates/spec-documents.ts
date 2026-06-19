@@ -1,0 +1,145 @@
+/* User-authored spec templates and source-derived review spec templates. */
+import { businessConfirmationSection, list, workflowGuardSection, engineeringConstraintSection } from "./markdown.js";
+import type { SourceScanSummary, SourceSpecCandidate } from "../spec/types.js";
+
+export function specTemplate(kind: "feature" | "bugfix" | "removal"): string {
+  const title = kind === "feature" ? "新增功能" : kind === "bugfix" ? "问题修复" : "移除功能";
+  return [
+    `# ${title}`,
+    "",
+    "## Meta",
+    "",
+    "- status: draft",
+    "- source: user-authored",
+    "",
+    "## 目标",
+    "",
+    "- 待描述。",
+    "",
+    "## 影响范围",
+    "",
+    "- 后端/API：待确认",
+    "- 前端/客户端：待确认",
+    "- 数据/迁移：待确认",
+    "- 测试：待确认",
+    "",
+    "## 行为规则",
+    "",
+    "| 场景 | 条件 | 预期结果 |",
+    "|---|---|---|",
+    "| 正常 | 待补充 | 待补充 |",
+    "| 失败 | 待补充 | 待补充 |",
+    "",
+    "## 验收标准",
+    "",
+    "- 待补充可验证结果。",
+    "",
+    ...workflowGuardSection(),
+    "",
+    ...engineeringConstraintSection(),
+    "",
+    ...businessConfirmationSection(),
+    "",
+    "## TODO",
+    "",
+    "- [ ] 按本 spec 定位相关代码。",
+    "- [ ] 更新实现和测试。",
+    "- [ ] 运行验证并记录结果。",
+    "",
+    "## 代码线索",
+    "",
+    "- 待补充相关文件、函数、路由、组件或测试。"
+  ].join("\n");
+}
+
+export function sourceInventory(summary: SourceScanSummary, generatedAt: string): string {
+  const section = (title: string, items: string[]) => [`## ${title}`, "", ...list(items), ""].join("\n");
+  return [
+    "# 源码反推清单",
+    "",
+    `生成时间：${generatedAt}`,
+    "",
+    `扫描源码和配置文件 ${summary.totalFiles} 个。以下是静态启发式线索，用于辅助用户审查系统。`,
+    "",
+    section("Manifest", summary.manifests),
+    section("API 文件", summary.apiFiles),
+    section("UI 文件", summary.uiFiles),
+    section("数据文件", summary.dataFiles),
+    section("测试文件", summary.testFiles),
+    section("路由线索", summary.routeHints),
+    section("组件线索", summary.componentHints),
+    section("模型线索", summary.modelHints)
+  ].join("\n");
+}
+
+export function reviewIndex(specsDir: string, candidates: SourceSpecCandidate[]): string {
+  return [
+    "# 反推 Spec 索引",
+    "",
+    "| Spec | 文件 | 状态 | 来源 |",
+    "|---|---|---|---|",
+    ...(candidates.length
+      ? candidates.map((item) => `| ${item.title} | \`${specsDir}/review/${item.domain}-${item.name}.md\` | source-derived/current-code | 源码静态扫描 |`)
+      : ["| 待补充 | 待补充 | 待审查 | 源码静态扫描 |"])
+  ].join("\n");
+}
+
+export function sourceReviewSpec(projectName: string, input: SourceSpecCandidate): string {
+  return [
+    `# ${input.title}`,
+    "",
+    "## Meta",
+    "",
+    "- status: source-derived/current-code",
+    "- source: existing-source-scan",
+    "- review: required",
+    "",
+    "## 当前代码事实",
+    "",
+    `MCP 从 \`${projectName}\` 的源码结构、命名、路由、组件、模型和测试中反推出此能力。它表示当前代码里大概率存在相关实现，但业务语义需要用户审查。`,
+    "",
+    "## 源码证据",
+    "",
+    ...list(input.evidence),
+    "",
+    "## 推断目标",
+    "",
+    `当前代码似乎提供 \`${input.title}\` 能力。请把这里改成真实业务目标。`,
+    "",
+    "## 入口与接口线索",
+    "",
+    ...list(input.routes, "未识别到明显路由"),
+    "",
+    "## UI/客户端线索",
+    "",
+    ...list(input.components, "未识别到明显组件"),
+    "",
+    "## 数据线索",
+    "",
+    ...list(input.models, "未识别到明显模型"),
+    "",
+    "## 已有测试线索",
+    "",
+    ...list(input.tests, "未识别到相关测试"),
+    "",
+    "## 待用户审查",
+    "",
+    "- 真实业务目标是否正确。",
+    "- 正常流程、失败分支、权限、数据约束是否完整。",
+    "- 这个功能是否仍需要保留。",
+    "- 如果要修改，请直接编辑本 spec，再让 Codex 按最新 spec 更新代码。",
+    "",
+    "## 行为规则",
+    "",
+    "| 场景 | 条件 | 当前推断 | 目标行为 |",
+    "|---|---|---|---|",
+    "| 正常 | 从源码入口触发 | 保持现有可观察行为 | 待用户确认 |",
+    "| 失败 | 参数、权限、状态或依赖异常 | 待从源码和测试补充 | 待用户确认 |",
+    "",
+    "## 验收标准",
+    "",
+    "- 用户确认或修改本 spec 后，AI 应按最新 spec 更新代码和测试。",
+    "- 若本 spec 仅用于审查且不需要改动，可保持 `source-derived/current-code` 状态。",
+    "- 若当前功能需要移除，把状态改为 `active/removal` 并写清移除范围。"
+  ].join("\n");
+}

@@ -33,6 +33,9 @@ jobs:
           registry-url: https://registry.npmjs.org
           package-manager-cache: false
 
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+
       - name: Use latest npm
         run: npm install -g npm@latest
 
@@ -55,11 +58,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build
-        run: npm run build
-
-      - name: Smoke test
-        run: npm run smoke
+      - name: Verify
+        run: npm run verify
 
       - name: Check npm version
         id: npm_version

@@ -3,57 +3,90 @@ layout: home
 
 hero:
   name: Spec Coding MCP
-  text: 让 AI 先读 spec，再改代码
-  tagline: 一个轻量的本地 MCP 服务：从源码反推规格，给用户审查和修改，再把最新 spec 交给 Codex、Claude Code、OpenCode 等 AI 编程工具实现代码和测试。
+  text: 把 AI 开发收回到可审查的 spec 里
+  tagline: 为 Codex、Claude Code、OpenCode 等编程工具提供同一套本地规格上下文：先看清需求，再执行 TODO，最后把实现结果写回项目。
   actions:
     - theme: brand
-      text: 快速开始
+      text: 5 分钟接入
       link: /guide/getting-started
     - theme: alt
       text: 查看 MCP 工具
       link: /guide/mcp-tools
+  image:
+    src: /spec-flow.png
+    alt: "Spec Coding MCP workflow: source, review, build, archive."
 
 features:
-  - title: 从旧项目反推 spec
-    details: 扫描现有源码，生成 review specs，让用户先看懂系统事实，再决定下一步需求。
-  - title: 每次开发都有 active spec
-    details: 新功能、修复、删除都先进入 specs/active，AI 按最新规格改代码。
-  - title: TODO 可以直接驱动执行
-    details: 把短任务写进 specs/todo 或 spec 的 TODO 段，AI 按未勾选项顺序完成。
-  - title: Checkpoint 记录实现事实
-    details: 阶段性完成后写回完成 TODO、变更文件、验证结果、风险和阻塞。
-  - title: 完成后归档
-    details: 验证通过后把 spec 移到 done，保留清楚的需求和实现记录。
+  - title: 先对齐项目事实
+    details: 从现有源码生成 review specs，把隐含结构、命令和边界摊开给人审查。
+  - title: 按 TODO 顺序执行
+    details: 模型读取 spec_context 后只处理未勾选任务，完成一项就回写一项。
+  - title: 记录验证与风险
+    details: checkpoint 保存变更文件、验证命令、阻塞原因和剩余风险。
+  - title: 多个 AI 工具共用
+    details: Codex、Claude Code、OpenCode 等工具读取同一套 spec，而不是各说各话。
+  - title: 完成后可追溯
+    details: spec_done 归档需求、实现记录和验证结果，下一次修改能接上上下文。
 ---
 
-<section class="home-section">
-  <h2>面向 AI 编程的最小规格系统</h2>
-  <p>
-    Spec Coding MCP 不追求把整个系统永久文档化，也不维护复杂的功能点状态图。
-    它把每次开发收敛成一份可审查、可实现、可归档的 spec，让用户的自然语言修改真正成为代码修改的入口。
-  </p>
+<!-- 首页说明：文案强调工具的真实开发流程，避免空泛宣传。 -->
 
-  <div class="workflow-grid">
-    <div class="workflow-step">
-      <strong>1. 反推</strong>
-      <span>从源码生成 review specs，帮助用户审查已有系统。</span>
-    </div>
-    <div class="workflow-step">
-      <strong>2. 修改</strong>
-      <span>用户直接编辑 spec，明确新增、变更或删除的业务行为。</span>
-    </div>
-    <div class="workflow-step">
-      <strong>3. 实现</strong>
-      <span>AI 调用 spec_context，按最新 spec 和未完成 TODO 修改代码和测试。</span>
-    </div>
-    <div class="workflow-step">
-      <strong>4. 归档</strong>
-      <span>先用 spec_checkpoint 记录实现事实，验证通过后调用 spec_done。</span>
-    </div>
+<section class="homepage-section homepage-section--compact">
+  <div class="homepage-heading">
+    <p class="homepage-kicker">给复杂项目留一条清楚的执行线</p>
+    <h2>不是让 AI 多写文档，而是让它按同一份事实改代码。</h2>
   </div>
 
-  <div class="install-panel">
-    <code>npm install -g @dev_xiaoyun/spec-coding-mcp</code><br />
-    <code>specc init</code>
+  <div class="contract-grid" aria-label="Spec Coding MCP 工作约定">
+    <article class="contract-item">
+      <span>Before</span>
+      <h3>先读项目</h3>
+      <p>扫描源码、命令和测试信号，生成能被人审查的 spec。</p>
+    </article>
+    <article class="contract-item">
+      <span>During</span>
+      <h3>按 TODO 做</h3>
+      <p>模型按未完成任务顺序实现，不靠聊天历史猜下一步。</p>
+    </article>
+    <article class="contract-item">
+      <span>After</span>
+      <h3>写回结果</h3>
+      <p>完成项、关联文件、验证命令和风险都会回到 spec 里。</p>
+    </article>
   </div>
+</section>
+
+<section class="homepage-section">
+  <div class="homepage-heading">
+    <p class="homepage-kicker">适合什么场景</p>
+    <h2>当项目开始变大，需求就不能只留在对话框里。</h2>
+  </div>
+
+  <div class="usage-grid">
+    <article class="usage-item">
+      <h3>接手旧项目</h3>
+      <p>先让工具从源码反推 review specs，再决定哪些事实需要修正。</p>
+    </article>
+    <article class="usage-item">
+      <h3>连续开发功能</h3>
+      <p>每次变更都有 active spec 和 checkpoint，长期迭代不会断线。</p>
+    </article>
+    <article class="usage-item">
+      <h3>约束 AI 行为</h3>
+      <p>工程原则、业务确认规则和验证结果会进入模型上下文。</p>
+    </article>
+    <article class="usage-item">
+      <h3>多人或多工具协作</h3>
+      <p>不同 AI 工具读取同一套 spec 文件，减少重复解释和口径漂移。</p>
+    </article>
+  </div>
+</section>
+
+<section class="install-strip" aria-label="安装命令">
+  <div>
+    <span>Start here</span>
+    <strong>两条命令把 spec 流程放进项目</strong>
+  </div>
+  <pre><code>npm install -g @dev_xiaoyun/spec-coding-mcp
+specc init</code></pre>
 </section>
