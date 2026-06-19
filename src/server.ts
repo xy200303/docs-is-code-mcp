@@ -137,7 +137,7 @@ function renderAgentFileResult(title: string, result: AgentFileResult): string {
 export function createSpecCodingServer(): McpServer {
   const server = new McpServer({
     name: "spec-coding",
-    version: "0.2.0"
+    version: "0.2.1"
   });
 
   server.registerTool(

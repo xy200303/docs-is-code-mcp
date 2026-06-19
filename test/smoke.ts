@@ -103,6 +103,9 @@ try {
     !context.markdown.includes("禁止在一个文件里混合 UI、业务、数据访问逻辑") ||
     !context.markdown.includes("禁止为了模式而模式") ||
     !context.markdown.includes("性能与资源") ||
+    !context.markdown.includes("禁止混层") ||
+    !context.markdown.includes("禁止过度抽象") ||
+    !context.markdown.includes("局部小步重构") ||
     !context.markdown.includes("这些规则是强制约束，不是建议")
   ) {
     throw new Error("Expected spec context to include active spec text, open TODOs, and engineering constraints.");
@@ -160,7 +163,7 @@ try {
   } finally {
     console.log = originalLog;
   }
-  if (versionLines[0] !== "0.2.0") {
+  if (versionLines[0] !== "0.2.1") {
     throw new Error(`Expected CLI version output, got: ${versionLines.join(" | ")}`);
   }
 

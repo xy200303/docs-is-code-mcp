@@ -10,7 +10,8 @@
 - 用户开发前先修改或新增 spec。
 - 用户可以用 TODO 清单拆分任务，模型按未勾选项顺序执行。
 - 工具会把全局工程质量约束注入模型上下文，强制约束代码风格、项目结构和 UI 直觉性。
-- 工具强制遵守 KISS、DRY、Clean Code、Fail Fast、SOLID 和 Boy Scout Rule。
+- 工具强制遵守 KISS、DRY、Clean Code、Clean Architecture、DDD、Fail Fast、SOLID 和 Boy Scout Rule。
+- 工具还会防止混层、过度抽象和不必要的复杂度，把代码组织成适合大型项目的结构。
 - Codex 读取 active spec，按最新规格实现代码和测试。
 - 验证通过后把 spec 归档到 `done/`。
 
@@ -45,6 +46,7 @@ specs/
 
 | 工具 | 作用 |
 |---|---|
+| `spec_generate_agents` | 在项目根目录生成或更新 `AGENTS.md` |
 | `spec_init` | 初始化 `specs/` 目录和模板 |
 | `spec_generate_from_source` | 从现有源码反推 review specs |
 | `spec_create` | 根据用户描述创建 active spec |
@@ -56,6 +58,12 @@ specs/
 | `spec_done` | 验证通过后把 spec 移到 done |
 
 ## 推荐工作流
+
+### 先生成项目手册
+
+1. 调用 `spec_generate_agents`。
+2. 检查项目根目录的 `AGENTS.md`。
+3. 按 `AGENTS.md`、`specs/` 和 TODO 开始开发。
 
 ### 旧系统第一次接入
 
@@ -116,7 +124,8 @@ TODO 可以放在 `specs/todo/*.md`，也可以写在 active spec 的 `## TODO` 
 - UI 设计符合人类直觉，交互状态完整，文案简洁，信息层级清楚。
 - 修改范围贴合 spec/TODO，不扩散到无关重构。
 - 优先复用项目已有测试、构建和校验命令。
-- 强制遵守 KISS、DRY、Clean Code、Fail Fast、SOLID 和 Boy Scout Rule。
+- 强制遵守 KISS、DRY、Clean Code、Clean Architecture、DDD、Fail Fast、SOLID 和 Boy Scout Rule。
+- 避免混合 UI、业务和数据访问逻辑，避免为了模式而模式。
 - 文件顶部必须写文件注释，复杂逻辑必须写说明性注释，但不能写废话。
 - 能用成熟库解决的就优先用成熟库，不要自己手搓已有轮子。
 - 遇到不明确、影响面大或高风险的方案时，先向用户询问和确认，不要自己拍板。

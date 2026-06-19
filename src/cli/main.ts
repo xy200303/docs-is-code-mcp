@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 import { detectProgrammingTools, registerTools, type ToolId } from "./registry.js";
 import { serveStdio } from "../server.js";
 
-const VERSION = "0.2.0";
+const VERSION = "0.2.1";
 
 function printHelp(): void {
   console.log([

@@ -366,7 +366,7 @@ export async function specContext(input: { projectRoot: string; specsDir?: strin
     "每完成一个 TODO，必须同步把对应任务勾选为 [x]；无法完成时保留未勾选并写清阻塞原因。",
     "先阅读 spec 的目标、行为规则、验收标准和代码线索，再搜索代码。",
     "按 spec 更新实现和测试；不要根据旧对话记忆扩展范围。",
-    "必须遵守 Engineering Constraints（含 KISS、YAGNI、Clean Code、Clean Architecture、DDD、SOLID、SoC、Fail Fast、Boy Scout Rule）；若 spec/TODO 与工程质量约束冲突，先保持实现边界清晰并向用户说明取舍。",
+    "必须遵守 Engineering Constraints（含 KISS、YAGNI、Clean Code、Clean Architecture、DDD、SOLID、SoC、Fail Fast、Boy Scout Rule、禁止混层、禁止过度抽象、局部小步重构、性能与资源约束）；若 spec/TODO 与工程质量约束冲突，先保持实现边界清晰并向用户说明取舍。",
     "新建或重写代码文件时，必须在文件顶部写文件注释；复杂逻辑必须写说明性注释，但不要写废话。",
     "优先使用成熟库而不是自己手搓已有轮子；如果要引入新库，先评估必要性、维护状态和影响。",
     "遇到不明确、影响面大或高风险的方案时，先向用户询问和确认，不要自行拍板。",
