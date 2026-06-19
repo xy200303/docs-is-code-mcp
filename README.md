@@ -26,7 +26,7 @@
   <a href="https://www.npmjs.com/package/@dev_xiaoyun/spec-coding-mcp"><img alt="npm version" src="https://img.shields.io/npm/v/%40dev_xiaoyun%2Fspec-coding-mcp?style=flat-square&color=0f766e" /></a>
   <a href="https://github.com/xy200303/spec-coding-mcp/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/xy200303/spec-coding-mcp/ci.yml?branch=main&style=flat-square&label=CI" /></a>
   <a href="https://github.com/xy200303/spec-coding-mcp/actions/workflows/deploy-docs.yml"><img alt="Docs" src="https://img.shields.io/github/actions/workflow/status/xy200303/spec-coding-mcp/deploy-docs.yml?branch=main&style=flat-square&label=docs" /></a>
-  <img alt="Node.js >= 22" src="https://img.shields.io/badge/Node.js-%3E%3D22-3c873a?style=flat-square" />
+  <img alt="Node 22 plus" src="https://img.shields.io/badge/node-22%2B-3c873a?style=flat-square" />
   <img alt="MCP server" src="https://img.shields.io/badge/MCP-server-334155?style=flat-square" />
   <a href="./LICENSE"><img alt="License MIT" src="https://img.shields.io/badge/license-MIT-b45309?style=flat-square" /></a>
 </p>
