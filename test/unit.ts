@@ -57,6 +57,8 @@ async function testTodoSpecTaskExtraction(): Promise<void> {
     "- `git diff --check` 通过。"
   ].join("\n"));
 
+  assert(!text.includes("- [ ] 优化 spec_todo 任务提取质量。"), "Expected prose intro to stay out of TODOs when bullet tasks exist.");
+  assert(!text.includes("- [ ] 优化 spec_todo 任务提取质量。要求："), "Expected prose intro with trailing requirement label to stay out of TODOs.");
   assertIncludes(text, "- [ ] 过滤结构标题。", "Expected actionable bullet to become TODO.");
   assertIncludes(text, "- [ ] 保留真正任务。", "Expected actionable bullet to stay in TODO.");
   assertIncludes(text, "- [x] 已完成的用户任务", "Expected checked user TODO to stay checked.");
