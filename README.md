@@ -265,16 +265,24 @@ node dist/index.js serve
 
 ## 发布
 
-使用 GitHub Actions 的 `Prepare npm release` 工作流发布新版：
+发布新版时，先在本地明确目标版本并提交版本变更：
 
-1. 打开 `Actions` -> `Prepare npm release` -> `Run workflow`。
-2. 输入目标版本号，例如 `0.2.6`。
-3. `dry_run=false` 时，CI 会自动同步 `package.json` 和 `package-lock.json`、运行验证、提交版本变更并创建 `vX.Y.Z` tag。
-4. tag 会触发 `Publish npm` 工作流完成 npm 发布。
+```bash
+npm version 0.2.6 --no-git-tag-version
+npm install --package-lock-only --ignore-scripts
+npm run verify
+git add package.json package-lock.json
+git commit -m "发布 0.2.6"
+git tag v0.2.6
+git push origin main
+git push origin v0.2.6
+```
+
+`vX.Y.Z` tag 会触发 `Publish npm` 工作流完成 npm 发布。
 
 npm 发布 workflow 使用 GitHub Actions secret `NPM_TOKEN`。发布前需要在仓库 secrets 中配置具备发布权限的 `NPM_TOKEN`。
 
-如果某个 tag 已经由失败发布创建过、但 npm 没有发布成功，可以在 `Prepare npm release` 里勾选 `replace_existing_tag`，让 CI 删除并重建同版本 tag，不需要为了失败尝试继续升级版本号。
+如果某个 tag 已经由失败发布创建过、但 npm 没有发布成功，可以删除并重建同版本 tag 后重新 push。
 
 发布前本地也可以运行：
 

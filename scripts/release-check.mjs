@@ -1,5 +1,5 @@
 /* Release readiness checks for version, CLI, MCP, and documentation contracts. */
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 
 function readText(file) {
   return readFileSync(file, "utf8");
@@ -55,7 +55,10 @@ function assertDocumentationContract(readmeText, agentsText) {
     "可安全推导的上下文值",
     "不替模型编造 prompt、title 或行为记录",
     "npm run release:check",
-    "npm run verify"
+    "npm run verify",
+    "npm version",
+    "git tag v",
+    "git push origin v"
   ]) {
     assertIncludes(readmeText, phrase, "README.md");
   }
@@ -64,7 +67,7 @@ function assertDocumentationContract(readmeText, agentsText) {
   }
 }
 
-function assertWorkflowContract(ciText, publishText, prepareText) {
+function assertWorkflowContract(ciText, publishText) {
   assertIncludes(ciText, "uses: oven-sh/setup-bun@v2", ".github/workflows/ci.yml");
   assertIncludes(ciText, "run: npm run verify", ".github/workflows/ci.yml");
   assertIncludes(ciText, "run: npm pack --dry-run", ".github/workflows/ci.yml");
@@ -74,12 +77,7 @@ function assertWorkflowContract(ciText, publishText, prepareText) {
   assertIncludes(publishText, "npm publish --access public", ".github/workflows/publish-npm.yml");
   assert(!publishText.includes("--provenance"), "publish workflow must use NPM_TOKEN only, without provenance/OIDC publishing.");
   assert(!publishText.includes("run: npm run smoke"), "publish workflow must use verify instead of a partial smoke-only check.");
-  assertIncludes(prepareText, "description: Version to release, for example", ".github/workflows/prepare-npm-release.yml");
-  assertIncludes(prepareText, "required: true", ".github/workflows/prepare-npm-release.yml");
-  assert(!prepareText.includes("default: auto"), "prepare workflow must require an explicit version instead of defaulting to auto.");
-  assert(!prepareText.includes("Auto patch release"), "prepare workflow must not auto-calculate patch versions.");
-  assert(!prepareText.includes("Skipping existing tag"), "prepare workflow must fail on existing tags unless replace_existing_tag is set.");
-  assertIncludes(prepareText, "git push origin \"${{ steps.release.outputs.tag }}\"", ".github/workflows/prepare-npm-release.yml");
+  assert(!existsSync(".github/workflows/prepare-npm-release.yml"), "prepare-npm-release workflow must stay removed; publish is triggered by pushed tags.");
 }
 
 function assertReadToolSourceContract(contextMarkdownText, registerReadToolsText, workflowNextStepText) {
@@ -107,13 +105,12 @@ const registerReadToolsText = readText("src/mcp/register-read-tools.ts");
 const workflowNextStepText = readText("src/spec/workflow-next-step.ts");
 const ciText = readText(".github/workflows/ci.yml");
 const publishText = readText(".github/workflows/publish-npm.yml");
-const prepareText = readText(".github/workflows/prepare-npm-release.yml");
 
 assertVersionContract(packageJson, packageLock, metaText);
 assertScriptContract(packageJson);
 assertCompatibilityContract(compatibilityText);
 assertDocumentationContract(readmeText, agentsText);
 assertReadToolSourceContract(contextMarkdownText, registerReadToolsText, workflowNextStepText);
-assertWorkflowContract(ciText, publishText, prepareText);
+assertWorkflowContract(ciText, publishText);
 
 console.log("spec-coding release checks passed");
