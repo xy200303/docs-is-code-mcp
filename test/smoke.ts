@@ -582,6 +582,39 @@ try {
   if (emptyStatusJson.version !== APP_VERSION || emptyStatusJson.workflowState.active !== 0 || emptyStatusJson.workflowState.openTodos !== 0 || !emptyStatusJson.nextStep.includes("specc bootstrap")) {
     throw new Error(`Expected empty CLI status JSON to recommend bootstrap, got: ${JSON.stringify(emptyStatusJson)}`);
   }
+  const doneOnlyRoot = await mkdtemp(path.join(os.tmpdir(), "spec-coding-cli-status-done-"));
+  await mkdir(path.join(doneOnlyRoot, "specs", "done"), { recursive: true });
+  await writeFile(path.join(doneOnlyRoot, "specs", "done", "finished.md"), "# Finished\n\n## Meta\n\n- status: done\n", "utf8");
+  const doneOnlyStatusLines: string[] = [];
+  console.log = (...args: unknown[]) => {
+    doneOnlyStatusLines.push(args.map(String).join(" "));
+  };
+  try {
+    await runCli(["node", "specc", "status", "--project-root", doneOnlyRoot]);
+  } finally {
+    console.log = originalLog;
+  }
+  const doneOnlyStatusText = doneOnlyStatusLines.join("\n");
+  if (!doneOnlyStatusText.includes("done specs: 1") || !doneOnlyStatusText.includes("No open work items") || doneOnlyStatusText.includes("Run specc bootstrap")) {
+    throw new Error(`Expected done-only CLI status to recommend creating new work, got: ${doneOnlyStatusText}`);
+  }
+  const doneOnlyStatusJsonLines: string[] = [];
+  console.log = (...args: unknown[]) => {
+    doneOnlyStatusJsonLines.push(args.map(String).join(" "));
+  };
+  try {
+    await runCli(["node", "specc", "status", "--project-root", doneOnlyRoot, "--json"]);
+  } finally {
+    console.log = originalLog;
+  }
+  const doneOnlyStatusJson = JSON.parse(doneOnlyStatusJsonLines.join("\n")) as {
+    workflowState: { active: number; todo: number; review: number; done: number; openTodos: number };
+    nextStep: string;
+  };
+  if (doneOnlyStatusJson.workflowState.done !== 1 || !doneOnlyStatusJson.nextStep.includes("No open work items") || doneOnlyStatusJson.nextStep.includes("specc bootstrap")) {
+    throw new Error(`Expected done-only CLI status JSON to recommend creating new work, got: ${JSON.stringify(doneOnlyStatusJson)}`);
+  }
+  await rm(doneOnlyRoot, { recursive: true, force: true });
   const statusHelpLines: string[] = [];
   console.log = (...args: unknown[]) => {
     statusHelpLines.push(args.map(String).join(" "));

@@ -31,12 +31,15 @@ function printStatusHelp(): void {
   ].join("\n"));
 }
 
-function statusNextStep(input: { active: number; todo: number; review: number; openTodos: number }): string {
+function statusNextStep(input: { active: number; todo: number; review: number; done: number; openTodos: number }): string {
   if (input.openTodos) {
     return "Call spec_context and execute open TODOs in order.";
   }
   if (input.active || input.todo || input.review) {
     return "Call spec_context in your AI tool before changing code or docs.";
+  }
+  if (input.done) {
+    return "No open work items. Create a new spec_todo or spec_create entry when new work starts.";
   }
   return "Run specc bootstrap --project-root <path> --project-kind auto.";
 }
