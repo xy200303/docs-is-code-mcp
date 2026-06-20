@@ -74,6 +74,17 @@ function hasFlag(args: string[], name: string): boolean {
   return args.includes(name);
 }
 
+function assertKnownOptions(args: string[], allowedOptions: string[]): void {
+  const allowed = new Set(allowedOptions);
+  for (const arg of args) {
+    if (!arg.startsWith("--")) continue;
+    const name = arg.includes("=") ? arg.slice(0, arg.indexOf("=")) : arg;
+    if (!allowed.has(name)) {
+      throw new Error(`Unknown option: ${name}`);
+    }
+  }
+}
+
 function projectKindFromArgs(args: string[]): "auto" | "new" | "existing" {
   const value = optionValue(args, "--project-kind") ?? "auto";
   if (value === "auto" || value === "new" || value === "existing") return value;
@@ -85,6 +96,7 @@ async function runBootstrap(args: string[]): Promise<void> {
     printBootstrapHelp();
     return;
   }
+  assertKnownOptions(args, ["--project-root", "--specs-dir", "--project-name", "--project-kind", "--initial-prompt", "--overwrite", "--help"]);
 
   const projectRoot = optionValue(args, "--project-root") ?? process.cwd();
   const specsDir = optionValue(args, "--specs-dir") ?? "specs";
@@ -161,6 +173,7 @@ async function runStatus(args: string[]): Promise<void> {
     printStatusHelp();
     return;
   }
+  assertKnownOptions(args, ["--project-root", "--specs-dir", "--json", "--help"]);
 
   const report = await statusReport(args);
   console.log(hasFlag(args, "--json") ? JSON.stringify(report, null, 2) : renderStatusText(report));

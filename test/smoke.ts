@@ -544,6 +544,15 @@ try {
   if (!statusHelpText.includes("specc status [options]") || !statusHelpText.includes("--specs-dir <path>") || !statusHelpText.includes("--json")) {
     throw new Error(`Expected status help to describe options, got: ${statusHelpText}`);
   }
+  let unknownStatusOptionMessage = "";
+  try {
+    await runCli(["node", "specc", "status", "--project-rooot", cliStatusEmptyRoot]);
+  } catch (error) {
+    unknownStatusOptionMessage = error instanceof Error ? error.message : String(error);
+  }
+  if (!unknownStatusOptionMessage.includes("Unknown option: --project-rooot")) {
+    throw new Error(`Expected unknown status option to fail fast, got: ${unknownStatusOptionMessage}`);
+  }
   await rm(cliStatusEmptyRoot, { recursive: true, force: true });
 
   const cliBootstrapHelpRoot = await mkdtemp(path.join(os.tmpdir(), "spec-coding-cli-bootstrap-help-"));
@@ -563,6 +572,18 @@ try {
   const bootstrapHelpSpecs = await listSpecs({ projectRoot: cliBootstrapHelpRoot, specsDir: "specs" });
   if (bootstrapHelpSpecs.active.length || bootstrapHelpSpecs.todo.length || bootstrapHelpSpecs.review.length || bootstrapHelpSpecs.done.length) {
     throw new Error("Expected bootstrap --help to avoid writing spec files.");
+  }
+  const bootstrapHelpWithUnknownLines: string[] = [];
+  console.log = (...args: unknown[]) => {
+    bootstrapHelpWithUnknownLines.push(args.map(String).join(" "));
+  };
+  try {
+    await runCli(["node", "specc", "bootstrap", "--unknown-option", "--help"]);
+  } finally {
+    console.log = originalLog;
+  }
+  if (!bootstrapHelpWithUnknownLines.join("\n").includes("specc bootstrap [options]")) {
+    throw new Error("Expected bootstrap --help to take priority over unknown option validation.");
   }
   await rm(cliBootstrapHelpRoot, { recursive: true, force: true });
 
@@ -630,6 +651,15 @@ try {
   }
   if (!invalidProjectKindMessage.includes("--project-kind must be one of: auto, new, existing")) {
     throw new Error(`Expected invalid project kind to fail fast, got: ${invalidProjectKindMessage}`);
+  }
+  let unknownBootstrapOptionMessage = "";
+  try {
+    await runCli(["node", "specc", "bootstrap", "--project-rooot", cliBootstrapRoot]);
+  } catch (error) {
+    unknownBootstrapOptionMessage = error instanceof Error ? error.message : String(error);
+  }
+  if (!unknownBootstrapOptionMessage.includes("Unknown option: --project-rooot")) {
+    throw new Error(`Expected unknown bootstrap option to fail fast, got: ${unknownBootstrapOptionMessage}`);
   }
 
   const expectedServer = { command: process.execPath, args: [path.resolve("dist", "index.js"), "serve"] };
