@@ -161,6 +161,7 @@ export function buildSpecContextMarkdown(input: {
       activeSpecs: input.activeSpecs,
       reviewSpecs: input.reviewSpecs,
       todoSpecs: input.todoSpecs,
+      doneSpecs: input.doneSpecs,
       openTodos,
       selectedSpecs: input.selectedSpecs
     }),

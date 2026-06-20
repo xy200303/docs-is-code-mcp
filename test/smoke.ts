@@ -227,6 +227,34 @@ try {
     "reason:",
     "afterwards:"
   ], "Expected review-only spec_context to stop direct implementation and recommend creating an active spec");
+
+  const doneOnlyWorkflowRoot = await mkdtemp(path.join(os.tmpdir(), "spec-coding-done-only-workflow-"));
+  await mkdir(path.join(doneOnlyWorkflowRoot, "specs", "done"), { recursive: true });
+  await writeFile(path.join(doneOnlyWorkflowRoot, "specs", "done", "finished.md"), "# Finished\n\n## Meta\n\n- status: done\n", "utf8");
+  const doneOnlyList = await harness.call("spec_list", { projectRoot: doneOnlyWorkflowRoot, specsDir: "specs" });
+  assertIncludesAll(doneOnlyList.content[0]?.text ?? "", [
+    "done specs: 1",
+    "Recommended Next Step",
+    "nextTool: `spec_todo`",
+    "alternatives: `spec_create`",
+    "当前只有 done 历史记录，没有待执行任务"
+  ], "Expected spec_list to create new work instead of bootstrapping done-only projects");
+  if ((doneOnlyList.content[0]?.text ?? "").includes("nextTool: `spec_bootstrap`")) {
+    throw new Error("Expected done-only spec_list to avoid recommending spec_bootstrap.");
+  }
+  const doneOnlyContext = await harness.call("spec_context", { projectRoot: doneOnlyWorkflowRoot, specsDir: "specs" });
+  assertIncludesAll(doneOnlyContext.content[0]?.text ?? "", [
+    "done specs: 1",
+    "Recommended Next Step",
+    "nextTool: `spec_todo`",
+    "alternatives: `spec_create`",
+    "当前没有待执行任务，已有 done 记录说明项目已接入"
+  ], "Expected spec_context to create new work instead of bootstrapping done-only projects");
+  if ((doneOnlyContext.content[0]?.text ?? "").includes("nextTool: `spec_bootstrap`")) {
+    throw new Error("Expected done-only spec_context to avoid recommending spec_bootstrap.");
+  }
+  await rm(doneOnlyWorkflowRoot, { recursive: true, force: true });
+
   const createdAfterContext = await harness.call("spec_create", {
     projectRoot: root,
     specsDir: "specs",

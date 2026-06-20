@@ -106,6 +106,7 @@ export function registerReadTools(server: McpServer, guard: SessionGuardState): 
           activeSpecs: result.active,
           reviewSpecs: result.review,
           todoSpecs: result.todo,
+          doneSpecs: result.done,
           openTodos: [],
           selectedSpecs: []
         }, "inspect")

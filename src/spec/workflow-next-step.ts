@@ -7,6 +7,7 @@ export interface WorkflowState {
   activeSpecs: SpecItem[];
   reviewSpecs: SpecItem[];
   todoSpecs: SpecItem[];
+  doneSpecs: SpecItem[];
   openTodos: TodoItem[];
   selectedSpecs: SpecItem[];
 }
@@ -22,7 +23,7 @@ export interface WorkflowRecommendation {
   afterwards: string;
 }
 
-function hasAnyWorkItem(state: WorkflowState): boolean {
+function hasAnyExecutableWorkItem(state: WorkflowState): boolean {
   return Boolean(state.selectedSpecs.length || state.openTodos.length || state.activeSpecs.length || state.todoSpecs.length || state.reviewSpecs.length);
 }
 
@@ -39,7 +40,7 @@ function currentWorkFile(state: WorkflowState, fallback: string): string {
 }
 
 function inspectWorkflowRecommendation(state: WorkflowState): WorkflowRecommendation {
-  if (!hasAnyWorkItem(state)) {
+  if (!hasAnyExecutableWorkItem(state) && !state.doneSpecs.length) {
     return {
       nextTool: "spec_bootstrap",
       alternatives: ["spec_todo", "spec_create"],
@@ -47,6 +48,17 @@ function inspectWorkflowRecommendation(state: WorkflowState): WorkflowRecommenda
       reason: "当前没有 review、active、todo 或 selected spec，需要先建立项目入口。",
       when: "项目首次接入或 specs 尚未初始化时。",
       afterwards: "bootstrap 后调用 `spec_context`；用户已经给出明确小任务时可改用 `spec_todo`，明确功能需求时可改用 `spec_create`。"
+    };
+  }
+
+  if (!hasAnyExecutableWorkItem(state) && state.doneSpecs.length) {
+    return {
+      nextTool: "spec_todo",
+      alternatives: ["spec_create"],
+      arguments: { ...projectArguments(state), prompt: "<small ordered task list>", title: "<short task title>" },
+      reason: "当前只有 done 历史记录，没有待执行任务；新工作应先创建任务或功能 spec。",
+      when: "项目已经接入过 Spec Coding，但当前没有 active、todo、review 或 open TODO 时。",
+      afterwards: "创建任务后调用 `spec_context`，再按 open TODO 或 selected spec 执行。"
     };
   }
 
@@ -83,7 +95,7 @@ function inspectWorkflowRecommendation(state: WorkflowState): WorkflowRecommenda
 }
 
 function contextWorkflowRecommendation(state: WorkflowState): WorkflowRecommendation {
-  if (!state.selectedSpecs.length && !state.openTodos.length && !state.activeSpecs.length && !state.todoSpecs.length && !state.reviewSpecs.length) {
+  if (!hasAnyExecutableWorkItem(state) && !state.doneSpecs.length) {
     return {
       nextTool: "spec_bootstrap",
       alternatives: ["spec_todo", "spec_create"],
@@ -91,6 +103,17 @@ function contextWorkflowRecommendation(state: WorkflowState): WorkflowRecommenda
       reason: "当前没有可执行任务，不能直接实现代码。",
       when: "没有 selected spec、open TODO、active、todo 或 review 时。",
       afterwards: "优先生成 AGENTS、specs 和可执行入口后再调用 `spec_context`；用户已经给出明确小任务时可改用 `spec_todo`，明确功能需求时可改用 `spec_create`。"
+    };
+  }
+
+  if (!hasAnyExecutableWorkItem(state) && state.doneSpecs.length) {
+    return {
+      nextTool: "spec_todo",
+      alternatives: ["spec_create"],
+      arguments: { ...projectArguments(state), prompt: "<small ordered task list>", title: "<short task title>" },
+      reason: "当前没有待执行任务，已有 done 记录说明项目已接入；新工作应先创建 spec_todo 或 spec_create。",
+      when: "只有 done specs，且没有 selected spec、open TODO、active、todo 或 review 时。",
+      afterwards: "创建任务后再次调用 `spec_context`，再开始实现。"
     };
   }
 
