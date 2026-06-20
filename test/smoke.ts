@@ -609,7 +609,7 @@ try {
     projectRoot: string;
     workflowState: { active: number; todo: number; review: number; done: number; openTodos: number };
     nextStep: string;
-    recommendation: { nextTool: string; alternatives: string[]; reason: string };
+    recommendation: { nextTool: string; alternatives: string[]; arguments: Record<string, string>; reason: string };
   };
   if (
     emptyStatusJson.version !== APP_VERSION ||
@@ -617,7 +617,10 @@ try {
     emptyStatusJson.workflowState.openTodos !== 0 ||
     !emptyStatusJson.nextStep.includes("specc bootstrap") ||
     emptyStatusJson.recommendation.nextTool !== "spec_bootstrap" ||
-    !emptyStatusJson.recommendation.alternatives.includes("spec_todo")
+    !emptyStatusJson.recommendation.alternatives.includes("spec_todo") ||
+    emptyStatusJson.recommendation.arguments.projectRoot !== emptyStatusJson.projectRoot ||
+    emptyStatusJson.recommendation.arguments.specsDir !== "specs" ||
+    emptyStatusJson.recommendation.arguments.projectKind !== "auto"
   ) {
     throw new Error(`Expected empty CLI status JSON to recommend bootstrap, got: ${JSON.stringify(emptyStatusJson)}`);
   }
@@ -649,14 +652,18 @@ try {
   const doneOnlyStatusJson = JSON.parse(doneOnlyStatusJsonLines.join("\n")) as {
     workflowState: { active: number; todo: number; review: number; done: number; openTodos: number };
     nextStep: string;
-    recommendation: { nextTool: string; alternatives: string[]; reason: string };
+    recommendation: { nextTool: string; alternatives: string[]; arguments: Record<string, string>; reason: string };
   };
   if (
     doneOnlyStatusJson.workflowState.done !== 1 ||
     !doneOnlyStatusJson.nextStep.includes("No open work items") ||
     doneOnlyStatusJson.nextStep.includes("specc bootstrap") ||
     doneOnlyStatusJson.recommendation.nextTool !== "spec_todo" ||
-    !doneOnlyStatusJson.recommendation.alternatives.includes("spec_create")
+    !doneOnlyStatusJson.recommendation.alternatives.includes("spec_create") ||
+    doneOnlyStatusJson.recommendation.arguments.projectRoot !== doneOnlyRoot ||
+    doneOnlyStatusJson.recommendation.arguments.specsDir !== "specs" ||
+    !doneOnlyStatusJson.recommendation.arguments.prompt ||
+    !doneOnlyStatusJson.recommendation.arguments.title
   ) {
     throw new Error(`Expected done-only CLI status JSON to recommend creating new work, got: ${JSON.stringify(doneOnlyStatusJson)}`);
   }
@@ -767,14 +774,16 @@ try {
   const activeStatusJson = JSON.parse(activeStatusJsonLines.join("\n")) as {
     workflowState: { active: number; openTodos: number };
     nextStep: string;
-    recommendation: { nextTool: string; alternatives: string[]; reason: string };
+    recommendation: { nextTool: string; alternatives: string[]; arguments: Record<string, string>; reason: string };
   };
   if (
     activeStatusJson.workflowState.active !== 1 ||
     activeStatusJson.workflowState.openTodos < 1 ||
     !activeStatusJson.nextStep.includes("open TODOs") ||
     activeStatusJson.recommendation.nextTool !== "spec_context" ||
-    activeStatusJson.recommendation.alternatives.length !== 0
+    activeStatusJson.recommendation.alternatives.length !== 0 ||
+    activeStatusJson.recommendation.arguments.projectRoot !== cliBootstrapRoot ||
+    activeStatusJson.recommendation.arguments.specsDir !== "specs"
   ) {
     throw new Error(`Expected active CLI status JSON to recommend open TODO execution, got: ${JSON.stringify(activeStatusJson)}`);
   }
