@@ -119,7 +119,9 @@ function assertManualReleaseContract(manualReleaseText) {
   assertIncludes(manualReleaseText, "\"install\", \"--package-lock-only\", \"--ignore-scripts\"", "scripts/release-manual.mjs");
   assertIncludes(manualReleaseText, "\"run\", \"verify\"", "scripts/release-manual.mjs");
   assertIncludes(manualReleaseText, "\"pack\", \"--dry-run\"", "scripts/release-manual.mjs");
+  assertIncludes(manualReleaseText, "Keep shell disabled", "scripts/release-manual.mjs");
   assertIncludes(manualReleaseText, "\"push\", \"origin\", tag", "scripts/release-manual.mjs");
+  assert(!/shell\s*:\s*process\.platform/.test(manualReleaseText), "release-manual must not use platform shell mode; it breaks quoted git commit messages on Windows.");
 }
 
 const packageJson = readJson("package.json");

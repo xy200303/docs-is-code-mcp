@@ -12,14 +12,14 @@ function readJson(file) {
 }
 
 function run(command, args, options = {}) {
-  const result = spawnSync(command, args, { stdio: "inherit", shell: process.platform === "win32", ...options });
+  const result = spawnSync(command, args, { stdio: "inherit", ...options });
   if (result.status !== 0) {
     throw new Error(`Command failed: ${command} ${args.join(" ")}`);
   }
 }
 
 function read(command, args) {
-  const result = spawnSync(command, args, { encoding: "utf8", shell: process.platform === "win32" });
+  const result = spawnSync(command, args, { encoding: "utf8" });
   if (result.status !== 0) {
     throw new Error(`Command failed: ${command} ${args.join(" ")}`);
   }
@@ -50,8 +50,7 @@ function assertTagDoesNotExist(tag) {
     throw new Error(`Local tag ${tag} already exists.`);
   }
   const remote = spawnSync("git", ["ls-remote", "--exit-code", "--tags", "origin", tag], {
-    encoding: "utf8",
-    shell: process.platform === "win32"
+    encoding: "utf8"
   });
   if (remote.status === 0) {
     throw new Error(`Remote tag ${tag} already exists.`);
@@ -60,8 +59,7 @@ function assertTagDoesNotExist(tag) {
 
 function assertNpmVersionDoesNotExist(packageName) {
   const result = spawnSync("npm", ["view", `${packageName}@${version}`, "version"], {
-    encoding: "utf8",
-    shell: process.platform === "win32"
+    encoding: "utf8"
   });
   if (result.status === 0) {
     throw new Error(`${packageName}@${version} already exists on npm.`);
@@ -77,6 +75,7 @@ function publishTag(tag) {
   run("npm", ["run", "verify"]);
   run("npm", ["pack", "--dry-run"]);
   run("git", ["add", "package.json", "package-lock.json"]);
+  // Keep shell disabled so Windows does not split the Chinese commit message into pathspecs.
   run("git", ["commit", "-m", `发布 ${version}`]);
   run("git", ["tag", tag]);
   run("git", ["push", "origin", "main"]);
