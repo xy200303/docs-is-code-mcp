@@ -100,7 +100,11 @@ try {
     "arguments:",
     `"projectRoot":"${emptyWorkflowRoot.replace(/\\/g, "\\\\")}"`,
     "\"projectKind\":\"auto\"",
+    "reason:",
+    "when:",
+    "afterwards:",
     "当前没有可执行任务，不能直接实现代码",
+    "没有 selected spec、open TODO、active、todo 或 review 时",
     "优先生成 AGENTS、specs 和可执行入口"
   ], "Expected empty spec_context to render a structured next step instead of stopping at a warning");
   await rm(emptyWorkflowRoot, { recursive: true, force: true });
@@ -276,6 +280,12 @@ try {
     "Recommended Next Step",
     "nextTool: `spec_todo`",
     "alternatives: `spec_create`",
+    "arguments:",
+    "\"prompt\":\"<small ordered task list>\"",
+    "\"title\":\"<short task title>\"",
+    "reason:",
+    "when:",
+    "afterwards:",
     "当前没有待执行任务，已有 done 记录说明项目已接入"
   ], "Expected spec_context to create new work instead of bootstrapping done-only projects");
   const doneOnlyContextText = doneOnlyContext.content[0]?.text ?? "";
