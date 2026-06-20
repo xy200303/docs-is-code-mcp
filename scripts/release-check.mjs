@@ -74,10 +74,11 @@ function assertWorkflowContract(ciText, publishText, prepareText) {
   assertIncludes(publishText, "npm publish --access public", ".github/workflows/publish-npm.yml");
   assert(!publishText.includes("--provenance"), "publish workflow must use NPM_TOKEN only, without provenance/OIDC publishing.");
   assert(!publishText.includes("run: npm run smoke"), "publish workflow must use verify instead of a partial smoke-only check.");
-  assertIncludes(prepareText, "default: auto", ".github/workflows/prepare-npm-release.yml");
-  assertIncludes(prepareText, "Auto patch release requires package.json version to be stable x.y.z.", ".github/workflows/prepare-npm-release.yml");
-  assertIncludes(prepareText, "Skipping existing tag", ".github/workflows/prepare-npm-release.yml");
-  assertIncludes(prepareText, "Skipping existing npm version", ".github/workflows/prepare-npm-release.yml");
+  assertIncludes(prepareText, "description: Version to release, for example", ".github/workflows/prepare-npm-release.yml");
+  assertIncludes(prepareText, "required: true", ".github/workflows/prepare-npm-release.yml");
+  assert(!prepareText.includes("default: auto"), "prepare workflow must require an explicit version instead of defaulting to auto.");
+  assert(!prepareText.includes("Auto patch release"), "prepare workflow must not auto-calculate patch versions.");
+  assert(!prepareText.includes("Skipping existing tag"), "prepare workflow must fail on existing tags unless replace_existing_tag is set.");
   assertIncludes(prepareText, "git push origin \"${{ steps.release.outputs.tag }}\"", ".github/workflows/prepare-npm-release.yml");
 }
 
