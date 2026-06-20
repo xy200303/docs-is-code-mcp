@@ -513,17 +513,35 @@ try {
   if (!emptyStatusText.includes("Version:") || !emptyStatusText.includes("active specs: 0") || !emptyStatusText.includes("Next Step: Run specc bootstrap")) {
     throw new Error(`Expected empty CLI status to recommend bootstrap, got: ${emptyStatusText}`);
   }
+  const emptyStatusJsonLines: string[] = [];
+  console.log = (...args: unknown[]) => {
+    emptyStatusJsonLines.push(args.map(String).join(" "));
+  };
+  try {
+    await runCli(["node", "specc", "status", "--project-root", cliStatusEmptyRoot, "--json"]);
+  } finally {
+    console.log = originalLog;
+  }
+  const emptyStatusJson = JSON.parse(emptyStatusJsonLines.join("\n")) as {
+    version: string;
+    projectRoot: string;
+    workflowState: { active: number; todo: number; review: number; done: number };
+    nextStep: string;
+  };
+  if (emptyStatusJson.version !== APP_VERSION || emptyStatusJson.workflowState.active !== 0 || !emptyStatusJson.nextStep.includes("specc bootstrap")) {
+    throw new Error(`Expected empty CLI status JSON to recommend bootstrap, got: ${JSON.stringify(emptyStatusJson)}`);
+  }
   const statusHelpLines: string[] = [];
   console.log = (...args: unknown[]) => {
     statusHelpLines.push(args.map(String).join(" "));
   };
   try {
-    await runCli(["node", "specc", "status", "--project-root", cliStatusEmptyRoot, "--help"]);
+    await runCli(["node", "specc", "status", "--project-root", cliStatusEmptyRoot, "--json", "--help"]);
   } finally {
     console.log = originalLog;
   }
   const statusHelpText = statusHelpLines.join("\n");
-  if (!statusHelpText.includes("specc status [options]") || !statusHelpText.includes("--specs-dir <path>")) {
+  if (!statusHelpText.includes("specc status [options]") || !statusHelpText.includes("--specs-dir <path>") || !statusHelpText.includes("--json")) {
     throw new Error(`Expected status help to describe options, got: ${statusHelpText}`);
   }
   await rm(cliStatusEmptyRoot, { recursive: true, force: true });
@@ -585,6 +603,22 @@ try {
   const activeStatusText = activeStatusLines.join("\n");
   if (!activeStatusText.includes("active specs: 1") || !activeStatusText.includes("Next Step: Call spec_context")) {
     throw new Error(`Expected active CLI status to recommend spec_context, got: ${activeStatusText}`);
+  }
+  const activeStatusJsonLines: string[] = [];
+  console.log = (...args: unknown[]) => {
+    activeStatusJsonLines.push(args.map(String).join(" "));
+  };
+  try {
+    await runCli(["node", "specc", "status", "--project-root", cliBootstrapRoot, "--json"]);
+  } finally {
+    console.log = originalLog;
+  }
+  const activeStatusJson = JSON.parse(activeStatusJsonLines.join("\n")) as {
+    workflowState: { active: number };
+    nextStep: string;
+  };
+  if (activeStatusJson.workflowState.active !== 1 || !activeStatusJson.nextStep.includes("spec_context")) {
+    throw new Error(`Expected active CLI status JSON to recommend spec_context, got: ${JSON.stringify(activeStatusJson)}`);
   }
   await rm(cliBootstrapRoot, { recursive: true, force: true });
 

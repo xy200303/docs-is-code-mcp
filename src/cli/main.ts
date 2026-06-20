@@ -51,6 +51,7 @@ function printStatusHelp(): void {
     "Options:",
     "  --project-root <path>       Project root. Default: current working directory.",
     "  --specs-dir <path>          Specs directory. Default: specs.",
+    "  --json                      Print machine-readable JSON.",
     "  -h, --help                  Show status help."
   ].join("\n"));
 }
@@ -110,30 +111,59 @@ function statusNextStep(input: { active: number; todo: number; review: number })
   return "Run specc bootstrap --project-root <path> --project-kind auto.";
 }
 
+async function statusReport(args: string[]): Promise<{
+  name: string;
+  version: string;
+  projectRoot: string;
+  specsDir: string;
+  workflowState: { active: number; todo: number; review: number; done: number };
+  nextStep: string;
+}> {
+  const projectRoot = optionValue(args, "--project-root") ?? process.cwd();
+  const specsDir = optionValue(args, "--specs-dir") ?? "specs";
+  const specs = await listSpecs({ projectRoot, specsDir });
+  const workflowState = {
+    active: specs.active.length,
+    todo: specs.todo.length,
+    review: specs.review.length,
+    done: specs.done.length
+  };
+  return {
+    name: APP_NAME,
+    version: APP_VERSION,
+    projectRoot: specs.projectRoot,
+    specsDir: specs.specsDir,
+    workflowState,
+    nextStep: statusNextStep(workflowState)
+  };
+}
+
+function renderStatusText(report: Awaited<ReturnType<typeof statusReport>>): string {
+  return [
+    `${APP_NAME} status`,
+    "",
+    `Version: ${report.version}`,
+    `Project: ${report.projectRoot}`,
+    `Specs: ${report.specsDir}`,
+    "",
+    "Workflow State:",
+    `  active specs: ${report.workflowState.active}`,
+    `  todo specs: ${report.workflowState.todo}`,
+    `  review specs: ${report.workflowState.review}`,
+    `  done specs: ${report.workflowState.done}`,
+    "",
+    `Next Step: ${report.nextStep}`
+  ].join("\n");
+}
+
 async function runStatus(args: string[]): Promise<void> {
   if (hasFlag(args, "--help") || hasFlag(args, "-h")) {
     printStatusHelp();
     return;
   }
 
-  const projectRoot = optionValue(args, "--project-root") ?? process.cwd();
-  const specsDir = optionValue(args, "--specs-dir") ?? "specs";
-  const specs = await listSpecs({ projectRoot, specsDir });
-  console.log([
-    `${APP_NAME} status`,
-    "",
-    `Version: ${APP_VERSION}`,
-    `Project: ${specs.projectRoot}`,
-    `Specs: ${specs.specsDir}`,
-    "",
-    "Workflow State:",
-    `  active specs: ${specs.active.length}`,
-    `  todo specs: ${specs.todo.length}`,
-    `  review specs: ${specs.review.length}`,
-    `  done specs: ${specs.done.length}`,
-    "",
-    `Next Step: ${statusNextStep({ active: specs.active.length, todo: specs.todo.length, review: specs.review.length })}`
-  ].join("\n"));
+  const report = await statusReport(args);
+  console.log(hasFlag(args, "--json") ? JSON.stringify(report, null, 2) : renderStatusText(report));
 }
 
 async function runInit(): Promise<void> {

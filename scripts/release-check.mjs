@@ -48,6 +48,7 @@ function assertDocumentationContract(readmeText, agentsText) {
   for (const phrase of [
     "specc serve",
     "specc status",
+    "specc status --project-root . --json",
     "specc bootstrap",
     "specc bootstrap --help",
     "--project-kind",
