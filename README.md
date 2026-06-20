@@ -268,6 +268,15 @@ node dist/index.js serve
 发布新版时，先在本地明确目标版本并提交版本变更：
 
 ```bash
+npm run release:manual -- 0.2.6 --dry-run
+npm run release:manual -- 0.2.6 --publish
+```
+
+`--dry-run` 只检查工作区、tag 和 npm 版本，不修改文件。`--publish` 会同步版本、运行验证、提交版本变更、创建 tag，并 push main 和 tag。
+
+等价的手动命令如下：
+
+```bash
 npm version 0.2.6 --no-git-tag-version
 npm install --package-lock-only --ignore-scripts
 npm run verify

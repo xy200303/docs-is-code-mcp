@@ -29,6 +29,7 @@ function assertVersionContract(packageJson, packageLock, metaText) {
 function assertScriptContract(packageJson) {
   const scripts = packageJson.scripts ?? {};
   assert(scripts["release:check"] === "bun scripts/release-check.mjs", "package.json must expose release:check.");
+  assert(scripts["release:manual"] === "node scripts/release-manual.mjs", "package.json must expose release:manual.");
   assert(scripts.verify === "npm run build && npm run unit && npm run smoke && npm run release:check", "package.json verify must run build, unit, smoke, and release:check.");
   assert(scripts.test === "npm run verify", "package.json test must delegate to verify.");
   assert(scripts.prepack === "npm run verify", "package.json prepack must run verify.");
@@ -55,6 +56,7 @@ function assertDocumentationContract(readmeText, agentsText) {
     "可安全推导的上下文值",
     "不替模型编造 prompt、title 或行为记录",
     "npm run release:check",
+    "npm run release:manual",
     "npm run verify",
     "npm version",
     "git tag v",
@@ -94,6 +96,16 @@ function assertReadToolSourceContract(contextMarkdownText, registerReadToolsText
   assertIncludes(workflowNextStepText, "currentWorkFile(state", "src/spec/workflow-next-step.ts");
 }
 
+function assertManualReleaseContract(manualReleaseText) {
+  assertIncludes(manualReleaseText, "Usage: npm run release:manual -- <version>", "scripts/release-manual.mjs");
+  assertIncludes(manualReleaseText, "Worktree is not clean", "scripts/release-manual.mjs");
+  assertIncludes(manualReleaseText, "\"version\", version, \"--no-git-tag-version\"", "scripts/release-manual.mjs");
+  assertIncludes(manualReleaseText, "\"install\", \"--package-lock-only\", \"--ignore-scripts\"", "scripts/release-manual.mjs");
+  assertIncludes(manualReleaseText, "\"run\", \"verify\"", "scripts/release-manual.mjs");
+  assertIncludes(manualReleaseText, "\"pack\", \"--dry-run\"", "scripts/release-manual.mjs");
+  assertIncludes(manualReleaseText, "\"push\", \"origin\", tag", "scripts/release-manual.mjs");
+}
+
 const packageJson = readJson("package.json");
 const packageLock = readJson("package-lock.json");
 const metaText = readText("src/shared/meta.ts");
@@ -103,6 +115,7 @@ const agentsText = readText("AGENTS.md");
 const contextMarkdownText = readText("src/spec/context-markdown.ts");
 const registerReadToolsText = readText("src/mcp/register-read-tools.ts");
 const workflowNextStepText = readText("src/spec/workflow-next-step.ts");
+const manualReleaseText = readText("scripts/release-manual.mjs");
 const ciText = readText(".github/workflows/ci.yml");
 const publishText = readText(".github/workflows/publish-npm.yml");
 
@@ -111,6 +124,7 @@ assertScriptContract(packageJson);
 assertCompatibilityContract(compatibilityText);
 assertDocumentationContract(readmeText, agentsText);
 assertReadToolSourceContract(contextMarkdownText, registerReadToolsText, workflowNextStepText);
+assertManualReleaseContract(manualReleaseText);
 assertWorkflowContract(ciText, publishText);
 
 console.log("spec-coding release checks passed");
