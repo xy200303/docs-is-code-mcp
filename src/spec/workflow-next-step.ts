@@ -139,6 +139,17 @@ function contextWorkflowRecommendation(state: WorkflowState): WorkflowRecommenda
     };
   }
 
+  if (state.reviewSpecs.length && !state.activeSpecs.length && !state.todoSpecs.length) {
+    return {
+      nextTool: "spec_create",
+      alternatives: [],
+      arguments: { ...projectArguments(state), prompt: "<confirmed behavior summary from review>", title: "<business capability name>" },
+      reason: "当前只有 review spec，需要先补全真实业务行为，再创建或转入 active spec。",
+      when: "AI 已阅读 review 中列出的源码和测试后。",
+      afterwards: "创建 active spec 后再次调用 `spec_context`。"
+    };
+  }
+
   if (state.selectedSpecs.length || state.activeSpecs.length) {
     return {
       nextTool: "spec_checkpoint",
@@ -147,17 +158,6 @@ function contextWorkflowRecommendation(state: WorkflowState): WorkflowRecommenda
       reason: "当前有 active/selected spec，应先按 spec 实现，阶段性完成后记录进度。",
       when: "完成一段实现、测试或风险处理后。",
       afterwards: "全部验证通过并记录最终行为契约后，再调用 `spec_done`。"
-    };
-  }
-
-  if (state.reviewSpecs.length) {
-    return {
-      nextTool: "spec_create",
-      alternatives: [],
-      arguments: { ...projectArguments(state), prompt: "<confirmed behavior summary from review>", title: "<business capability name>" },
-      reason: "当前只有 review spec，需要先补全真实业务行为，再创建或转入 active spec。",
-      when: "AI 已阅读 review 中列出的源码和测试后。",
-      afterwards: "创建 active spec 后再次调用 `spec_context`。"
     };
   }
 

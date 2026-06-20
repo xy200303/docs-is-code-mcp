@@ -2,12 +2,22 @@
 import path from "node:path";
 import { scanSource } from "./source-scan.js";
 import { buildContextInstructions, buildSpecContextMarkdown } from "./context-markdown.js";
-import type { SpecContext } from "./types.js";
+import type { SpecContext, SpecItem } from "./types.js";
 import { extractTodos } from "./todo-files.js";
 import { listSpecsIn } from "./spec-files.js";
 import { findCandidateFiles } from "./context-source.js";
 import { readSpecsWithText } from "./spec-reader.js";
 import type { ContextMode } from "./types.js";
+
+function selectDefaultSpecs(input: { activeSpecs: SpecItem[]; reviewSpecs: SpecItem[]; todoSpecs: SpecItem[] }): SpecItem[] {
+  const executableSpecs = [...input.activeSpecs, ...input.todoSpecs];
+  return executableSpecs.length ? executableSpecs : input.reviewSpecs;
+}
+
+function selectRequestedSpecs(input: { requested: string[]; activeSpecs: SpecItem[]; reviewSpecs: SpecItem[]; todoSpecs: SpecItem[] }): SpecItem[] {
+  return [...input.activeSpecs, ...input.reviewSpecs, ...input.todoSpecs]
+    .filter((item) => input.requested.some((file) => item.file === file || item.file.endsWith(file)));
+}
 
 export async function specContext(input: { projectRoot: string; specsDir?: string; files?: string[]; maxSpecChars?: number; candidateFileLimit?: number; contextMode?: ContextMode }): Promise<SpecContext> {
   const root = path.resolve(input.projectRoot);
@@ -20,8 +30,8 @@ export async function specContext(input: { projectRoot: string; specsDir?: strin
   const todoSpecs = await listSpecsIn(root, specsDir, "todo");
   const doneSpecs = await listSpecsIn(root, specsDir, "done");
   const selectedBase = requested.length
-    ? [...activeSpecs, ...reviewSpecs, ...todoSpecs].filter((item) => requested.some((file) => item.file === file || item.file.endsWith(file)))
-    : [...activeSpecs, ...todoSpecs];
+    ? selectRequestedSpecs({ requested, activeSpecs, reviewSpecs, todoSpecs })
+    : selectDefaultSpecs({ activeSpecs, reviewSpecs, todoSpecs });
   const selectedSpecs = await readSpecsWithText(root, selectedBase, maxSpecChars);
   const todos = selectedSpecs.flatMap((spec) => extractTodos(spec.file, spec.text));
   const shouldIncludeSourceHints = contextMode !== "workflow";
