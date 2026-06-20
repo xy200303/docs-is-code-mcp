@@ -1,10 +1,30 @@
 /* Init CLI command for registering the MCP server with supported coding tools. */
 import { cancel, intro, isCancel, multiselect, note, outro, spinner } from "@clack/prompts";
+import { APP_NAME } from "../shared/meta.js";
+import { assertKnownOptions, hasFlag } from "./cli-options.js";
 import { detectProgrammingTools } from "./registry-detect.js";
 import { registerClaude, registerCodex, registerContinue, registerCursor, registerOpenCode, registerWindsurf } from "./registry-write.js";
 import type { RegisterResult, ToolId } from "./registry-types.js";
 
-export async function runInit(): Promise<void> {
+function printInitHelp(): void {
+  console.log([
+    `${APP_NAME} init`,
+    "",
+    "Usage:",
+    "  specc init [options]",
+    "",
+    "Options:",
+    "  -h, --help                  Show init help."
+  ].join("\n"));
+}
+
+export async function runInit(args: string[] = []): Promise<void> {
+  if (hasFlag(args, "--help") || hasFlag(args, "-h")) {
+    printInitHelp();
+    return;
+  }
+  assertKnownOptions(args, ["--help"]);
+
   intro("Spec Coding MCP");
   const scan = spinner();
   scan.start("Scanning installed coding tools");

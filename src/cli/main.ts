@@ -31,7 +31,7 @@ export async function runCli(argv = process.argv): Promise<void> {
     return;
   }
   if (command === "init") {
-    await runInit();
+    await runInit(argv.slice(3));
     return;
   }
   if (command === "status") {

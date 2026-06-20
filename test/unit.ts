@@ -133,6 +133,7 @@ async function testRegistryContracts(): Promise<void> {
   assert(CLI_HELP_LINES.some((line) => line.includes("specc status")), "Expected CLI help contract to include status.");
   assert(CLI_HELP_LINES.some((line) => line.includes("specc bootstrap")), "Expected CLI help contract to include bootstrap.");
   assert(CLI_HELP_LINES.some((line) => line.includes("specc bootstrap --help")), "Expected CLI help contract to include bootstrap help.");
+  assert(CLI_HELP_LINES.some((line) => line.includes("specc init --help")), "Expected CLI help contract to include init help.");
   assert(MCP_SERVER_NAME === "spec-coding", "Expected stable MCP server name.");
   assert(MCP_DIST_ENTRY === "dist/index.js", "Expected stable dist entry.");
   assert(MCP_START_COMMAND === "serve", "Expected stable MCP start command.");

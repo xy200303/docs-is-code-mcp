@@ -498,6 +498,44 @@ try {
   if (!helpLines.join("\n").includes("specc bootstrap --help")) {
     throw new Error("Expected CLI help to mention bootstrap command help.");
   }
+  if (!helpLines.join("\n").includes("specc init --help")) {
+    throw new Error("Expected CLI help to mention init command help.");
+  }
+
+  const initHelpLines: string[] = [];
+  console.log = (...args: unknown[]) => {
+    initHelpLines.push(args.map(String).join(" "));
+  };
+  try {
+    await runCli(["node", "specc", "init", "--help"]);
+  } finally {
+    console.log = originalLog;
+  }
+  const initHelpText = initHelpLines.join("\n");
+  if (!initHelpText.includes("specc init [options]") || !initHelpText.includes("-h, --help")) {
+    throw new Error(`Expected init help to describe options, got: ${initHelpText}`);
+  }
+  const initHelpWithUnknownLines: string[] = [];
+  console.log = (...args: unknown[]) => {
+    initHelpWithUnknownLines.push(args.map(String).join(" "));
+  };
+  try {
+    await runCli(["node", "specc", "init", "--unknown-option", "--help"]);
+  } finally {
+    console.log = originalLog;
+  }
+  if (!initHelpWithUnknownLines.join("\n").includes("specc init [options]")) {
+    throw new Error("Expected init --help to take priority over unknown option validation.");
+  }
+  let unknownInitOptionMessage = "";
+  try {
+    await runCli(["node", "specc", "init", "--unknown-option"]);
+  } catch (error) {
+    unknownInitOptionMessage = error instanceof Error ? error.message : String(error);
+  }
+  if (!unknownInitOptionMessage.includes("Unknown option: --unknown-option")) {
+    throw new Error(`Expected unknown init option to fail fast, got: ${unknownInitOptionMessage}`);
+  }
 
   const cliStatusEmptyRoot = await mkdtemp(path.join(os.tmpdir(), "spec-coding-cli-status-empty-"));
   const emptyStatusLines: string[] = [];

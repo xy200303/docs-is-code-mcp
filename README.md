@@ -221,6 +221,7 @@ TODO 可以放在 `specs/todo/*.md`，也可以写在 active spec 的 `## TODO` 
 ```bash
 npm install -g @dev_xiaoyun/spec-coding-mcp
 specc init
+specc init --help
 ```
 
 `specc init` 会扫描本机的 Codex、Claude Code、OpenCode、Cursor、Continue 和 Windsurf，并让你选择注册 MCP。

@@ -52,6 +52,7 @@ function assertDocumentationContract(readmeText, agentsText) {
     "open TODO",
     "specc bootstrap",
     "specc bootstrap --help",
+    "specc init --help",
     "--project-kind",
     "node dist/index.js serve",
     "Current Task Protocol",
