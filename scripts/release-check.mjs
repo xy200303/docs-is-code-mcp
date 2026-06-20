@@ -29,6 +29,7 @@ function assertVersionContract(packageJson, packageLock, metaText) {
 function assertScriptContract(packageJson) {
   const scripts = packageJson.scripts ?? {};
   assert(scripts["release:check"] === "bun scripts/release-check.mjs", "package.json must expose release:check.");
+  assert(scripts["release:patch"] === "node scripts/release-patch.mjs", "package.json must expose release:patch.");
   assert(scripts.verify === "npm run build && npm run unit && npm run smoke && npm run release:check", "package.json verify must run build, unit, smoke, and release:check.");
   assert(scripts.test === "npm run verify", "package.json test must delegate to verify.");
   assert(scripts.prepack === "npm run verify", "package.json prepack must run verify.");
@@ -90,6 +91,17 @@ function assertReadToolSourceContract(contextMarkdownText, registerReadToolsText
   assertIncludes(workflowNextStepText, "currentWorkFile(state", "src/spec/workflow-next-step.ts");
 }
 
+function assertPatchReleaseContract(releasePatchText) {
+  assertIncludes(releasePatchText, "Worktree is not clean", "scripts/release-patch.mjs");
+  assertIncludes(releasePatchText, "nextPatchVersion", "scripts/release-patch.mjs");
+  assertIncludes(releasePatchText, "--publish", "scripts/release-patch.mjs");
+  assertIncludes(releasePatchText, "spawnSync(\"npm\"", "scripts/release-patch.mjs");
+  assertIncludes(releasePatchText, "\"view\"", "scripts/release-patch.mjs");
+  assertIncludes(releasePatchText, "\"run\", \"verify\"", "scripts/release-patch.mjs");
+  assertIncludes(releasePatchText, "\"pack\", \"--dry-run\"", "scripts/release-patch.mjs");
+  assertIncludes(releasePatchText, "\"push\"", "scripts/release-patch.mjs");
+}
+
 const packageJson = readJson("package.json");
 const packageLock = readJson("package-lock.json");
 const metaText = readText("src/shared/meta.ts");
@@ -99,6 +111,7 @@ const agentsText = readText("AGENTS.md");
 const contextMarkdownText = readText("src/spec/context-markdown.ts");
 const registerReadToolsText = readText("src/mcp/register-read-tools.ts");
 const workflowNextStepText = readText("src/spec/workflow-next-step.ts");
+const releasePatchText = readText("scripts/release-patch.mjs");
 const ciText = readText(".github/workflows/ci.yml");
 const publishText = readText(".github/workflows/publish-npm.yml");
 
@@ -107,6 +120,7 @@ assertScriptContract(packageJson);
 assertCompatibilityContract(compatibilityText);
 assertDocumentationContract(readmeText, agentsText);
 assertReadToolSourceContract(contextMarkdownText, registerReadToolsText, workflowNextStepText);
+assertPatchReleaseContract(releasePatchText);
 assertWorkflowContract(ciText, publishText);
 
 console.log("spec-coding release checks passed");

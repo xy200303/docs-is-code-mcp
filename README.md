@@ -265,7 +265,23 @@ node dist/index.js serve
 
 ## 发布
 
-推荐使用 GitHub Actions 的 `Prepare npm release` 工作流发布新版：
+推荐本地一键 patch 发布：
+
+```bash
+npm run release:patch
+```
+
+默认是 dry-run，只检查下一个 patch 版本、tag 和 npm 版本是否可用，不会提交或推送。
+
+确认无误后执行：
+
+```bash
+npm run release:patch -- --publish
+```
+
+它会自动计算下一个 patch 版本，同步 `package.json` 和 `package-lock.json`，运行 `npm run verify`，执行 `npm pack --dry-run`，提交 `发布 X.Y.Z`，创建 `vX.Y.Z` tag，并 push commit 和 tag。tag 会触发 `Publish npm` 工作流完成 npm 发布。
+
+也可以使用 GitHub Actions 的 `Prepare npm release` 工作流发布新版：
 
 1. 打开 `Actions` -> `Prepare npm release` -> `Run workflow`。
 2. 输入目标版本号，例如 `0.2.4`。
