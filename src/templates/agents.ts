@@ -85,9 +85,14 @@ export function specsReadme(projectName: string): string {
     "## 目录",
     "",
     "- `review/`：指导 AI 阅读源码并总结真实行为的待审查任务。",
-    "- `active/`：当前要实现的 specs。",
-    "- `todo/`：可执行 TODO 清单，适合拆分小任务或补充实现步骤。",
-    "- `done/`：已经完成的 specs。",
-    "- `templates/`：新建 feature、bugfix、removal spec 的模板。"
+    "- `active/YYYY-MM-DD/NNN-readable-name.md`：当前要实现的 specs，按日期和当天顺序归档。",
+    "- `todo/YYYY-MM-DD/NNN-readable-name.md`：可执行 TODO 清单，适合拆分小任务或补充实现步骤。",
+    "- `done/YYYY-MM-DD/NNN-readable-name.md`：已经完成的 specs，必须保留来自代码和测试验证的最终行为契约。",
+    "- `templates/`：新建 feature、bugfix、removal spec 的模板。",
+    "",
+    "## 命名要求",
+    "",
+    "- 文件名使用当天递增序号和可读业务名，避免 `todo-9.md` 这类无法审查的名称。",
+    "- `done/` 只记录实际代码行为、测试结果或用户确认事实；禁止把猜测写成最终行为。"
   ].join("\n");
 }

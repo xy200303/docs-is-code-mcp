@@ -6,7 +6,7 @@ import { reviewIndex, sourceInventory, sourceReviewSpec, specTemplate } from "..
 import { todoSpec, userPromptSpec } from "../templates/prompt-documents.js";
 import type { AgentFileResult, GeneratedFile, SpecItem, SpecResult } from "./types.js";
 import { scanSource, specCandidatesFromSource } from "./source-scan.js";
-import { inferProjectName, inferSpecFileName, inferTitle, inferTodoFileName, listSpecsIn, timestampedMarkdownFile } from "./spec-files.js";
+import { inferProjectName, inferSpecFileName, inferTitle, inferTodoFileName, listSpecsIn, nextSpecDocumentPath } from "./spec-files.js";
 import { writeTextFile } from "./file-writers.js";
 import { nowIso, relativePosix } from "../shared/utils.js";
 
@@ -185,7 +185,7 @@ export async function createSpecFromPrompt(input: {
   const slug = inferSpecFileName(title);
   const files: GeneratedFile[] = [];
   await initSpecs({ projectRoot: root, specsDir });
-  const relative = path.join(specsDir, "active", timestampedMarkdownFile(new Date(), slug));
+  const relative = await nextSpecDocumentPath({ root, specsDir, bucket: "active", title, fallbackSlug: slug });
   await writeTextFile(root, relative, userPromptSpec(title, input.prompt), input.overwrite ?? false, files);
   return {
     projectRoot: root,
@@ -212,7 +212,7 @@ export async function createTodoFromPrompt(input: {
   const slug = inferTodoFileName(title);
   const files: GeneratedFile[] = [];
   await initSpecs({ projectRoot: root, specsDir });
-  const relative = path.join(specsDir, "todo", timestampedMarkdownFile(new Date(), slug));
+  const relative = await nextSpecDocumentPath({ root, specsDir, bucket: "todo", title, fallbackSlug: slug });
   await writeTextFile(root, relative, todoSpec(title, input.prompt), input.overwrite ?? false, files);
   return {
     projectRoot: root,

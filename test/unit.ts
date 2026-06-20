@@ -7,6 +7,7 @@ import { APP_VERSION } from "../src/shared/meta.js";
 import { todoSpec } from "../src/templates/prompt-documents.js";
 import { recordSpecCheckpoint } from "../src/spec/checkpoint-writer.js";
 import { markSpecDone } from "../src/spec/done-writer.js";
+import { localDateDirectory } from "../src/spec/spec-files.js";
 import { extractTodos, markCompletedTodos } from "../src/spec/todo-files.js";
 import { createSessionGuard, SPEC_CONTEXT_REQUIRED_MESSAGE, markSpecContextSeen, requireSpecContext } from "../src/mcp/session-guard.js";
 import { CLI_HELP_LINES, MCP_DIST_ENTRY, MCP_SERVER_NAME, MCP_START_COMMAND, SUPPORTED_TOOL_IDS } from "../src/cli/compatibility-contract.js";
@@ -129,7 +130,8 @@ async function testDoneWriterAvoidsOverwrites(): Promise<void> {
   const root = await mkdtemp(path.join(os.tmpdir(), "spec-coding-done-"));
   try {
     const todoFile = path.join(root, "specs", "todo", "demo.md");
-    const existingDoneFile = path.join(root, "specs", "done", "demo.md");
+    const day = localDateDirectory(new Date());
+    const existingDoneFile = path.join(root, "specs", "done", day, "001-new-demo.md");
     await mkdir(path.dirname(todoFile), { recursive: true });
     await mkdir(path.dirname(existingDoneFile), { recursive: true });
     await writeFile(todoFile, [
@@ -173,9 +175,10 @@ async function testDoneWriterAvoidsOverwrites(): Promise<void> {
     });
 
     const existingDoneText = await readFile(existingDoneFile, "utf8");
-    const archivedText = await readFile(path.join(root, "specs", "done", "demo-2.md"), "utf8");
+    const archivedPath = path.join(root, "specs", "done", day, "002-new-demo.md");
+    const archivedText = await readFile(archivedPath, "utf8");
     assert(existingDoneText === "# Existing Demo\n", "Expected existing done spec to be preserved.");
-    assertIncludes(archivedText, "# New Demo", "Expected new done spec to use a collision-free name.");
+    assertIncludes(archivedText, "# New Demo", "Expected new done spec to use a readable collision-free name.");
     assertIncludes(archivedText, "- status: done", "Expected archived spec meta status to be done.");
     assertIncludes(archivedText, "保留真实业务目标。", "Expected archived spec to keep business content.");
     assertIncludes(archivedText, "## 最终行为契约", "Expected archived spec to include final behavior contract.");
@@ -185,7 +188,29 @@ async function testDoneWriterAvoidsOverwrites(): Promise<void> {
     assert(!archivedText.includes("## 工程质量约束"), "Expected archived spec to omit engineering template noise.");
     assert(!archivedText.includes("## Checkpoint"), "Expected archived spec to omit checkpoint history.");
     assert(result.nextSteps.some((step) => step.includes("最终行为契约已记录")), "Expected done result to confirm behavior contract.");
-    assert(result.specs[0] === "specs/done/demo-2.md", "Expected result to report collision-free done path.");
+    assert(result.specs[0] === `specs/done/${day}/002-new-demo.md`, "Expected result to report dated collision-free done path.");
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+}
+
+async function testDoneWriterWarnsWhenBehaviorFactsAreMissing(): Promise<void> {
+  const root = await mkdtemp(path.join(os.tmpdir(), "spec-coding-done-empty-behavior-"));
+  try {
+    const todoFile = path.join(root, "specs", "todo", "demo.md");
+    await mkdir(path.dirname(todoFile), { recursive: true });
+    await writeFile(todoFile, "# Missing Facts\n\n## Meta\n\n- status: todo\n", "utf8");
+
+    const result = await markSpecDone({
+      projectRoot: root,
+      specsDir: "specs",
+      file: "specs/todo/demo.md"
+    });
+
+    const archivedText = await readFile(path.join(root, result.specs[0]), "utf8");
+    assert(result.nextSteps.some((step) => step.includes("不可作为真实行为事实")), "Expected missing behavior warning to be explicit.");
+    assertIncludes(archivedText, "未提供已验证行为", "Expected final contract to show missing behavior facts.");
+    assertIncludes(archivedText, "不可作为真实行为事实", "Expected final contract to reject guessed behavior.");
   } finally {
     await rm(root, { recursive: true, force: true });
   }
@@ -298,6 +323,7 @@ await testTodoSpecTaskExtraction();
 await testCheckpointWriter();
 await testSessionGuard();
 await testDoneWriterAvoidsOverwrites();
+await testDoneWriterWarnsWhenBehaviorFactsAreMissing();
 testRendererLimitsToolOutput();
 await testRegistryContracts();
 await testStatusRecommendationDecisions();

@@ -2,12 +2,12 @@
 import type { BehaviorRecord } from "./types.js";
 
 const emptyBehaviorRecord: BehaviorRecord = {
-  scenario: "未记录",
-  condition: "未记录",
-  result: "未记录",
-  defaultBehavior: "未记录",
-  edgeCase: "未记录",
-  verification: "请查看本文件中的 Verification 记录",
+  scenario: "未提供已验证行为",
+  condition: "未提供来自代码、测试或用户确认的条件",
+  result: "不可作为真实行为事实",
+  defaultBehavior: "未验证",
+  edgeCase: "未验证",
+  verification: "未提供验证证据",
   relatedFiles: []
 };
 

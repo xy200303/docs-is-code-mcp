@@ -16,14 +16,14 @@ function withSpecContext<T>(guard: SessionGuardState, action: () => Promise<T>):
 }
 
 function specContextRequiredDescription(action: string): string {
-  return `${action} ${SPEC_CONTEXT_REQUIRED_MESSAGE}`;
+  return `${action} Requires prior spec_context.`;
 }
 
 export function registerWriteTools(server: McpServer, guard: SessionGuardState): void {
   server.registerTool(
     "spec_generate_agents",
     {
-      description: specContextRequiredDescription("Advanced maintenance helper. Prefer spec_bootstrap for onboarding; use this only to regenerate AGENTS.md in the project root."),
+      description: specContextRequiredDescription("Advanced maintenance helper. Prefer spec_bootstrap. Regenerates AGENTS.md."),
       inputSchema: WriteTextSchema
     },
     async ({ projectRoot, projectName, overwrite }) =>
@@ -35,7 +35,7 @@ export function registerWriteTools(server: McpServer, guard: SessionGuardState):
   server.registerTool(
     "spec_create",
     {
-      description: specContextRequiredDescription("Create an active spec for feature work that needs behavior rules, acceptance criteria, and implementation planning."),
+      description: specContextRequiredDescription("Create an active feature spec."),
       inputSchema: SpecPromptSchema
     },
     async ({ projectRoot, specsDir, prompt, title, overwrite }) =>
@@ -47,7 +47,7 @@ export function registerWriteTools(server: McpServer, guard: SessionGuardState):
   server.registerTool(
     "spec_todo",
     {
-      description: specContextRequiredDescription("Create a lightweight executable TODO spec for small, ordered tasks that do not need a full feature spec."),
+      description: specContextRequiredDescription("Create a lightweight TODO spec."),
       inputSchema: SpecPromptSchema
     },
     async ({ projectRoot, specsDir, prompt, title, overwrite }) =>
@@ -59,7 +59,7 @@ export function registerWriteTools(server: McpServer, guard: SessionGuardState):
   server.registerTool(
     "spec_checkpoint",
     {
-      description: specContextRequiredDescription("Record in-progress implementation results after a completed step: completed TODOs, files, verification, behavior records, risks, and blockers."),
+      description: specContextRequiredDescription("Record checkpoint results."),
       inputSchema: SpecCheckpointSchema
     },
     async ({ projectRoot, specsDir, file, summary, completedTodos, changedFiles, verification, behaviorRecords, risks, blockers, note }) =>
@@ -71,7 +71,7 @@ export function registerWriteTools(server: McpServer, guard: SessionGuardState):
   server.registerTool(
     "spec_review_result",
     {
-      description: specContextRequiredDescription("Advanced review/handoff writer. Use when work is partially complete or needs structured incomplete TODOs, verification, risks, and blockers."),
+      description: specContextRequiredDescription("Record review or handoff results."),
       inputSchema: SpecReviewResultSchema
     },
     async ({ projectRoot, specsDir, file, summary, completedTodos, incompleteTodos, changedFiles, verification, behaviorRecords, risks, blockers, note }) =>
@@ -83,7 +83,7 @@ export function registerWriteTools(server: McpServer, guard: SessionGuardState):
   server.registerTool(
     "spec_done",
     {
-      description: specContextRequiredDescription("Archive only fully implemented and verified specs into done, preserving final behavior records. Do not use for partial work."),
+      description: specContextRequiredDescription("Archive verified specs into done. Do not use for partial work."),
       inputSchema: SpecDoneSchema
     },
     async ({ projectRoot, specsDir, file, behaviorRecords, note }) =>

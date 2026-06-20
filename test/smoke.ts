@@ -19,6 +19,7 @@ import { APP_VERSION } from "../src/shared/meta.js";
 import { SPEC_CONTEXT_REQUIRED_MESSAGE, createSessionGuard, markSpecContextSeen, requireSpecContext } from "../src/mcp/session-guard.js";
 import { registerReadTools } from "../src/mcp/register-read-tools.js";
 import { registerWriteTools } from "../src/mcp/register-write-tools.js";
+import { localDateDirectory } from "../src/spec/spec-files.js";
 
 type RegisteredToolHandler = (input: Record<string, unknown>) => Promise<{ content: Array<{ type: "text"; text: string }> }>;
 
@@ -51,13 +52,12 @@ function assertIncludesAll(text: string, expected: string[], message: string): v
 
 function assertToolDescriptionRequiresSpecContext(text: string): void {
   assertIncludesAll(text, [
-    "spec_context must be called first.",
-    "This session has not read model-ready context yet.",
-    "Write operations are blocked until spec_context unlocks the session."
+    "Requires prior spec_context."
   ], "Expected write tool description to mention the spec_context guard");
 }
 
 const root = await mkdtemp(path.join(os.tmpdir(), "spec-coding-mcp-"));
+const today = localDateDirectory(new Date());
 
 try {
   await mkdir(path.join(root, "src", "routes"), { recursive: true });
@@ -138,6 +138,9 @@ try {
   if (!newBootstrap.specs.some((file) => file.includes("specs/active")) || !newBootstrap.files.some((file) => file.path.endsWith("AGENTS.md"))) {
     throw new Error("Expected new project bootstrap to create AGENTS and a starter active spec.");
   }
+  if (!newBootstrap.specs[0]?.includes(`specs/active/${today}/001-`)) {
+    throw new Error(`Expected starter active spec to use dated ordered path, got: ${newBootstrap.specs[0]}`);
+  }
   const starterSpec = await readFile(path.join(newProjectRoot, newBootstrap.specs[0]), "utf8");
   assertIncludesAll(starterSpec, [
     "创建一个简单 CLI 项目",
@@ -181,7 +184,7 @@ try {
   assertIncludesAll(harness.description("spec_init"), ["Advanced setup helper", "Prefer spec_bootstrap"], "Expected spec_init to be marked as an advanced helper");
   assertIncludesAll(harness.description("spec_generate_from_source"), ["Advanced existing-project helper", "Prefer spec_bootstrap"], "Expected source generation to be marked as an advanced helper");
   assertIncludesAll(harness.description("spec_generate_agents"), ["Advanced maintenance helper", "Prefer spec_bootstrap"], "Expected AGENTS generation to be marked as an advanced helper");
-  assertIncludesAll(harness.description("spec_done"), ["Archive only fully implemented and verified specs", "Do not use for partial work"], "Expected spec_done to reject partial-work usage");
+  assertIncludesAll(harness.description("spec_done"), ["Archive verified specs into done", "Do not use for partial work"], "Expected spec_done to reject partial-work usage");
   assertToolDescriptionRequiresSpecContext(harness.description("spec_create"));
   assertToolDescriptionRequiresSpecContext(harness.description("spec_done"));
   let blockedMessage = "";
@@ -404,12 +407,24 @@ try {
   if (!created.specs[0]?.includes("specs/active")) {
     throw new Error("Expected prompt-created spec under specs/active.");
   }
+  if (!created.specs[0]?.includes(`specs/active/${today}/`)) {
+    throw new Error(`Expected prompt-created spec to use dated active directory, got: ${created.specs[0]}`);
+  }
+  if (!/\/\d{3}-用户详情增加禁用态\.md$/.test(created.specs[0])) {
+    throw new Error(`Expected prompt-created spec to use ordered readable name, got: ${created.specs[0]}`);
+  }
   const createdSpecText = await readFile(path.join(root, created.specs[0]), "utf8");
   assertIncludesAll(createdSpecText, [
     "## AI 实现计划",
     "## 实际行为记录",
+    "目标能力",
+    "阅读入口",
+    "改动文件",
     "分支处理",
-    "默认值/配置"
+    "默认值/配置",
+    "验证命令",
+    "待确认问题",
+    "不要把猜测、常识或“看起来合理”的行为写成事实"
   ], "Expected active spec template to guide implementation planning and behavior recording");
 
   const todo = await createTodoFromPrompt({
@@ -428,12 +443,20 @@ try {
   if (!todo.specs[0]?.includes("specs/todo")) {
     throw new Error("Expected prompt-created TODO under specs/todo.");
   }
+  if (!todo.specs[0]?.includes(`specs/todo/${today}/`)) {
+    throw new Error(`Expected prompt-created TODO to use dated todo directory, got: ${todo.specs[0]}`);
+  }
+  if (!/\/\d{3}-用户详情-todo\.md$/.test(todo.specs[0])) {
+    throw new Error(`Expected prompt-created TODO to use ordered readable name, got: ${todo.specs[0]}`);
+  }
   const todoSpecText = await readFile(path.join(root, todo.specs[0]), "utf8");
   assertIncludesAll(todoSpecText, [
     "## 实际行为记录",
+    "记录来源",
     "分支条件",
     "默认参数行为",
     "边界处理结果",
+    "不要把猜测、常识或“看起来合理”的行为写成事实",
     "- [ ] 补充禁用态字段",
     "- [ ] 更新用户详情测试",
     "- [ ] `bun run build` 通过。",
@@ -444,14 +467,14 @@ try {
   }
 
   const listed = await listSpecs({ projectRoot: root, specsDir: "specs" });
-  if (listed.active.length !== 1 || listed.todo.length !== 1 || listed.review.length === 0) {
+  if (listed.active.length !== 2 || listed.todo.length !== 1 || listed.review.length === 0) {
     throw new Error("Expected active, todo, and review specs to be listed.");
   }
   const listedText = await harness.call("spec_list", { projectRoot: root, specsDir: "specs" });
   assertIncludesAll(listedText.content[0]?.text ?? "", [
     `Spec Coding MCP：${APP_VERSION}`,
     "Workflow State",
-    "active specs: 1",
+    "active specs: 2",
     "todo specs: 1",
     "review specs:",
     "done specs:",
@@ -475,9 +498,9 @@ try {
   }
   assertIncludesAll(context.markdown, [
     "Workflow State",
-    "active specs: 1",
+    "active specs: 2",
     "todo specs: 1",
-    "selected specs: 2",
+    "selected specs: 3",
     "content: 未内嵌；需要完整内容时请用读文件工具打开上面的 file。",
     `file: \`${firstOpenTodoFile}\``,
     "open TODOs:",
@@ -601,6 +624,12 @@ try {
   });
   if (!done.specs[0]?.includes("specs/done")) {
     throw new Error("Expected done spec to move under specs/done.");
+  }
+  if (!done.specs[0]?.includes(`specs/done/${today}/`)) {
+    throw new Error(`Expected done spec to use dated done directory, got: ${done.specs[0]}`);
+  }
+  if (!/\/\d{3}-用户详情增加禁用态\.md$/.test(done.specs[0])) {
+    throw new Error(`Expected done spec to use ordered readable name, got: ${done.specs[0]}`);
   }
   const doneText = await readFile(path.join(root, done.specs[0]), "utf8");
   if (!doneText.includes("- status: done") || !doneText.includes("## 最终行为契约") || !doneText.includes("当前用户没有敏感操作权限") || !doneText.includes("返回可理解错误")) {

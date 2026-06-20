@@ -12,20 +12,20 @@ import { markSpecContextSeen } from "./session-guard.js";
 import { workflowRecommendationLines } from "../spec/workflow-next-step.js";
 import { APP_VERSION } from "../shared/meta.js";
 
-const SPEC_CONTEXT_GATE_DESCRIPTION = "This call unlocks write operations in the current session; non-trivial code or doc changes must call spec_context first, read this output, and only then start implementation. If you skip spec_context, write tools will fail fast with a clear guard error.";
+const SPEC_CONTEXT_GATE_DESCRIPTION = "Unlocks guarded write tools for this session.";
 
 const ReadContextSchema = RootSchema.extend({
-  files: z.array(z.string()).default([]).describe("Optional spec files to include. Defaults to all specs/active/*.md."),
+  files: z.array(z.string()).default([]).describe("Spec files to select."),
   maxSpecChars: z.number().int().positive().default(8000),
   candidateFileLimit: z.number().int().positive().default(40),
-  contextMode: z.enum(["workflow", "hints", "full"]).default("workflow").describe("workflow omits source scans by default; hints adds lightweight search targets; full adds expanded source hints.")
+  contextMode: z.enum(["workflow", "hints", "full"]).default("workflow").describe("workflow, hints, or full indexes.")
 });
 
 export function registerReadTools(server: McpServer, guard: SessionGuardState): void {
   server.registerTool(
     "spec_bootstrap",
     {
-      description: "PRIMARY ENTRYPOINT. Use this before spec_init/spec_generate_agents/spec_generate_from_source. New projects get AGENTS, specs, and a starter active spec; existing projects get AGENTS, specs, and AI source-review tasks.",
+      description: "PRIMARY ENTRYPOINT. Use this before spec_init. Creates AGENTS and starter specs.",
       inputSchema: RootSchema.extend({
         projectName: z.string().optional(),
         projectKind: z.enum(["auto", "new", "existing"]).default("auto"),
@@ -43,7 +43,7 @@ export function registerReadTools(server: McpServer, guard: SessionGuardState): 
   server.registerTool(
     "spec_init",
     {
-      description: "Advanced setup helper. Prefer spec_bootstrap for normal project onboarding; use this only to create or refresh the specs directory and templates.",
+      description: "Advanced setup helper. Prefer spec_bootstrap. Creates specs templates.",
       inputSchema: RootSchema.extend({
         projectName: z.string().optional(),
         overwrite: z.boolean().default(false)
@@ -56,7 +56,7 @@ export function registerReadTools(server: McpServer, guard: SessionGuardState): 
   server.registerTool(
     "spec_generate_from_source",
     {
-      description: "Advanced existing-project helper. Prefer spec_bootstrap for onboarding; use this only to regenerate AI source-review tasks from static code hints.",
+      description: "Advanced existing-project helper. Prefer spec_bootstrap. Regenerates source-review tasks.",
       inputSchema: RootSchema.extend({
         projectName: z.string().optional(),
         overwrite: z.boolean().default(false),
@@ -72,7 +72,7 @@ export function registerReadTools(server: McpServer, guard: SessionGuardState): 
   server.registerTool(
     "spec_list",
     {
-      description: "Inspect current workflow state by listing review, active, todo, and done specs.",
+      description: "List spec workflow state.",
       inputSchema: RootSchema
     },
     async ({ projectRoot, specsDir }) => {
@@ -117,7 +117,7 @@ export function registerReadTools(server: McpServer, guard: SessionGuardState): 
   server.registerTool(
     "spec_context",
     {
-      description: `REQUIRED BEFORE WRITES. Return model-ready context for active specs, selected review specs, and open TODOs. ${SPEC_CONTEXT_GATE_DESCRIPTION}`,
+      description: `REQUIRED BEFORE WRITES. Return compact spec workflow context. ${SPEC_CONTEXT_GATE_DESCRIPTION}`,
       inputSchema: ReadContextSchema
     },
     async ({ projectRoot, specsDir, files, maxSpecChars, candidateFileLimit, contextMode }) => {
