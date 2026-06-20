@@ -4,9 +4,10 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: Version to release, for example 0.2.4.
-        required: true
+        description: Version to release, or auto for the next available patch version.
+        required: false
         type: string
+        default: auto
       dry_run:
         description: Run checks without committing or pushing the release tag.
         required: true
@@ -53,24 +54,51 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          version="${{ inputs.version }}"
+          requested_version="${{ inputs.version }}"
+          package_version="$(node -p "JSON.parse(require('fs').readFileSync('package.json', 'utf8')).version")"
+          package_name="$(node -p "JSON.parse(require('fs').readFileSync('package.json', 'utf8')).name")"
+          auto_version=false
+          if [ -z "$requested_version" ] || [ "$requested_version" = "auto" ]; then
+            auto_version=true
+            IFS=. read -r major minor patch <<< "$package_version"
+            if ! [[ "$major" =~ ^[0-9]+$ && "$minor" =~ ^[0-9]+$ && "$patch" =~ ^[0-9]+$ ]]; then
+              echo "Auto patch release requires package.json version to be stable x.y.z."
+              exit 1
+            fi
+            while true; do
+              patch=$((patch + 1))
+              version="$major.$minor.$patch"
+              tag="v$version"
+              if git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null 2>&1; then
+                echo "Skipping existing tag $tag."
+                continue
+              fi
+              if npm view "$package_name@$version" version >/dev/null 2>&1; then
+                echo "Skipping existing npm version $package_name@$version."
+                continue
+              fi
+              break
+            done
+          else
+            version="$requested_version"
+          fi
+
           if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
             echo "Version must be a valid npm semver, for example 0.2.4."
             exit 1
           fi
 
-          package_name="$(node -p "JSON.parse(require('fs').readFileSync('package.json', 'utf8')).name")"
           tag="v$version"
 
           if git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null 2>&1; then
-            if [ "${{ inputs.replace_existing_tag }}" != "true" ]; then
+            if [ "$auto_version" = "true" ] || [ "${{ inputs.replace_existing_tag }}" != "true" ]; then
               echo "Tag $tag already exists. Enable replace_existing_tag to recreate a failed tag, or choose another version."
               exit 1
             fi
             echo "Tag $tag exists and will be recreated after verification."
           fi
 
-          if npm view "$package_name@$version" version >/dev/null 2>&1; then
+          if [ "$auto_version" != "true" ] && npm view "$package_name@$version" version >/dev/null 2>&1; then
             echo "$package_name@$version already exists on npm."
             exit 1
           fi

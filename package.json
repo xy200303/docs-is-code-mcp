@@ -38,7 +38,6 @@
     "unit": "bun test/unit.ts",
     "smoke": "bun test/smoke.ts",
     "release:check": "bun scripts/release-check.mjs",
-    "release:patch": "node scripts/release-patch.mjs",
     "verify": "npm run build && npm run unit && npm run smoke && npm run release:check",
     "test": "npm run verify",
     "docs:dev": "vitepress dev docs --host 127.0.0.1",

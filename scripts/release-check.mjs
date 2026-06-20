@@ -29,7 +29,6 @@ function assertVersionContract(packageJson, packageLock, metaText) {
 function assertScriptContract(packageJson) {
   const scripts = packageJson.scripts ?? {};
   assert(scripts["release:check"] === "bun scripts/release-check.mjs", "package.json must expose release:check.");
-  assert(scripts["release:patch"] === "node scripts/release-patch.mjs", "package.json must expose release:patch.");
   assert(scripts.verify === "npm run build && npm run unit && npm run smoke && npm run release:check", "package.json verify must run build, unit, smoke, and release:check.");
   assert(scripts.test === "npm run verify", "package.json test must delegate to verify.");
   assert(scripts.prepack === "npm run verify", "package.json prepack must run verify.");
@@ -65,7 +64,7 @@ function assertDocumentationContract(readmeText, agentsText) {
   }
 }
 
-function assertWorkflowContract(ciText, publishText) {
+function assertWorkflowContract(ciText, publishText, prepareText) {
   assertIncludes(ciText, "uses: oven-sh/setup-bun@v2", ".github/workflows/ci.yml");
   assertIncludes(ciText, "run: npm run verify", ".github/workflows/ci.yml");
   assertIncludes(ciText, "run: npm pack --dry-run", ".github/workflows/ci.yml");
@@ -75,6 +74,11 @@ function assertWorkflowContract(ciText, publishText) {
   assertIncludes(publishText, "npm publish --access public", ".github/workflows/publish-npm.yml");
   assert(!publishText.includes("--provenance"), "publish workflow must use NPM_TOKEN only, without provenance/OIDC publishing.");
   assert(!publishText.includes("run: npm run smoke"), "publish workflow must use verify instead of a partial smoke-only check.");
+  assertIncludes(prepareText, "default: auto", ".github/workflows/prepare-npm-release.yml");
+  assertIncludes(prepareText, "Auto patch release requires package.json version to be stable x.y.z.", ".github/workflows/prepare-npm-release.yml");
+  assertIncludes(prepareText, "Skipping existing tag", ".github/workflows/prepare-npm-release.yml");
+  assertIncludes(prepareText, "Skipping existing npm version", ".github/workflows/prepare-npm-release.yml");
+  assertIncludes(prepareText, "git push origin \"${{ steps.release.outputs.tag }}\"", ".github/workflows/prepare-npm-release.yml");
 }
 
 function assertReadToolSourceContract(contextMarkdownText, registerReadToolsText, workflowNextStepText) {
@@ -91,17 +95,6 @@ function assertReadToolSourceContract(contextMarkdownText, registerReadToolsText
   assertIncludes(workflowNextStepText, "currentWorkFile(state", "src/spec/workflow-next-step.ts");
 }
 
-function assertPatchReleaseContract(releasePatchText) {
-  assertIncludes(releasePatchText, "Worktree is not clean", "scripts/release-patch.mjs");
-  assertIncludes(releasePatchText, "nextPatchVersion", "scripts/release-patch.mjs");
-  assertIncludes(releasePatchText, "--publish", "scripts/release-patch.mjs");
-  assertIncludes(releasePatchText, "spawnSync(\"npm\"", "scripts/release-patch.mjs");
-  assertIncludes(releasePatchText, "\"view\"", "scripts/release-patch.mjs");
-  assertIncludes(releasePatchText, "\"run\", \"verify\"", "scripts/release-patch.mjs");
-  assertIncludes(releasePatchText, "\"pack\", \"--dry-run\"", "scripts/release-patch.mjs");
-  assertIncludes(releasePatchText, "\"push\"", "scripts/release-patch.mjs");
-}
-
 const packageJson = readJson("package.json");
 const packageLock = readJson("package-lock.json");
 const metaText = readText("src/shared/meta.ts");
@@ -111,16 +104,15 @@ const agentsText = readText("AGENTS.md");
 const contextMarkdownText = readText("src/spec/context-markdown.ts");
 const registerReadToolsText = readText("src/mcp/register-read-tools.ts");
 const workflowNextStepText = readText("src/spec/workflow-next-step.ts");
-const releasePatchText = readText("scripts/release-patch.mjs");
 const ciText = readText(".github/workflows/ci.yml");
 const publishText = readText(".github/workflows/publish-npm.yml");
+const prepareText = readText(".github/workflows/prepare-npm-release.yml");
 
 assertVersionContract(packageJson, packageLock, metaText);
 assertScriptContract(packageJson);
 assertCompatibilityContract(compatibilityText);
 assertDocumentationContract(readmeText, agentsText);
 assertReadToolSourceContract(contextMarkdownText, registerReadToolsText, workflowNextStepText);
-assertPatchReleaseContract(releasePatchText);
-assertWorkflowContract(ciText, publishText);
+assertWorkflowContract(ciText, publishText, prepareText);
 
 console.log("spec-coding release checks passed");

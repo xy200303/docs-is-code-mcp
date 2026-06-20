@@ -265,32 +265,16 @@ node dist/index.js serve
 
 ## 发布
 
-推荐本地一键 patch 发布：
-
-```bash
-npm run release:patch
-```
-
-默认是 dry-run，只检查下一个 patch 版本、tag 和 npm 版本是否可用，不会提交或推送。
-
-确认无误后执行：
-
-```bash
-npm run release:patch -- --publish
-```
-
-它会自动计算下一个 patch 版本，同步 `package.json` 和 `package-lock.json`，运行 `npm run verify`，执行 `npm pack --dry-run`，提交 `发布 X.Y.Z`，创建 `vX.Y.Z` tag，并 push commit 和 tag。tag 会触发 `Publish npm` 工作流完成 npm 发布。
-
-也可以使用 GitHub Actions 的 `Prepare npm release` 工作流发布新版：
+使用 GitHub Actions 的 `Prepare npm release` 工作流发布新版：
 
 1. 打开 `Actions` -> `Prepare npm release` -> `Run workflow`。
-2. 输入目标版本号，例如 `0.2.4`。
+2. `version` 保持默认 `auto`，CI 会自动计算下一个可用 patch 版本。
 3. `dry_run=false` 时，CI 会自动同步 `package.json` 和 `package-lock.json`、运行验证、提交版本变更并创建 `vX.Y.Z` tag。
 4. tag 会触发 `Publish npm` 工作流完成 npm 发布。
 
 npm 发布 workflow 使用 GitHub Actions secret `NPM_TOKEN`。发布前需要在仓库 secrets 中配置具备发布权限的 `NPM_TOKEN`。
 
-如果某个 tag 已经由失败发布创建过、但 npm 没有发布成功，可以在 `Prepare npm release` 里勾选 `replace_existing_tag`，让 CI 删除并重建同版本 tag，不需要为了失败尝试继续升级版本号。
+如果需要指定版本，也可以把 `version` 改成明确的 semver，例如 `0.2.6`。如果某个 tag 已经由失败发布创建过、但 npm 没有发布成功，可以在 `Prepare npm release` 里勾选 `replace_existing_tag`，让 CI 删除并重建同版本 tag，不需要为了失败尝试继续升级版本号。
 
 发布前本地也可以运行：
 
