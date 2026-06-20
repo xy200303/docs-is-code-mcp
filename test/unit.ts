@@ -42,13 +42,15 @@ async function testTodoParsing(): Promise<void> {
 
 async function testTodoSpecTaskExtraction(): Promise<void> {
   const text = todoSpec("优化任务提取", [
-    "优化 spec_todo 任务提取质量。",
+    "优化 spec_todo 任务提取质量。要求：",
     "",
+    "# Goals",
     "目标：",
     "- 过滤结构标题。",
     "- 保留真正任务。",
     "- `bun run build` 通过。",
     "",
+    "Requirements:",
     "验收：",
     "- [x] 已完成的用户任务",
     "- [ ] 未完成的用户任务",
@@ -59,10 +61,16 @@ async function testTodoSpecTaskExtraction(): Promise<void> {
   assertIncludes(text, "- [ ] 保留真正任务。", "Expected actionable bullet to stay in TODO.");
   assertIncludes(text, "- [x] 已完成的用户任务", "Expected checked user TODO to stay checked.");
   assertIncludes(text, "- [ ] 未完成的用户任务", "Expected unchecked user TODO to stay unchecked.");
+  assertIncludes(text, "- [ ] `bun run build` 通过。", "Expected verification command to stay executable.");
+  assertIncludes(text, "- [ ] `git diff --check` 通过。", "Expected git verification command to stay executable.");
+  assert(!text.includes("- [ ] # Goals"), "Expected markdown heading to stay out of generated TODOs.");
   assert(!text.includes("- [ ] 目标："), "Expected section title to stay out of generated TODOs.");
+  assert(!text.includes("- [ ] Requirements:"), "Expected English section title to stay out of generated TODOs.");
   assert(!text.includes("- [ ] 验收："), "Expected acceptance title to stay out of generated TODOs.");
-  assert(!text.includes("- [ ] `bun run build` 通过。"), "Expected verification command to stay out of generated TODOs.");
-  assert(!text.includes("- [ ] `git diff --check` 通过。"), "Expected git verification command to stay out of generated TODOs.");
+
+  const plainText = todoSpec("纯文本任务", "优化 spec_todo 任务提取质量。要求：");
+  assert(!plainText.includes("- [ ] 优化 spec_todo 任务提取质量。要求："), "Expected trailing requirement label to be removed.");
+  assertIncludes(plainText, "- [ ] 优化 spec_todo 任务提取质量。", "Expected plain task to keep business text.");
 }
 
 async function testCheckpointWriter(): Promise<void> {

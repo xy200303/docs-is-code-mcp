@@ -2,7 +2,17 @@
 import { businessConfirmationSection, engineeringConstraintSection, workflowGuardSection } from "./markdown.js";
 
 const TODO_SECTION_TITLES = new Set([
+  "acceptance",
+  "acceptance criteria",
+  "description",
+  "goal",
+  "goals",
+  "requirements",
+  "tasks",
+  "todo",
+  "verification",
   "目标",
+  "要求",
   "验收",
   "验收标准",
   "实际行为记录",
@@ -18,8 +28,20 @@ interface PromptTodoTask {
   checked: boolean;
 }
 
-function cleanPromptBullet(line: string): string {
-  return line.trim().replace(/^[-*]\s*/, "");
+function cleanMarkdownPrefix(line: string): string {
+  return line
+    .trim()
+    .replace(/^#{1,6}\s+/, "")
+    .replace(/^[-*]\s*/, "");
+}
+
+function cleanTaskText(line: string): string {
+  const text = cleanMarkdownPrefix(line);
+  if (isSectionTitle(text)) return "";
+  return text
+    .replace(/^\[[ xX]\]\s*/, "")
+    .replace(/(?:。|\.)?\s*(?:要求|requirements?)[:：]\s*$/i, "。")
+    .trim();
 }
 
 function isMarkdownBullet(line: string): boolean {
@@ -34,33 +56,24 @@ function isCheckedMarkdownCheckbox(line: string): boolean {
   return /^\s*[-*]\s+\[[xX]\]\s+.+/.test(line);
 }
 
-function checkboxText(line: string): string {
-  return cleanPromptBullet(line).replace(/^\[[ xX]\]\s*/, "").trim();
-}
-
 function isSectionTitle(line: string): boolean {
-  const title = line.replace(/[:：]\s*$/, "").trim();
+  const title = cleanMarkdownPrefix(line).replace(/[:：]\s*$/, "").trim().toLowerCase();
   return TODO_SECTION_TITLES.has(title);
-}
-
-function isVerificationCommand(line: string): boolean {
-  return /^`?(bun|npm|pnpm|yarn|node|git)\s+[^`]+`?\s*(通过|passed|pass)?[。.]?$/i.test(line);
 }
 
 function isActionableTodoLine(line: string): boolean {
   if (!line) return false;
   if (isSectionTitle(line)) return false;
-  if (isVerificationCommand(line)) return false;
   return true;
 }
 
 function taskFromMarkdownLine(line: string): PromptTodoTask {
-  const text = isMarkdownCheckbox(line) ? checkboxText(line) : cleanPromptBullet(line).trim();
+  const text = cleanTaskText(line);
   return { text, checked: isCheckedMarkdownCheckbox(line) };
 }
 
 function taskFromPlainLine(line: string): PromptTodoTask {
-  return { text: line.trim(), checked: false };
+  return { text: cleanTaskText(line), checked: false };
 }
 
 function todoTasksFromPrompt(prompt: string): PromptTodoTask[] {

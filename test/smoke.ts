@@ -348,10 +348,11 @@ try {
     "边界处理结果",
     "- [ ] 补充禁用态字段",
     "- [ ] 更新用户详情测试",
+    "- [ ] `bun run build` 通过。",
     "- [x] 已确认不需要迁移"
   ], "Expected TODO spec template to guide final behavior recording");
-  if (todoSpecText.includes("- [ ] 目标：") || todoSpecText.includes("- [ ] 验收：") || todoSpecText.includes("- [ ] `bun run build` 通过。")) {
-    throw new Error("Expected TODO spec generation to skip section titles and verification commands.");
+  if (todoSpecText.includes("- [ ] 目标：") || todoSpecText.includes("- [ ] 验收：")) {
+    throw new Error("Expected TODO spec generation to skip section titles.");
   }
 
   const listed = await listSpecs({ projectRoot: root, specsDir: "specs" });
