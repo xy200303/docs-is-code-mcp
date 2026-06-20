@@ -13,18 +13,42 @@ export function buildContextInstructions(): string[] {
   return currentTaskInstructions;
 }
 
-function renderSelectedSpecs(selectedSpecs: Array<SpecItem & { text: string }>): string[] {
-  return selectedSpecs.length
-    ? selectedSpecs.map((spec, index) => [`### ${index + 1}. ${spec.file}`, "", "```md", spec.text, "```"].join("\n"))
-    : ["当前没有可执行任务：优先调用 spec_bootstrap 建立项目入口；如果用户已经给出明确小任务或功能需求，再调用 spec_todo/spec_create。"];
+type EmptyWorkState = "done-only" | "empty" | "has-work";
+
+function emptyWorkState(input: {
+  activeSpecs: SpecItem[];
+  reviewSpecs: SpecItem[];
+  todoSpecs: SpecItem[];
+  doneSpecs: SpecItem[];
+  selectedSpecs: Array<SpecItem & { text: string }>;
+  openTodos: SpecContext["todos"];
+}): EmptyWorkState {
+  const hasExecutableWork = Boolean(input.selectedSpecs.length || input.openTodos.length || input.activeSpecs.length || input.todoSpecs.length || input.reviewSpecs.length);
+  if (hasExecutableWork) return "has-work";
+  return input.doneSpecs.length ? "done-only" : "empty";
 }
 
-function renderTodoLines(todos: SpecContext["todos"], hasSelectedSpecs: boolean): string[] {
+function renderEmptySelectedSpecs(state: EmptyWorkState): string[] {
+  if (state === "done-only") {
+    return ["当前没有待执行 spec；项目已有 done 历史记录，需要新工作时请先创建 spec_todo 或 spec_create。"];
+  }
+  return ["当前没有可执行任务：优先调用 spec_bootstrap 建立项目入口；如果用户已经给出明确小任务或功能需求，再调用 spec_todo/spec_create。"];
+}
+
+function renderSelectedSpecs(selectedSpecs: Array<SpecItem & { text: string }>, state: EmptyWorkState): string[] {
+  if (!selectedSpecs.length) return renderEmptySelectedSpecs(state);
+  return selectedSpecs.map((spec, index) => [`### ${index + 1}. ${spec.file}`, "", "```md", spec.text, "```"].join("\n"));
+}
+
+function renderTodoLines(todos: SpecContext["todos"], hasSelectedSpecs: boolean, state: EmptyWorkState): string[] {
   if (todos.length) {
     return todos.map((todo, index) => `${index + 1}. ${todo.text}（${todo.file}:${todo.line}）`);
   }
   if (hasSelectedSpecs) {
     return ["- 未发现未完成 TODO；请按 selected specs 的目标、行为规则和验收标准执行。"];
+  }
+  if (state === "done-only") {
+    return ["- 当前没有 open TODO；项目只有 done 历史记录，需要新工作时先创建 spec_todo 或 spec_create。"];
   }
   return ["- 当前没有 open TODO，也没有 selected spec；不要开始实现，先创建或选择一个 spec。"];
 }
@@ -129,6 +153,14 @@ export function buildSpecContextMarkdown(input: {
   instructions: string[];
 }): string {
   const openTodos = input.todos.filter((todo) => !todo.checked);
+  const workState = emptyWorkState({
+    activeSpecs: input.activeSpecs,
+    reviewSpecs: input.reviewSpecs,
+    todoSpecs: input.todoSpecs,
+    doneSpecs: input.doneSpecs,
+    selectedSpecs: input.selectedSpecs,
+    openTodos
+  });
   return [
     "# Spec Coding Context",
     "",
@@ -149,11 +181,11 @@ export function buildSpecContextMarkdown(input: {
     ...renderSourceSignals(input.source),
     "## Selected Specs",
     "",
-    ...renderSelectedSpecs(input.selectedSpecs),
+    ...renderSelectedSpecs(input.selectedSpecs, workState),
     "",
     "## Open TODOs",
     "",
-    ...renderTodoLines(openTodos, input.selectedSpecs.length > 0),
+    ...renderTodoLines(openTodos, input.selectedSpecs.length > 0, workState),
     "",
     ...workflowRecommendationLines({
       projectRoot: input.root,

@@ -245,13 +245,16 @@ try {
   const doneOnlyContext = await harness.call("spec_context", { projectRoot: doneOnlyWorkflowRoot, specsDir: "specs" });
   assertIncludesAll(doneOnlyContext.content[0]?.text ?? "", [
     "done specs: 1",
+    "当前没有待执行 spec；项目已有 done 历史记录",
+    "当前没有 open TODO；项目只有 done 历史记录",
     "Recommended Next Step",
     "nextTool: `spec_todo`",
     "alternatives: `spec_create`",
     "当前没有待执行任务，已有 done 记录说明项目已接入"
   ], "Expected spec_context to create new work instead of bootstrapping done-only projects");
-  if ((doneOnlyContext.content[0]?.text ?? "").includes("nextTool: `spec_bootstrap`")) {
-    throw new Error("Expected done-only spec_context to avoid recommending spec_bootstrap.");
+  const doneOnlyContextText = doneOnlyContext.content[0]?.text ?? "";
+  if (doneOnlyContextText.includes("当前没有可执行任务：优先调用 spec_bootstrap") || doneOnlyContextText.includes("nextTool: `spec_bootstrap`")) {
+    throw new Error("Expected done-only spec_context to avoid empty-project bootstrap guidance.");
   }
   await rm(doneOnlyWorkflowRoot, { recursive: true, force: true });
 
