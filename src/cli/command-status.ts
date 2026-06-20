@@ -6,6 +6,7 @@ import { APP_NAME, APP_VERSION } from "../shared/meta.js";
 import { assertKnownOptions, hasFlag, optionValue } from "./cli-options.js";
 import {
   STATUS_JSON_SCHEMA_VERSION,
+  countStatusWorkflowState,
   decideStatusRecommendation,
   publicStatusRecommendation,
   type StatusRecommendation,
@@ -13,6 +14,7 @@ import {
 } from "./status-recommendation.js";
 
 type ListedSpecs = Awaited<ReturnType<typeof listSpecs>>;
+type OpenTodo = ReturnType<typeof extractTodos>[number];
 
 interface StatusReport {
   schemaVersion: number;
@@ -40,24 +42,27 @@ function printStatusHelp(): void {
   ].join("\n"));
 }
 
-async function countOpenTodos(root: string, items: ListedSpecs): Promise<number> {
+async function readOpenTodos(root: string, items: ListedSpecs): Promise<OpenTodo[]> {
   const specs = await readSpecsWithText(root, [...items.active, ...items.todo], Number.MAX_SAFE_INTEGER);
-  return specs.flatMap((spec) => extractTodos(spec.file, spec.text)).filter((todo) => !todo.checked).length;
+  return specs.flatMap((spec) => extractTodos(spec.file, spec.text)).filter((todo) => !todo.checked);
 }
 
 async function statusReport(args: string[]): Promise<StatusReport> {
   const projectRoot = optionValue(args, "--project-root") ?? process.cwd();
   const specsDir = optionValue(args, "--specs-dir") ?? "specs";
   const specs = await listSpecs({ projectRoot, specsDir });
-  const openTodos = await countOpenTodos(specs.projectRoot, specs);
-  const workflowState = {
-    active: specs.active.length,
-    todo: specs.todo.length,
-    review: specs.review.length,
-    done: specs.done.length,
+  const openTodos = await readOpenTodos(specs.projectRoot, specs);
+  const recommendationInput = {
+    projectRoot: specs.projectRoot,
+    specsDir: specs.specsDir,
+    activeSpecs: specs.active,
+    reviewSpecs: specs.review,
+    todoSpecs: specs.todo,
+    doneSpecs: specs.done,
     openTodos
   };
-  const decision = decideStatusRecommendation({ workflowState, projectRoot: specs.projectRoot, specsDir: specs.specsDir });
+  const workflowState = countStatusWorkflowState(recommendationInput);
+  const decision = decideStatusRecommendation(recommendationInput);
   return {
     schemaVersion: STATUS_JSON_SCHEMA_VERSION,
     name: APP_NAME,

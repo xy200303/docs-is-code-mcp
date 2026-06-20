@@ -673,6 +673,34 @@ try {
     throw new Error(`Expected done-only CLI status JSON to recommend creating new work, got: ${JSON.stringify(doneOnlyStatusJson)}`);
   }
   await rm(doneOnlyRoot, { recursive: true, force: true });
+
+  const reviewOnlyStatusRoot = await mkdtemp(path.join(os.tmpdir(), "spec-coding-cli-status-review-"));
+  const reviewSpecPath = path.join(reviewOnlyStatusRoot, "specs", "review", "source-inventory.md");
+  await mkdir(path.dirname(reviewSpecPath), { recursive: true });
+  await writeFile(reviewSpecPath, "# Source Inventory\n\n## Meta\n\n- status: review\n", "utf8");
+  const reviewOnlyStatusJsonLines: string[] = [];
+  console.log = (...args: unknown[]) => {
+    reviewOnlyStatusJsonLines.push(args.map(String).join(" "));
+  };
+  try {
+    await runCli(["node", "specc", "status", "--project-root", reviewOnlyStatusRoot, "--json"]);
+  } finally {
+    console.log = originalLog;
+  }
+  const reviewOnlyStatusJson = JSON.parse(reviewOnlyStatusJsonLines.join("\n")) as {
+    workflowState: { review: number; openTodos: number };
+    recommendation: { nextTool: string; arguments: Record<string, string> };
+  };
+  if (
+    reviewOnlyStatusJson.workflowState.review !== 1 ||
+    reviewOnlyStatusJson.workflowState.openTodos !== 0 ||
+    reviewOnlyStatusJson.recommendation.nextTool !== "spec_context" ||
+    reviewOnlyStatusJson.recommendation.arguments.files !== "specs/review/source-inventory.md"
+  ) {
+    throw new Error(`Expected review-only CLI status JSON to use the real review spec path, got: ${JSON.stringify(reviewOnlyStatusJson)}`);
+  }
+  await rm(reviewOnlyStatusRoot, { recursive: true, force: true });
+
   const statusHelpLines: string[] = [];
   console.log = (...args: unknown[]) => {
     statusHelpLines.push(args.map(String).join(" "));

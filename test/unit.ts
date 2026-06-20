@@ -186,39 +186,61 @@ async function testRegistryContracts(): Promise<void> {
 
 async function testStatusRecommendationDecisions(): Promise<void> {
   const base = { projectRoot: "C:/demo", specsDir: "specs" };
+  const spec = (file: string, status: string) => ({ file, title: file, status, source: "unit" });
+  const todo = (file: string) => ({ file, text: "unit todo", checked: false, line: 1 });
   assert(STATUS_JSON_SCHEMA_VERSION === 1, "Expected status JSON schema version to stay at 1.");
 
   const empty = decideStatusRecommendation({
     ...base,
-    workflowState: { active: 0, todo: 0, review: 0, done: 0, openTodos: 0 }
+    activeSpecs: [],
+    reviewSpecs: [],
+    todoSpecs: [],
+    doneSpecs: [],
+    openTodos: []
   });
   assert(empty.nextTool === "spec_bootstrap", "Expected empty status to recommend bootstrap.");
   assert(empty.arguments.projectKind === "auto", "Expected bootstrap recommendation to include projectKind.");
 
   const doneOnly = decideStatusRecommendation({
     ...base,
-    workflowState: { active: 0, todo: 0, review: 0, done: 1, openTodos: 0 }
+    activeSpecs: [],
+    reviewSpecs: [],
+    todoSpecs: [],
+    doneSpecs: [spec("specs/done/finished.md", "done")],
+    openTodos: []
   });
   assert(doneOnly.nextTool === "spec_todo", "Expected done-only status to recommend a new TODO.");
   assert(doneOnly.arguments.prompt !== undefined && doneOnly.arguments.title !== undefined, "Expected done-only recommendation placeholders.");
 
   const active = decideStatusRecommendation({
     ...base,
-    workflowState: { active: 1, todo: 0, review: 0, done: 0, openTodos: 0 }
+    activeSpecs: [spec("specs/active/demo.md", "active")],
+    reviewSpecs: [],
+    todoSpecs: [],
+    doneSpecs: [],
+    openTodos: []
   });
   assert(active.nextTool === "spec_context", "Expected active status to recommend spec_context.");
   assert(Object.keys(active.arguments).join(",") === "projectRoot,specsDir", "Expected spec_context recommendation to keep minimal arguments.");
 
   const reviewOnly = decideStatusRecommendation({
     ...base,
-    workflowState: { active: 0, todo: 0, review: 1, done: 0, openTodos: 0 }
+    activeSpecs: [],
+    reviewSpecs: [spec("specs/review/source-inventory.md", "review")],
+    todoSpecs: [],
+    doneSpecs: [],
+    openTodos: []
   });
   assert(reviewOnly.nextTool === "spec_context", "Expected review-only status to recommend spec_context.");
-  assert(reviewOnly.arguments.files === "review-1.md", "Expected review-only status to reuse workflow review arguments.");
+  assert(reviewOnly.arguments.files === "specs/review/source-inventory.md", "Expected review-only status to use the real review spec path.");
 
   const openTodo = decideStatusRecommendation({
     ...base,
-    workflowState: { active: 1, todo: 0, review: 0, done: 0, openTodos: 2 }
+    activeSpecs: [spec("specs/active/demo.md", "active")],
+    reviewSpecs: [],
+    todoSpecs: [],
+    doneSpecs: [],
+    openTodos: [todo("specs/active/demo.md"), todo("specs/active/demo.md")]
   });
   assert(openTodo.nextStep.includes("open TODOs"), "Expected open TODO status to keep the open TODO nextStep.");
 }

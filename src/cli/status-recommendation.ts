@@ -18,23 +18,35 @@ export interface StatusDecision extends StatusRecommendation {
   nextStep: string;
 }
 
-function placeholderSpec(file: string, status: SpecItem["status"]): SpecItem {
-  return { file, title: file, status, source: "status-summary" };
+export interface StatusRecommendationInput {
+  projectRoot: string;
+  specsDir: string;
+  activeSpecs: SpecItem[];
+  reviewSpecs: SpecItem[];
+  todoSpecs: SpecItem[];
+  doneSpecs: SpecItem[];
+  openTodos: TodoItem[];
 }
 
-function placeholderTodo(file: string): TodoItem {
-  return { file, text: file, checked: false, line: 1 };
+export function countStatusWorkflowState(input: StatusRecommendationInput): WorkflowState {
+  return {
+    active: input.activeSpecs.length,
+    todo: input.todoSpecs.length,
+    review: input.reviewSpecs.length,
+    done: input.doneSpecs.length,
+    openTodos: input.openTodos.length
+  };
 }
 
-function statusWorkflowState(input: { workflowState: WorkflowState; projectRoot: string; specsDir: string }): FullWorkflowState {
+function statusWorkflowState(input: StatusRecommendationInput): FullWorkflowState {
   return {
     projectRoot: input.projectRoot,
     specsDir: input.specsDir,
-    activeSpecs: Array.from({ length: input.workflowState.active }, (_, index) => placeholderSpec(`active-${index + 1}.md`, "active")),
-    reviewSpecs: Array.from({ length: input.workflowState.review }, (_, index) => placeholderSpec(`review-${index + 1}.md`, "review")),
-    todoSpecs: Array.from({ length: input.workflowState.todo }, (_, index) => placeholderSpec(`todo-${index + 1}.md`, "todo")),
-    doneSpecs: Array.from({ length: input.workflowState.done }, (_, index) => placeholderSpec(`done-${index + 1}.md`, "done")),
-    openTodos: Array.from({ length: input.workflowState.openTodos }, (_, index) => placeholderTodo(`todo-${index + 1}.md`)),
+    activeSpecs: input.activeSpecs,
+    reviewSpecs: input.reviewSpecs,
+    todoSpecs: input.todoSpecs,
+    doneSpecs: input.doneSpecs,
+    openTodos: input.openTodos,
     selectedSpecs: []
   };
 }
@@ -55,10 +67,11 @@ function statusNextStep(input: WorkflowState, recommendation: WorkflowRecommenda
   return recommendation.afterwards;
 }
 
-export function decideStatusRecommendation(input: { workflowState: WorkflowState; projectRoot: string; specsDir: string }): StatusDecision {
+export function decideStatusRecommendation(input: StatusRecommendationInput): StatusDecision {
+  const workflowState = countStatusWorkflowState(input);
   const recommendation = recommendedWorkflowStep(statusWorkflowState(input), "inspect");
   return {
-    nextStep: statusNextStep(input.workflowState, recommendation),
+    nextStep: statusNextStep(workflowState, recommendation),
     nextTool: recommendation.nextTool,
     alternatives: recommendation.alternatives,
     arguments: recommendation.arguments,
