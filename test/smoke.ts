@@ -605,6 +605,7 @@ try {
     console.log = originalLog;
   }
   const emptyStatusJson = JSON.parse(emptyStatusJsonLines.join("\n")) as {
+    schemaVersion: number;
     version: string;
     projectRoot: string;
     workflowState: { active: number; todo: number; review: number; done: number; openTodos: number };
@@ -613,6 +614,7 @@ try {
   };
   if (
     emptyStatusJson.version !== APP_VERSION ||
+    emptyStatusJson.schemaVersion !== 1 ||
     emptyStatusJson.workflowState.active !== 0 ||
     emptyStatusJson.workflowState.openTodos !== 0 ||
     !emptyStatusJson.nextStep.includes("specc bootstrap") ||
@@ -650,12 +652,14 @@ try {
     console.log = originalLog;
   }
   const doneOnlyStatusJson = JSON.parse(doneOnlyStatusJsonLines.join("\n")) as {
+    schemaVersion: number;
     workflowState: { active: number; todo: number; review: number; done: number; openTodos: number };
     nextStep: string;
     recommendation: { nextTool: string; alternatives: string[]; arguments: Record<string, string>; reason: string };
   };
   if (
     doneOnlyStatusJson.workflowState.done !== 1 ||
+    doneOnlyStatusJson.schemaVersion !== 1 ||
     !doneOnlyStatusJson.nextStep.includes("No open work items") ||
     doneOnlyStatusJson.nextStep.includes("specc bootstrap") ||
     doneOnlyStatusJson.recommendation.nextTool !== "spec_todo" ||
@@ -772,12 +776,14 @@ try {
     console.log = originalLog;
   }
   const activeStatusJson = JSON.parse(activeStatusJsonLines.join("\n")) as {
+    schemaVersion: number;
     workflowState: { active: number; openTodos: number };
     nextStep: string;
     recommendation: { nextTool: string; alternatives: string[]; arguments: Record<string, string>; reason: string };
   };
   if (
     activeStatusJson.workflowState.active !== 1 ||
+    activeStatusJson.schemaVersion !== 1 ||
     activeStatusJson.workflowState.openTodos < 1 ||
     !activeStatusJson.nextStep.includes("open TODOs") ||
     activeStatusJson.recommendation.nextTool !== "spec_context" ||

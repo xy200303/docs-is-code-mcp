@@ -8,6 +8,7 @@ import { assertKnownOptions, hasFlag, optionValue } from "./cli-options.js";
 type ListedSpecs = Awaited<ReturnType<typeof listSpecs>>;
 type WorkflowState = { active: number; todo: number; review: number; done: number; openTodos: number };
 type RecommendationArguments = Record<string, string>;
+const STATUS_JSON_SCHEMA_VERSION = 1;
 
 interface StatusRecommendation {
   nextTool: string;
@@ -21,6 +22,7 @@ interface StatusDecision extends StatusRecommendation {
 }
 
 interface StatusReport {
+  schemaVersion: number;
   name: string;
   version: string;
   projectRoot: string;
@@ -115,6 +117,7 @@ async function statusReport(args: string[]): Promise<StatusReport> {
   };
   const decision = statusDecision({ workflowState, projectRoot: specs.projectRoot, specsDir: specs.specsDir });
   return {
+    schemaVersion: STATUS_JSON_SCHEMA_VERSION,
     name: APP_NAME,
     version: APP_VERSION,
     projectRoot: specs.projectRoot,

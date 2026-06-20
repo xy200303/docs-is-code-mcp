@@ -49,6 +49,7 @@ function assertDocumentationContract(readmeText, agentsText) {
     "specc serve",
     "specc status",
     "specc status --project-root . --json",
+    "schemaVersion",
     "recommendation.nextTool",
     "recommendation.alternatives",
     "recommendation.arguments",
