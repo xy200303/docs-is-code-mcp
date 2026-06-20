@@ -6,14 +6,26 @@ import { APP_NAME, APP_VERSION } from "../shared/meta.js";
 import { assertKnownOptions, hasFlag, optionValue } from "./cli-options.js";
 
 type ListedSpecs = Awaited<ReturnType<typeof listSpecs>>;
+type WorkflowState = { active: number; todo: number; review: number; done: number; openTodos: number };
+
+interface StatusRecommendation {
+  nextTool: string;
+  alternatives: string[];
+  reason: string;
+}
+
+interface StatusDecision extends StatusRecommendation {
+  nextStep: string;
+}
 
 interface StatusReport {
   name: string;
   version: string;
   projectRoot: string;
   specsDir: string;
-  workflowState: { active: number; todo: number; review: number; done: number; openTodos: number };
+  workflowState: WorkflowState;
   nextStep: string;
+  recommendation: StatusRecommendation;
 }
 
 function printStatusHelp(): void {
@@ -31,17 +43,45 @@ function printStatusHelp(): void {
   ].join("\n"));
 }
 
-function statusNextStep(input: { active: number; todo: number; review: number; done: number; openTodos: number }): string {
+function statusDecision(input: WorkflowState): StatusDecision {
   if (input.openTodos) {
-    return "Call spec_context and execute open TODOs in order.";
+    return {
+      nextStep: "Call spec_context and execute open TODOs in order.",
+      nextTool: "spec_context",
+      alternatives: [],
+      reason: "Open TODOs exist and must be read before implementation."
+    };
   }
   if (input.active || input.todo || input.review) {
-    return "Call spec_context in your AI tool before changing code or docs.";
+    return {
+      nextStep: "Call spec_context in your AI tool before changing code or docs.",
+      nextTool: "spec_context",
+      alternatives: [],
+      reason: "Executable specs exist and must be loaded before code or doc changes."
+    };
   }
   if (input.done) {
-    return "No open work items. Create a new spec_todo or spec_create entry when new work starts.";
+    return {
+      nextStep: "No open work items. Create a new spec_todo or spec_create entry when new work starts.",
+      nextTool: "spec_todo",
+      alternatives: ["spec_create"],
+      reason: "Only done specs exist; create new work before implementation."
+    };
   }
-  return "Run specc bootstrap --project-root <path> --project-kind auto.";
+  return {
+    nextStep: "Run specc bootstrap --project-root <path> --project-kind auto.",
+    nextTool: "spec_bootstrap",
+    alternatives: ["spec_todo", "spec_create"],
+    reason: "No specs exist yet; bootstrap the project workflow first."
+  };
+}
+
+function publicRecommendation(decision: StatusDecision): StatusRecommendation {
+  return {
+    nextTool: decision.nextTool,
+    alternatives: decision.alternatives,
+    reason: decision.reason
+  };
 }
 
 async function countOpenTodos(root: string, items: ListedSpecs): Promise<number> {
@@ -61,13 +101,15 @@ async function statusReport(args: string[]): Promise<StatusReport> {
     done: specs.done.length,
     openTodos
   };
+  const decision = statusDecision(workflowState);
   return {
     name: APP_NAME,
     version: APP_VERSION,
     projectRoot: specs.projectRoot,
     specsDir: specs.specsDir,
     workflowState,
-    nextStep: statusNextStep(workflowState)
+    nextStep: decision.nextStep,
+    recommendation: publicRecommendation(decision)
   };
 }
 

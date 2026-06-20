@@ -609,8 +609,16 @@ try {
     projectRoot: string;
     workflowState: { active: number; todo: number; review: number; done: number; openTodos: number };
     nextStep: string;
+    recommendation: { nextTool: string; alternatives: string[]; reason: string };
   };
-  if (emptyStatusJson.version !== APP_VERSION || emptyStatusJson.workflowState.active !== 0 || emptyStatusJson.workflowState.openTodos !== 0 || !emptyStatusJson.nextStep.includes("specc bootstrap")) {
+  if (
+    emptyStatusJson.version !== APP_VERSION ||
+    emptyStatusJson.workflowState.active !== 0 ||
+    emptyStatusJson.workflowState.openTodos !== 0 ||
+    !emptyStatusJson.nextStep.includes("specc bootstrap") ||
+    emptyStatusJson.recommendation.nextTool !== "spec_bootstrap" ||
+    !emptyStatusJson.recommendation.alternatives.includes("spec_todo")
+  ) {
     throw new Error(`Expected empty CLI status JSON to recommend bootstrap, got: ${JSON.stringify(emptyStatusJson)}`);
   }
   const doneOnlyRoot = await mkdtemp(path.join(os.tmpdir(), "spec-coding-cli-status-done-"));
@@ -641,8 +649,15 @@ try {
   const doneOnlyStatusJson = JSON.parse(doneOnlyStatusJsonLines.join("\n")) as {
     workflowState: { active: number; todo: number; review: number; done: number; openTodos: number };
     nextStep: string;
+    recommendation: { nextTool: string; alternatives: string[]; reason: string };
   };
-  if (doneOnlyStatusJson.workflowState.done !== 1 || !doneOnlyStatusJson.nextStep.includes("No open work items") || doneOnlyStatusJson.nextStep.includes("specc bootstrap")) {
+  if (
+    doneOnlyStatusJson.workflowState.done !== 1 ||
+    !doneOnlyStatusJson.nextStep.includes("No open work items") ||
+    doneOnlyStatusJson.nextStep.includes("specc bootstrap") ||
+    doneOnlyStatusJson.recommendation.nextTool !== "spec_todo" ||
+    !doneOnlyStatusJson.recommendation.alternatives.includes("spec_create")
+  ) {
     throw new Error(`Expected done-only CLI status JSON to recommend creating new work, got: ${JSON.stringify(doneOnlyStatusJson)}`);
   }
   await rm(doneOnlyRoot, { recursive: true, force: true });
@@ -752,8 +767,15 @@ try {
   const activeStatusJson = JSON.parse(activeStatusJsonLines.join("\n")) as {
     workflowState: { active: number; openTodos: number };
     nextStep: string;
+    recommendation: { nextTool: string; alternatives: string[]; reason: string };
   };
-  if (activeStatusJson.workflowState.active !== 1 || activeStatusJson.workflowState.openTodos < 1 || !activeStatusJson.nextStep.includes("open TODOs")) {
+  if (
+    activeStatusJson.workflowState.active !== 1 ||
+    activeStatusJson.workflowState.openTodos < 1 ||
+    !activeStatusJson.nextStep.includes("open TODOs") ||
+    activeStatusJson.recommendation.nextTool !== "spec_context" ||
+    activeStatusJson.recommendation.alternatives.length !== 0
+  ) {
     throw new Error(`Expected active CLI status JSON to recommend open TODO execution, got: ${JSON.stringify(activeStatusJson)}`);
   }
   await rm(cliBootstrapRoot, { recursive: true, force: true });
