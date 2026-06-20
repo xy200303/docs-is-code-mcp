@@ -105,7 +105,8 @@ async function testCheckpointWriter(): Promise<void> {
     assertIncludes(nextText, "- [x] 补充字段", "Expected checkpoint to mark matched TODO.");
     assertIncludes(nextText, "- [ ] 更新测试", "Expected checkpoint to preserve open TODO.");
     assertIncludes(nextText, "### 实际行为记录", "Expected checkpoint to include behavior records.");
-    assertIncludes(nextText, "| 场景 | 条件 | 结果 | 默认行为 | 边界处理 | 验证 | 关联文件 |", "Expected checkpoint behavior records to render as a table.");
+    assertIncludes(nextText, "1. 字段补充", "Expected checkpoint behavior records to render as numbered text.");
+    assertIncludes(nextText, "  - 条件：字段存在", "Expected checkpoint behavior record to include condition text.");
     assertIncludes(nextText, "字段缺失时保持旧行为", "Expected checkpoint to record actual behavior.");
     assert(result.nextSteps.some((step) => step.includes("未匹配")), "Expected unmatched TODO next step.");
   } finally {

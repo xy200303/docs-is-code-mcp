@@ -579,7 +579,7 @@ try {
     throw new Error("Expected checkpoint to mark one TODO.");
   }
   const checkpointText = await readFile(path.join(root, todo.specs[0]), "utf8");
-  if (!checkpointText.includes("- [x] 补充禁用态字段") || !checkpointText.includes("## Checkpoint") || !checkpointText.includes("### Summary") || !checkpointText.includes("passed `npm test`") || !checkpointText.includes("用户 disabled 为 true") || !checkpointText.includes("不能发起敏感操作") || !checkpointText.includes("| 场景 | 条件 | 结果 | 默认行为 | 边界处理 | 验证 | 关联文件 |")) {
+  if (!checkpointText.includes("- [x] 补充禁用态字段") || !checkpointText.includes("## Checkpoint") || !checkpointText.includes("### Summary") || !checkpointText.includes("passed `npm test`") || !checkpointText.includes("1. 禁用用户") || !checkpointText.includes("  - 条件：用户 disabled 为 true") || !checkpointText.includes("  - 结果：不能发起敏感操作")) {
     throw new Error("Expected checkpoint to update TODO and append verification.");
   }
 
@@ -634,6 +634,9 @@ try {
   const doneText = await readFile(path.join(root, done.specs[0]), "utf8");
   if (!doneText.includes("- status: done") || !doneText.includes("## 最终行为契约") || !doneText.includes("当前用户没有敏感操作权限") || !doneText.includes("返回可理解错误")) {
     throw new Error("Expected archived spec meta status to be done.");
+  }
+  if (doneText.includes("| 场景 | 条件 | 结果 |")) {
+    throw new Error("Expected final behavior contract to use readable text instead of a table.");
   }
   const listedAfterDone = await listSpecs({ projectRoot: root, specsDir: "specs" });
   if (listedAfterDone.done[0]?.status !== "done") {

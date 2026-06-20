@@ -11,12 +11,28 @@ const emptyBehaviorRecord: BehaviorRecord = {
   relatedFiles: []
 };
 
-function escapeTableCell(value: string): string {
-  return value.replace(/\|/g, "\\|").replace(/\r?\n/g, " ").trim() || "未记录";
+function readableText(value: string | undefined): string {
+  return value?.replace(/\r?\n/g, " ").trim() || "未记录";
 }
 
-function relatedFilesText(files: string[] = []): string {
-  return files.length ? files.map((file) => `\`${file}\``).join("<br>") : "未记录";
+function relatedFilesLines(files: string[] = []): string[] {
+  if (!files.length) return ["  - 关联文件：未记录"];
+  return [
+    "  - 关联文件：",
+    ...files.map((file) => `    - \`${file}\``)
+  ];
+}
+
+function behaviorRecordBlock(record: BehaviorRecord, index: number): string[] {
+  return [
+    `${index + 1}. ${readableText(record.scenario)}`,
+    `  - 条件：${readableText(record.condition)}`,
+    `  - 结果：${readableText(record.result)}`,
+    `  - 默认行为：${readableText(record.defaultBehavior)}`,
+    `  - 边界处理：${readableText(record.edgeCase)}`,
+    `  - 验证：${readableText(record.verification)}`,
+    ...relatedFilesLines(record.relatedFiles)
+  ];
 }
 
 export function hasBehaviorRecords(records: BehaviorRecord[] = []): boolean {
@@ -32,18 +48,9 @@ export function behaviorRecordLines(title: string, records: BehaviorRecord[] = [
   return [
     title,
     "",
-    "| 场景 | 条件 | 结果 | 默认行为 | 边界处理 | 验证 | 关联文件 |",
-    "|---|---|---|---|---|---|---|",
-    ...rows.map((record) =>
-      [
-        record.scenario,
-        record.condition,
-        record.result,
-        record.defaultBehavior ?? "未记录",
-        record.edgeCase ?? "未记录",
-        record.verification ?? "未记录",
-        relatedFilesText(record.relatedFiles)
-      ].map(escapeTableCell).join(" | ")
-    ).map((row) => `| ${row} |`)
+    ...rows.flatMap((record, index) => [
+      ...behaviorRecordBlock(record, index),
+      ""
+    ]).slice(0, -1)
   ];
 }
