@@ -11,6 +11,7 @@ import { extractTodos, markCompletedTodos } from "../src/spec/todo-files.js";
 import { createSessionGuard, SPEC_CONTEXT_REQUIRED_MESSAGE, markSpecContextSeen, requireSpecContext } from "../src/mcp/session-guard.js";
 import { CLI_HELP_LINES, MCP_DIST_ENTRY, MCP_SERVER_NAME, MCP_START_COMMAND, SUPPORTED_TOOL_IDS } from "../src/cli/compatibility-contract.js";
 import { serverCommand, upsertCodexConfig, upsertContinueConfig, upsertJsonMcpServers, upsertOpenCodeConfig } from "../src/cli/registry-write.js";
+import { STATUS_JSON_SCHEMA_VERSION, decideStatusRecommendation } from "../src/cli/status-recommendation.js";
 
 function assert(condition: boolean, message: string): void {
   if (!condition) {
@@ -175,11 +176,44 @@ async function testRegistryContracts(): Promise<void> {
   assert(resolved.command === "node" && resolved.args[1] === "serve", "Expected explicit server command to be preserved.");
 }
 
+async function testStatusRecommendationDecisions(): Promise<void> {
+  const base = { projectRoot: "C:/demo", specsDir: "specs" };
+  assert(STATUS_JSON_SCHEMA_VERSION === 1, "Expected status JSON schema version to stay at 1.");
+
+  const empty = decideStatusRecommendation({
+    ...base,
+    workflowState: { active: 0, todo: 0, review: 0, done: 0, openTodos: 0 }
+  });
+  assert(empty.nextTool === "spec_bootstrap", "Expected empty status to recommend bootstrap.");
+  assert(empty.arguments.projectKind === "auto", "Expected bootstrap recommendation to include projectKind.");
+
+  const doneOnly = decideStatusRecommendation({
+    ...base,
+    workflowState: { active: 0, todo: 0, review: 0, done: 1, openTodos: 0 }
+  });
+  assert(doneOnly.nextTool === "spec_todo", "Expected done-only status to recommend a new TODO.");
+  assert(doneOnly.arguments.prompt !== undefined && doneOnly.arguments.title !== undefined, "Expected done-only recommendation placeholders.");
+
+  const active = decideStatusRecommendation({
+    ...base,
+    workflowState: { active: 1, todo: 0, review: 0, done: 0, openTodos: 0 }
+  });
+  assert(active.nextTool === "spec_context", "Expected active status to recommend spec_context.");
+  assert(Object.keys(active.arguments).join(",") === "projectRoot,specsDir", "Expected spec_context recommendation to keep minimal arguments.");
+
+  const openTodo = decideStatusRecommendation({
+    ...base,
+    workflowState: { active: 1, todo: 0, review: 0, done: 0, openTodos: 2 }
+  });
+  assert(openTodo.nextStep.includes("open TODOs"), "Expected open TODO status to keep the open TODO nextStep.");
+}
+
 await testTodoParsing();
 await testTodoSpecTaskExtraction();
 await testCheckpointWriter();
 await testSessionGuard();
 await testDoneWriterAvoidsOverwrites();
 await testRegistryContracts();
+await testStatusRecommendationDecisions();
 
 console.log("spec-coding unit tests passed");
