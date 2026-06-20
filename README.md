@@ -225,6 +225,16 @@ specc init
 
 `specc init` 会扫描本机的 Codex、Claude Code、OpenCode、Cursor、Continue 和 Windsurf，并让你选择注册 MCP。
 
+初始化项目工作流时，也可以直接用 CLI 对齐 MCP 的 `spec_bootstrap` 主入口：
+
+```bash
+specc bootstrap --project-root . --project-kind auto
+specc bootstrap --project-root . --project-kind new --initial-prompt "创建一个简单 CLI 项目"
+specc bootstrap --project-root . --project-kind existing --project-name "用户系统"
+```
+
+`--project-kind` 支持 `auto`、`new`、`existing`，默认 `auto`。`specc bootstrap` 会生成 `AGENTS.md`、`specs/` 和第一批可执行入口；旧项目会生成 AI 源码审查任务，新项目会生成起步 active spec。
+
 手动配置 Codex 时推荐使用 Node 直连入口：
 
 ```toml

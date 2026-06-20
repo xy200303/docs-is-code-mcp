@@ -1,6 +1,8 @@
 /* CLI entrypoint for starting the MCP server and registering it with coding tools. */
 import { cancel, intro, isCancel, multiselect, note, outro, spinner } from "@clack/prompts";
 import { fileURLToPath } from "node:url";
+import { bootstrapProject } from "../spec/scaffold.js";
+import { renderSpecResult } from "../mcp/render-spec.js";
 import { detectProgrammingTools } from "./registry-detect.js";
 import { registerClaude, registerCodex, registerContinue, registerCursor, registerOpenCode, registerWindsurf } from "./registry-write.js";
 import type { RegisterResult, ToolId } from "./registry-types.js";
@@ -19,6 +21,49 @@ function printHelp(): void {
 
 function printVersion(): void {
   console.log(APP_VERSION);
+}
+
+function optionValue(args: string[], name: string): string | undefined {
+  const equalsPrefix = `${name}=`;
+  const inlineValue = args.find((arg) => arg.startsWith(equalsPrefix));
+  if (inlineValue) return inlineValue.slice(equalsPrefix.length);
+
+  const index = args.indexOf(name);
+  if (index === -1) return undefined;
+  const value = args[index + 1];
+  if (!value || value.startsWith("--")) {
+    throw new Error(`Missing value for ${name}`);
+  }
+  return value;
+}
+
+function hasFlag(args: string[], name: string): boolean {
+  return args.includes(name);
+}
+
+function projectKindFromArgs(args: string[]): "auto" | "new" | "existing" {
+  const value = optionValue(args, "--project-kind") ?? "auto";
+  if (value === "auto" || value === "new" || value === "existing") return value;
+  throw new Error("--project-kind must be one of: auto, new, existing");
+}
+
+async function runBootstrap(args: string[]): Promise<void> {
+  const projectRoot = optionValue(args, "--project-root") ?? process.cwd();
+  const specsDir = optionValue(args, "--specs-dir") ?? "specs";
+  const projectName = optionValue(args, "--project-name");
+  const initialPrompt = optionValue(args, "--initial-prompt");
+  const overwrite = hasFlag(args, "--overwrite");
+  const projectKind = projectKindFromArgs(args);
+  const result = await bootstrapProject({
+    projectRoot,
+    specsDir,
+    projectName,
+    projectKind,
+    initialPrompt,
+    overwrite
+  });
+
+  console.log(renderSpecResult("Spec Coding 项目引导完成", result));
 }
 
 async function runInit(): Promise<void> {
@@ -97,6 +142,10 @@ export async function runCli(argv = process.argv): Promise<void> {
   }
   if (command === "init") {
     await runInit();
+    return;
+  }
+  if (command === "bootstrap") {
+    await runBootstrap(argv.slice(3));
     return;
   }
   if (command === "serve") {

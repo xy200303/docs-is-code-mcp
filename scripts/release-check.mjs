@@ -47,6 +47,8 @@ function assertCompatibilityContract(text) {
 function assertDocumentationContract(readmeText, agentsText) {
   for (const phrase of [
     "specc serve",
+    "specc bootstrap",
+    "--project-kind",
     "node dist/index.js serve",
     "Current Task Protocol",
     "src/templates/prompt-protocol.ts",

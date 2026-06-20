@@ -4,8 +4,9 @@ import type { ToolId } from "./registry-types.js";
 export const SUPPORTED_TOOL_IDS: ToolId[] = ["codex", "claude", "opencode", "cursor", "continue", "windsurf"];
 
 export const CLI_HELP_LINES = [
-  "specc              Start the MCP server over stdio",
+  "specc              Show help",
   "specc serve        Start the MCP server over stdio",
+  "specc bootstrap    Create AGENTS, specs, and the first workflow entrypoint",
   "specc init         Register this MCP server with AI coding tools",
   "specc --version    Print the CLI version",
   "specc --help       Show help"

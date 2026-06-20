@@ -489,6 +489,46 @@ try {
   if (!helpLines.join("\n").includes("specc init") || !helpLines.join("\n").includes("specc --version")) {
     throw new Error("Expected CLI help to mention init and version commands.");
   }
+  if (!helpLines.join("\n").includes("specc bootstrap")) {
+    throw new Error("Expected CLI help to mention bootstrap command.");
+  }
+
+  const cliBootstrapRoot = await mkdtemp(path.join(os.tmpdir(), "spec-coding-cli-bootstrap-"));
+  const bootstrapLines: string[] = [];
+  console.log = (...args: unknown[]) => {
+    bootstrapLines.push(args.map(String).join(" "));
+  };
+  try {
+    await runCli([
+      "node",
+      "specc",
+      "bootstrap",
+      "--project-root",
+      cliBootstrapRoot,
+      "--project-kind",
+      "new",
+      "--initial-prompt",
+      "创建 CLI 引导测试项目。"
+    ]);
+  } finally {
+    console.log = originalLog;
+  }
+  const cliAgentsText = await readFile(path.join(cliBootstrapRoot, "AGENTS.md"), "utf8");
+  const cliSpecs = await listSpecs({ projectRoot: cliBootstrapRoot, specsDir: "specs" });
+  if (!bootstrapLines.join("\n").includes("Spec Coding 项目引导完成") || !cliAgentsText.includes("Current Task Protocol") || cliSpecs.active.length !== 1) {
+    throw new Error("Expected CLI bootstrap to generate AGENTS.md and a starter active spec.");
+  }
+  await rm(cliBootstrapRoot, { recursive: true, force: true });
+
+  let invalidProjectKindMessage = "";
+  try {
+    await runCli(["node", "specc", "bootstrap", "--project-kind", "legacy"]);
+  } catch (error) {
+    invalidProjectKindMessage = error instanceof Error ? error.message : String(error);
+  }
+  if (!invalidProjectKindMessage.includes("--project-kind must be one of: auto, new, existing")) {
+    throw new Error(`Expected invalid project kind to fail fast, got: ${invalidProjectKindMessage}`);
+  }
 
   const expectedServer = { command: process.execPath, args: [path.resolve("dist", "index.js"), "serve"] };
   const codexConfig = upsertCodexConfig("[model]\nname = \"gpt-5\"\n", expectedServer);
