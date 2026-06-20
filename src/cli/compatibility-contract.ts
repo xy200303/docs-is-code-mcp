@@ -7,6 +7,7 @@ export const CLI_HELP_LINES = [
   "specc              Show help",
   "specc serve        Start the MCP server over stdio",
   "specc bootstrap    Create AGENTS, specs, and the first workflow entrypoint",
+  "specc bootstrap --help  Show bootstrap options",
   "specc init         Register this MCP server with AI coding tools",
   "specc --version    Print the CLI version",
   "specc --help       Show help"

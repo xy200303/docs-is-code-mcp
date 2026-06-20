@@ -492,6 +492,29 @@ try {
   if (!helpLines.join("\n").includes("specc bootstrap")) {
     throw new Error("Expected CLI help to mention bootstrap command.");
   }
+  if (!helpLines.join("\n").includes("specc bootstrap --help")) {
+    throw new Error("Expected CLI help to mention bootstrap command help.");
+  }
+
+  const cliBootstrapHelpRoot = await mkdtemp(path.join(os.tmpdir(), "spec-coding-cli-bootstrap-help-"));
+  const bootstrapHelpLines: string[] = [];
+  console.log = (...args: unknown[]) => {
+    bootstrapHelpLines.push(args.map(String).join(" "));
+  };
+  try {
+    await runCli(["node", "specc", "bootstrap", "--project-root", cliBootstrapHelpRoot, "--help"]);
+  } finally {
+    console.log = originalLog;
+  }
+  const bootstrapHelpText = bootstrapHelpLines.join("\n");
+  if (!bootstrapHelpText.includes("specc bootstrap [options]") || !bootstrapHelpText.includes("--project-kind <kind>") || !bootstrapHelpText.includes("Default: auto")) {
+    throw new Error(`Expected bootstrap help to describe options and defaults, got: ${bootstrapHelpText}`);
+  }
+  const bootstrapHelpSpecs = await listSpecs({ projectRoot: cliBootstrapHelpRoot, specsDir: "specs" });
+  if (bootstrapHelpSpecs.active.length || bootstrapHelpSpecs.todo.length || bootstrapHelpSpecs.review.length || bootstrapHelpSpecs.done.length) {
+    throw new Error("Expected bootstrap --help to avoid writing spec files.");
+  }
+  await rm(cliBootstrapHelpRoot, { recursive: true, force: true });
 
   const cliBootstrapRoot = await mkdtemp(path.join(os.tmpdir(), "spec-coding-cli-bootstrap-"));
   const bootstrapLines: string[] = [];

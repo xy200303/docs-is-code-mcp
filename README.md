@@ -231,6 +231,7 @@ specc init
 specc bootstrap --project-root . --project-kind auto
 specc bootstrap --project-root . --project-kind new --initial-prompt "创建一个简单 CLI 项目"
 specc bootstrap --project-root . --project-kind existing --project-name "用户系统"
+specc bootstrap --help
 ```
 
 `--project-kind` 支持 `auto`、`new`、`existing`，默认 `auto`。`specc bootstrap` 会生成 `AGENTS.md`、`specs/` 和第一批可执行入口；旧项目会生成 AI 源码审查任务，新项目会生成起步 active spec。

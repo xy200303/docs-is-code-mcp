@@ -23,6 +23,24 @@ function printVersion(): void {
   console.log(APP_VERSION);
 }
 
+function printBootstrapHelp(): void {
+  console.log([
+    `${APP_NAME} bootstrap`,
+    "",
+    "Usage:",
+    "  specc bootstrap [options]",
+    "",
+    "Options:",
+    "  --project-root <path>       Project root. Default: current working directory.",
+    "  --specs-dir <path>          Specs directory. Default: specs.",
+    "  --project-name <name>       Project display name. Default: inferred from project root.",
+    "  --project-kind <kind>       auto, new, or existing. Default: auto.",
+    "  --initial-prompt <text>     Starter prompt for new projects.",
+    "  --overwrite                 Overwrite existing generated files.",
+    "  -h, --help                  Show bootstrap help."
+  ].join("\n"));
+}
+
 function optionValue(args: string[], name: string): string | undefined {
   const equalsPrefix = `${name}=`;
   const inlineValue = args.find((arg) => arg.startsWith(equalsPrefix));
@@ -48,6 +66,11 @@ function projectKindFromArgs(args: string[]): "auto" | "new" | "existing" {
 }
 
 async function runBootstrap(args: string[]): Promise<void> {
+  if (hasFlag(args, "--help") || hasFlag(args, "-h")) {
+    printBootstrapHelp();
+    return;
+  }
+
   const projectRoot = optionValue(args, "--project-root") ?? process.cwd();
   const specsDir = optionValue(args, "--specs-dir") ?? "specs";
   const projectName = optionValue(args, "--project-name");
