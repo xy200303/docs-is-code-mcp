@@ -91,6 +91,9 @@ try {
   if (!init.files.some((file) => file.path.endsWith("specs/guidance/engineering.md"))) {
     throw new Error("Expected spec init to create default guidance prompts.");
   }
+  if (!init.files.some((file) => file.path.endsWith("specs/guidance/quality-review.md"))) {
+    throw new Error("Expected spec init to create default quality review guidance prompt.");
+  }
   if (init.files.some((file) => file.path.includes("specs/templates/"))) {
     throw new Error("Expected spec init to keep reusable templates in src/templates instead of creating specs/templates.");
   }
@@ -160,10 +163,18 @@ try {
   assertIncludesAll(starterSpec, [
     "创建一个简单 CLI 项目",
     "- status: active",
+    "## 定位与事实来源",
+    "禁止编造",
     "## AI 实现计划",
+    "## UI/交互质量检查",
+    "首屏真实对象",
+    "loading、empty、error",
+    "undo/recovery",
+    "当前端口服务的是当前项目",
     "## Guidance",
     "`engineering`（`specs/guidance/engineering.md`）",
-    "`ui-ux`（`specs/guidance/ui-ux.md`）"
+    "`ui-ux`（`specs/guidance/ui-ux.md`）",
+    "`quality-review` guidance"
   ], "Expected new project bootstrap to create a starter active spec from the initial prompt");
   if (starterSpec.includes("## 工程质量约束") || starterSpec.includes("### Hard Rules") || starterSpec.includes("### Recommended Practices") || starterSpec.includes("## 业务不确定性强制确认")) {
     throw new Error("Expected starter active spec to point at guidance instead of embedding full engineering rules.");
@@ -280,7 +291,10 @@ try {
     "\"prompt\":\"<confirmed behavior summary from review>\"",
     "\"title\":\"<business capability name>\"",
     "reason:",
-    "afterwards:"
+    "afterwards:",
+    "Guidance Recommendations",
+    "`spec-writing`",
+    "`quality-review`"
   ], "Expected review-only spec_context to stop direct implementation and recommend creating an active spec");
 
   const guidanceList = await harness.call("spec_guidance_list", { projectRoot: root, specsDir: "specs" });
@@ -291,9 +305,11 @@ try {
     "`spec-writing`",
     "`git-commit`",
     "`pr-submit`",
+    "`quality-review`",
     "specs/guidance/engineering.md",
     "specs/guidance/git-commit.md",
     "specs/guidance/pr-submit.md",
+    "specs/guidance/quality-review.md",
     "这些提示词是指导性原则"
   ], "Expected guidance list to expose editable prompt names and files");
   const guidanceRead = await harness.call("spec_guidance_read", { projectRoot: root, specsDir: "specs", name: "ui-ux" });
@@ -301,10 +317,11 @@ try {
     "UI/UX 设计美学原则",
     "source: `project`",
     "file: `specs/guidance/ui-ux.md`",
-    "Linear / Vercel",
-    "8pt grid",
-    "#0B0E14",
-    "Aether Vector",
+    "真实产品语境",
+    "只能作为可选参考",
+    "不要编造指标",
+    "只有明确是 OSS 或开源组织官网",
+    "当前端口服务的是当前项目",
     "loading / pending",
     "undo",
     "移动端和桌面都要检查"
@@ -351,6 +368,17 @@ try {
     "gh pr create",
     "compare URL"
   ], "Expected PR guidance read to expose default PR workflow content");
+  const qualityGuidanceRead = await harness.call("spec_guidance_read", { projectRoot: fallbackGuidanceRoot, specsDir: "specs", name: "quality-review" });
+  assertIncludesAll(qualityGuidanceRead.content[0]?.text ?? "", [
+    "质量审查原则",
+    "source: `project`",
+    "file: `specs/guidance/quality-review.md`",
+    "代码质量自查",
+    "测试与验证",
+    "UI 与交互质量",
+    "真实项目定位",
+    "Web 页面是否确认当前端口"
+  ], "Expected quality review guidance read to expose default self-review content");
   await rm(fallbackGuidanceRoot, { recursive: true, force: true });
 
   const unmatchedContext = await harness.call("spec_context", {
@@ -535,12 +563,14 @@ try {
   const createdSpecText = await readFile(path.join(root, created.specs[0]), "utf8");
   assertIncludesAll(createdSpecText, [
     "## AI 实现计划",
+    "## UI/交互质量检查",
     "## 实际行为记录",
     "## Guidance",
     "spec_guidance_list",
     "spec_guidance_read",
     "`engineering`（`specs/guidance/engineering.md`）",
     "`ui-ux`（`specs/guidance/ui-ux.md`）",
+    "`quality-review` guidance",
     "目标能力",
     "阅读入口",
     "改动文件",
@@ -549,6 +579,8 @@ try {
     "默认值/配置",
     "验证命令",
     "待确认问题",
+    "loading、empty、error",
+    "undo/recovery",
     "不要把猜测、常识或“看起来合理”的行为写成事实"
   ], "Expected active spec template to guide implementation planning and behavior recording");
   if (createdSpecText.includes("## 工程质量约束") || createdSpecText.includes("### Hard Rules") || createdSpecText.includes("### Recommended Practices") || createdSpecText.includes("## 业务不确定性强制确认")) {
@@ -585,6 +617,7 @@ try {
     "`engineering`（`specs/guidance/engineering.md`）",
     "`ui-ux`（`specs/guidance/ui-ux.md`）",
     "`spec-writing`、`git-commit`、`pr-submit`",
+    "`quality-review` guidance",
     "spec_checkpoint",
     "记录来源",
     "功能全过程",

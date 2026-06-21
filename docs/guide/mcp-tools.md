@@ -10,6 +10,8 @@ Spec Coding MCP 提供一组面向 AI 编程的工具。它们不要求用户手
 | `spec_todo` | 根据用户描述创建可执行 TODO 清单 | 拆分轻量任务 |
 | `spec_list` | 列出 review、active、todo、done specs | 查找当前规格 |
 | `spec_context` | 返回 AI 实现代码需要的 spec 和 TODO 上下文 | 开始写代码前 |
+| `spec_guidance_list` | 列出可编辑 guidance 提示词 | 需要校准原则时 |
+| `spec_guidance_read` | 读取指定 guidance，例如 engineering、ui-ux、quality-review | 需要具体原则时 |
 | `spec_checkpoint` | 记录实现结果、验证、风险和阻塞 | 阶段性完成后 |
 | `spec_review_result` | 记录结构化阶段结果和未完成项 | 阶段回顾/交接 |
 | `spec_done` | 验证通过后归档 spec | 功能完成后 |
@@ -20,11 +22,11 @@ Spec Coding MCP 提供一组面向 AI 编程的工具。它们不要求用户手
 
 - 当前 active spec 的完整内容
 - `specs/todo/` 和 active spec 中的未完成 TODO
-- 全局工程质量约束
+- guidance 索引和轻量推荐
 - 相关 review spec 摘要
 - 可能相关的源码路径
 - package scripts、测试文件、路由、导出符号、引用关系
-- 建议验证命令
+- 建议下一步工具和验证方向
 - 完成后调用 `spec_checkpoint` 的提醒
 - 完成后需要调用 `spec_done` 的提醒
 
@@ -54,21 +56,18 @@ Spec Coding MCP 提供一组面向 AI 编程的工具。它们不要求用户手
 
 它比 checkpoint 更像一次正式交接，尤其适合复杂项目的阶段性收尾。
 
-## 全局工程质量约束
+## Guidance 与质量约束
 
-`spec_context` 会强制要求 AI：
+`spec_context` 默认保持紧凑，不展开长原则正文。它会列出 `specs/guidance/*.md` 索引，并根据当前 spec/TODO 推荐读取相关 guidance：
 
-- 这些规则是强制约束，不是建议。
-- 代码清晰、必要、可维护，避免冗余代码和废话注释。
-- 强制遵守 KISS、DRY、SOLID 和 Boy Scout Rule。
-- 文件顶部必须写文件注释，复杂逻辑必须写说明性注释，但不能写废话。
-- 能用成熟库解决的就优先用成熟库，不要自己手搓已有轮子。
-- 遇到不明确、影响面大或高风险的方案时，先向用户询问和确认，不要自己拍板。
-- 遵循现有项目风格、命名、框架和目录约定。
-- 保持职责边界，不把所有代码放在一个文件，也不把所有文件放在一个目录。
-- 让模块、函数、组件便于人类和 AI 阅读。
-- 设计 UI 时符合人类直觉，交互状态完整，信息层级清楚。
-- 修改范围贴合 spec/TODO，不做无关重构。
+- `engineering`：工程边界、代码质量和业务确认规则。
+- `ui-ux`：事实优先、语境驱动的 UI/UX 原则。
+- `spec-writing`：TODO、checkpoint、done 和行为记录要求。
+- `quality-review`：实现后自查代码、测试、架构、UI/交互和交付风险。
+
+UI/UX guidance 会要求模型先确认真实定位、用户、核心对象、事实来源和 CTA，禁止编造指标、客户、性能数据、邮箱、商业定位或社区规模。官网类任务必须按项目类型选择结构；只有明确是 OSS 或开源组织官网时，才默认使用 GitHub、featured repos、贡献路径、docs/roadmap、license/community 等开源结构。
+
+Web 页面验收应确认当前端口服务的是当前项目，检查页面 title/app root 内容，并用桌面和移动端截图确认首屏没有串项目、空白、遮挡或错位。
 
 ## 为什么不做复杂状态同步
 

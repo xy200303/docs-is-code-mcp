@@ -18,10 +18,11 @@ Before code or documentation changes:
 ## Guidance
 
 - `engineering`：engineering, code style, architecture, and business confirmation rules.
-- `ui-ux`：UI/UX design principles and the Aether Vector visual direction.
+- `ui-ux`：fact-first, context-sensitive UI/UX design principles.
 - `spec-writing`：spec workflow, TODO handling, checkpoint, done, and behavior records.
 - `git-commit`：safe verification, staging, commit message, and final report workflow.
 - `pr-submit`：PR template discovery, branch push, PR body, creation, and fallback workflow.
+- `quality-review`：implementation self-review for code quality, tests, architecture, UI/UX states, and delivery risk.
 
 Read guidance only when needed; do not copy long guidance into normal context.
 

@@ -90,6 +90,8 @@ function todoTasksFromPrompt(prompt: string): PromptTodoTask[] {
 }
 
 export function userPromptSpec(title: string, prompt: string): string {
+  const websiteTask = isWebsitePrompt(`${title}\n${prompt}`);
+  const ossTask = isOssPrompt(`${title}\n${prompt}`);
   return [
     `# ${title}`,
     "",
@@ -105,6 +107,14 @@ export function userPromptSpec(title: string, prompt: string): string {
     "## 目标",
     "",
     "- 根据用户描述实现对应行为。",
+    "",
+    "## 定位与事实来源",
+    "",
+    "- 项目真实定位：待 Codex 根据用户描述、仓库、文档或确认结果补充；不明确时先确认或搜索。",
+    "- 真实对象：列出首屏/核心流程必须出现的 repo、截图、demo、项目矩阵、核心交互、组件或数据。",
+    "- 事实来源：列出可用于文案和结构的用户输入、README、源码、配置、公开链接或明确确认。",
+    "- 禁止编造：指标、客户、性能数据、邮箱、融资、商业定位、社区规模和路线图承诺都必须有来源。",
+    "- CTA：只使用真实下一步，例如 GitHub、Docs、Demo、Install、Contribute、Roadmap、Issue 或用户确认的业务入口。",
     "",
     "## 影响范围",
     "",
@@ -130,6 +140,26 @@ export function userPromptSpec(title: string, prompt: string): string {
     "- 默认值/配置：列出默认参数、配置来源、覆盖规则和环境差异。",
     "- 验证命令：列出计划运行的测试、构建、lint 或人工验证命令。",
     "- 待确认问题：列出业务规则不明确、影响面大或高风险的点；未确认前不要实现。",
+    "",
+    "## UI/交互质量检查",
+    "",
+    "- 仅当前端、页面、组件或交互受影响时填写；需要原则细节时读取 `ui-ux`（`specs/guidance/ui-ux.md`）和 `quality-review`。",
+    "- 设计前定位：项目真实是什么、用户是谁、核心对象是什么、内容来源在哪里；不明确时先确认或搜索。",
+    "- 首屏真实对象：repo、产品截图、项目矩阵、demo、核心交互、组件或真实数据必须至少命中一种。",
+    "- 首屏反营销检查：不能只有抽象视觉、空泛标语、虚构指标或不可执行 CTA。",
+    ...(websiteTask ? [
+      "- 官网结构由项目类型决定：企业官网、产品官网、个人作品集、开源组织和工具文档应使用不同信息架构；不明确时先确认。"
+    ] : []),
+    ...(ossTask ? [
+      "- OSS/开源组织结构：GitHub 入口、Featured repos、Research tracks、Contribution guide、Docs/Roadmap、License/Community、项目状态。",
+      "- OSS/开源组织 CTA：优先 GitHub、Docs、Install、Demo、Contribute、Roadmap 或 Issue；不要默认商业销售 CTA。"
+    ] : []),
+    "- 用户路径：入口、主流程、退出/返回、失败恢复。",
+    "- 状态覆盖：loading、empty、error、success、disabled、hover、focus、active。",
+    "- 输入与防错：表单校验、禁用无效提交、危险操作确认、undo/recovery。",
+    "- 响应式与可读性：桌面/移动端布局、触控目标、文本换行、遮挡、溢出、对比度。",
+    "- Web 验收：确认当前端口服务的是当前项目，检查页面 title/app root 内容，桌面和移动端截图无串项目、空白、错位和遮挡。",
+    "- 验证方式：截图、Playwright、手工路径或组件测试。",
     "",
     "## 实际行为记录",
     "",
@@ -157,6 +187,40 @@ export function userPromptSpec(title: string, prompt: string): string {
     "- [ ] 新增或更新测试。",
     "- [ ] 运行验证命令并记录结果。"
   ].join("\n");
+}
+
+function isWebsitePrompt(text: string): boolean {
+  const lower = text.toLowerCase();
+  return [
+    "官网",
+    "网站",
+    "landing",
+    "homepage",
+    "website",
+    "site",
+    "oss",
+    "open source",
+    "开源",
+    "组织",
+    "github"
+  ].some((term) => lower.includes(term));
+}
+
+function isOssPrompt(text: string): boolean {
+  const lower = text.toLowerCase();
+  return [
+    "oss",
+    "open source",
+    "开源",
+    "开源组织",
+    "github",
+    "repo",
+    "repository",
+    "license",
+    "贡献",
+    "contribute",
+    "contribution"
+  ].some((term) => lower.includes(term));
 }
 
 export function todoSpec(title: string, prompt: string): string {

@@ -72,6 +72,7 @@ async function testTodoSpecTaskExtraction(): Promise<void> {
   assertIncludes(text, "spec_guidance_read", "Expected TODO spec to point to guidance read instead of embedding full guidance.");
   assertIncludes(text, "`engineering`（`specs/guidance/engineering.md`）", "Expected TODO spec to map engineering rules to engineering guidance.");
   assertIncludes(text, "`ui-ux`（`specs/guidance/ui-ux.md`）", "Expected TODO spec to map UI/UX rules to UI/UX guidance.");
+  assertIncludes(text, "`quality-review` guidance", "Expected TODO spec to point implementation self-review to quality-review guidance.");
   assert(!text.includes("## 工程质量约束"), "Expected TODO spec to avoid embedding full engineering constraints.");
   assert(!text.includes("### Hard Rules"), "Expected TODO spec to avoid embedding hard rule details.");
   assert(!text.includes("## 业务不确定性强制确认"), "Expected TODO spec to avoid embedding business confirmation rules.");
@@ -87,14 +88,37 @@ async function testTodoSpecTaskExtraction(): Promise<void> {
 
 function testActiveSpecUsesGuidancePointers(): void {
   const text = userPromptSpec("用户详情", "用户详情页需要展示禁用态。");
+  assertIncludes(text, "## 定位与事实来源", "Expected active spec to require positioning and evidence sources.");
+  assertIncludes(text, "禁止编造", "Expected active spec to forbid fabricated facts.");
   assertIncludes(text, "## Guidance", "Expected active spec to include a guidance pointer section.");
   assertIncludes(text, "spec_guidance_list", "Expected active spec to point to guidance list.");
   assertIncludes(text, "`engineering`（`specs/guidance/engineering.md`）", "Expected active spec to map engineering rules to engineering guidance.");
   assertIncludes(text, "`ui-ux`（`specs/guidance/ui-ux.md`）", "Expected active spec to map UI/UX rules to UI/UX guidance.");
+  assertIncludes(text, "## UI/交互质量检查", "Expected active spec to include UI/interaction quality checklist.");
+  assertIncludes(text, "首屏真实对象", "Expected active spec to include first-screen real-object checks.");
+  assertIncludes(text, "loading、empty、error", "Expected active spec to remind state coverage.");
+  assertIncludes(text, "undo/recovery", "Expected active spec to remind recovery UX.");
+  assertIncludes(text, "当前端口服务的是当前项目", "Expected active spec to require web app port verification.");
+  assertIncludes(text, "`quality-review` guidance", "Expected active spec to point implementation self-review to quality-review guidance.");
   assert(!text.includes("## 工程质量约束"), "Expected active spec to avoid embedding full engineering constraints.");
   assert(!text.includes("### Hard Rules"), "Expected active spec to avoid embedding hard rule details.");
   assert(!text.includes("### Recommended Practices"), "Expected active spec to avoid embedding recommended practice details.");
   assert(!text.includes("## 业务不确定性强制确认"), "Expected active spec to avoid embedding business confirmation rules.");
+}
+
+function testWebsiteSpecDoesNotForceOssStructure(): void {
+  const text = userPromptSpec("企业官网", "为一家企业创建官网，展示服务、案例和联系入口。");
+  assertIncludes(text, "官网结构由项目类型决定", "Expected website spec to ask for type-specific information architecture.");
+  assert(!text.includes("OSS/开源组织结构"), "Expected generic enterprise website spec not to force OSS structure.");
+  assert(!text.includes("GitHub 入口、Featured repos"), "Expected generic website spec not to force GitHub/repo sections.");
+}
+
+function testOssSpecIncludesOpenSourceChecks(): void {
+  const text = userPromptSpec("开源组织官网", "为 OSS 组织创建官网，突出 GitHub repos、贡献路径、docs 和 license。");
+  assertIncludes(text, "OSS/开源组织结构", "Expected OSS website spec to include open-source information architecture.");
+  assertIncludes(text, "GitHub 入口", "Expected OSS website spec to include GitHub entry.");
+  assertIncludes(text, "Contribution guide", "Expected OSS website spec to include contribution guide.");
+  assertIncludes(text, "License/Community", "Expected OSS website spec to include license and community links.");
 }
 
 async function testCheckpointWriter(): Promise<void> {
@@ -311,11 +335,11 @@ async function testGuidanceCreatesDefaultsAndPreservesProjectFiles(): Promise<vo
   const root = await mkdtemp(path.join(os.tmpdir(), "spec-coding-guidance-"));
   try {
     const items = guidanceItems("docs/specs");
-    assert(items.map((item) => item.name).join(",") === "engineering,ui-ux,spec-writing,git-commit,pr-submit", "Expected guidance names to stay stable.");
+    assert(items.map((item) => item.name).join(",") === "engineering,ui-ux,spec-writing,git-commit,pr-submit,quality-review", "Expected guidance names to stay stable.");
     assert(items[0]?.file === "docs/specs/guidance/engineering.md", "Expected guidance file paths to respect specsDir.");
 
     const created = await ensureDefaultGuidanceFiles(root, "specs");
-    assert(created.filter((file) => file.status === "created").length === 5, "Expected empty guidance directory to be populated with defaults.");
+    assert(created.filter((file) => file.status === "created").length === 6, "Expected empty guidance directory to be populated with defaults.");
     const createdAgain = await ensureDefaultGuidanceFiles(root, "specs");
     assert(createdAgain.every((file) => file.status === "skipped"), "Expected existing guidance files to be preserved.");
 
@@ -335,10 +359,11 @@ async function testGuidanceCreatesDefaultsAndPreservesProjectFiles(): Promise<vo
     assertIncludes(specWriting.content, "模型自己采用的默认行为也必须写清楚", "Expected spec-writing guidance to require model-chosen defaults.");
 
     const uiUx = await readGuidance({ projectRoot: root, specsDir: "specs", name: "ui-ux" });
-    assertIncludes(uiUx.content, "Linear / Vercel", "Expected UI/UX guidance to include Linear/Vercel style direction.");
-    assertIncludes(uiUx.content, "8pt grid", "Expected UI/UX guidance to include the 8pt grid rule.");
-    assertIncludes(uiUx.content, "#0B0E14", "Expected UI/UX guidance to include the dark mode base color.");
-    assertIncludes(uiUx.content, "Aether Vector", "Expected UI/UX guidance to include the brand vibe.");
+    assertIncludes(uiUx.content, "真实产品语境", "Expected UI/UX guidance to prioritize product context.");
+    assertIncludes(uiUx.content, "只能作为可选参考", "Expected UI/UX guidance to avoid fixed aesthetic defaults.");
+    assertIncludes(uiUx.content, "不要编造指标", "Expected UI/UX guidance to forbid fabricated facts.");
+    assertIncludes(uiUx.content, "只有明确是 OSS 或开源组织官网", "Expected UI/UX guidance to scope OSS website structure.");
+    assertIncludes(uiUx.content, "当前端口服务的是当前项目", "Expected UI/UX guidance to require current-project port verification.");
     assertIncludes(uiUx.content, "loading / pending", "Expected UI/UX guidance to include loading states.");
     assertIncludes(uiUx.content, "undo", "Expected UI/UX guidance to include undo guidance.");
 
@@ -353,6 +378,14 @@ async function testGuidanceCreatesDefaultsAndPreservesProjectFiles(): Promise<vo
     assertIncludes(prSubmit.content, "PR 模板发现顺序", "Expected PR guidance to include template discovery.");
     assertIncludes(prSubmit.content, "gh pr create", "Expected PR guidance to include GitHub CLI creation path.");
     assertIncludes(prSubmit.content, "compare URL", "Expected PR guidance to include fallback compare URL.");
+
+    const qualityReview = await readGuidance({ projectRoot: root, specsDir: "specs", name: "quality-review" });
+    assertIncludes(qualityReview.content, "质量审查原则", "Expected quality review guidance content.");
+    assertIncludes(qualityReview.content, "代码质量自查", "Expected quality review guidance to include code quality checks.");
+    assertIncludes(qualityReview.content, "测试与验证", "Expected quality review guidance to include verification checks.");
+    assertIncludes(qualityReview.content, "UI 与交互质量", "Expected quality review guidance to include UI interaction checks.");
+    assertIncludes(qualityReview.content, "真实项目定位", "Expected quality review guidance to review positioning.");
+    assertIncludes(qualityReview.content, "Web 页面是否确认当前端口", "Expected quality review guidance to review web runtime identity.");
 
     const projectGuidance = path.join(root, "specs", "guidance", "ui-ux.md");
     await mkdir(path.dirname(projectGuidance), { recursive: true });
@@ -369,7 +402,7 @@ async function testGuidanceCreatesDefaultsAndPreservesProjectFiles(): Promise<vo
     } catch (error) {
       unknownMessage = error instanceof Error ? error.message : String(error);
     }
-    assertIncludes(unknownMessage, "Available: engineering, ui-ux, spec-writing, git-commit, pr-submit", "Expected unknown guidance to fail fast with available names.");
+    assertIncludes(unknownMessage, "Available: engineering, ui-ux, spec-writing, git-commit, pr-submit, quality-review", "Expected unknown guidance to fail fast with available names.");
   } finally {
     await rm(root, { recursive: true, force: true });
   }
@@ -441,6 +474,8 @@ async function testStatusRecommendationDecisions(): Promise<void> {
 await testTodoParsing();
 await testTodoSpecTaskExtraction();
 testActiveSpecUsesGuidancePointers();
+testWebsiteSpecDoesNotForceOssStructure();
+testOssSpecIncludesOpenSourceChecks();
 await testCheckpointWriter();
 await testSessionGuard();
 await testDoneWriterAvoidsOverwrites();

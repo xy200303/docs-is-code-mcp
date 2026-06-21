@@ -48,11 +48,12 @@ Spec Coding MCP 是一个面向 **spec coding** 的本地 MCP 服务。
 - 从没有 spec 的旧项目中反推 `specs/` 目录，方便用户审查当前系统。
 - 用户开发前先修改或新增 spec。
 - 用户可以用 TODO 清单拆分任务，模型按未勾选项顺序执行。
-- 工具会把全局工程质量约束注入模型上下文，强制约束代码风格、项目结构和 UI 直觉性。
+- 工具会在模型上下文中输出轻量 guidance 推荐，提醒模型按需读取工程、UI/UX、spec 写作和质量审查原则。
 - 工具强制遵守 KISS、YAGNI、Clean Code、Clean Architecture、DDD、Fail Fast、SOLID、SoC 和 Boy Scout Rule。
 - 工具还会防止混层、过度抽象和不必要的复杂度，把代码组织成适合大型项目、也适合人读的结构。
 - 工具强制业务不确定性先确认：遇到金额、费率、结算、分账、退款、折扣、税费、状态机流转、并发、幂等、重试、回滚、规则来源不明或角色行为不一致时，必须先停下并向用户确认。
 - 工具禁止靠常识猜业务规则；不清楚时要先说清哪里不清楚，再给出 2 到 3 种可能解释，等用户确认后再继续。
+- UI/UX guidance 强调事实优先和语境优先：不编造指标、客户、性能数据、邮箱或商业定位；官网、工具、企业站、产品站、作品集、OSS 组织和文档站应使用不同信息架构。
 - Codex 读取 active spec，按最新规格实现代码和测试。
 - 验证通过后把 spec 归档到 `done/`。
 
@@ -67,6 +68,7 @@ specs/
     spec-writing.md
     git-commit.md
     pr-submit.md
+    quality-review.md
   review/
     source-inventory.md
     index.md
@@ -83,7 +85,7 @@ specs/
 - `active/`：准备实现或正在实现的 spec。
 - `todo/`：轻量可执行 TODO 清单，适合临时任务、拆分步骤或补充实现顺序。
 - `done/`：已实现并验证通过的 spec。
-- `guidance/`：可编辑的指导性提示词，供模型在忘记工程、UI/UX、spec 写作、Git 提交或 PR 工作流原则时按需读取。
+- `guidance/`：可编辑的指导性提示词，供模型在忘记工程、UI/UX、spec 写作、Git 提交、PR 工作流或质量审查原则时按需读取。
 
 ## MCP 工具
 
@@ -158,7 +160,7 @@ specs/
 - 阶段记录：`spec_checkpoint` 或 `spec_review_result`。
 - 完成归档：只在实现、验证和最终行为契约都完成后调用 `spec_done`。
 
-`spec_context` 默认使用 `contextMode: "workflow"`，只输出任务流程、spec/TODO、guidance 索引和必要执行护栏。工程、UI/UX、spec 写作、Git 提交、PR 提交等原则详情不在 context 中展开；模型忘记原则或需要校准时，应先调用 `spec_guidance_list` 查看索引，再调用 `spec_guidance_read` 读取对应 name。需要源码线索时显式传入 `contextMode: "hints"`；需要完整源码扫描线索时再使用 `contextMode: "full"`。这些线索只是搜索入口，不是事实来源，模型修改前必须自行读取相关文件确认。
+`spec_context` 默认使用 `contextMode: "workflow"`，只输出任务流程、spec/TODO、guidance 索引、轻量 guidance 推荐和必要执行护栏。工程、UI/UX、spec 写作、Git 提交、PR 提交、质量审查等原则详情不在 context 中展开；模型忘记原则或需要校准时，应先调用 `spec_guidance_list` 查看索引，再调用 `spec_guidance_read` 读取对应 name。需要源码线索时显式传入 `contextMode: "hints"`；需要完整源码扫描线索时再使用 `contextMode: "full"`。这些线索只是搜索入口，不是事实来源，模型修改前必须自行读取相关文件确认。
 
 `spec_list` 和 `spec_context` 都会输出 `Recommended Next Step`，但语义不同：`spec_list` 属于 inspect 阶段，通常推荐下一步先读取 `spec_context`；`spec_context` 属于执行前上下文阶段，才推荐执行 TODO、补全 review、实现 active spec 或记录结果。即使当前没有 active、todo、review 或 selected spec，`spec_context` 也必须输出结构化下一步推荐，而不是只提示“不要开始实现”。空任务状态优先推荐 `spec_bootstrap` 建立项目入口，并把 `spec_todo`、`spec_create` 作为用户已给出明确任务时的备选。推荐会固定包含 `nextTool`、`alternatives`、`arguments`、`reason`、`when` 和 `afterwards`。`nextTool` 始终是单一工具 ID；`arguments` 只放可安全推导的上下文值或占位说明，不替模型编造 prompt、title 或行为记录。模型应优先执行 `nextTool`，只有用户明确要求或条件不满足时才考虑 `alternatives`。
 
@@ -166,7 +168,7 @@ specs/
 
 两者也会输出 `Workflow State` 摘要，展示 active、todo、review、done、selected spec 和 open TODO 数量。这个摘要只来自当前 specs 状态，帮助模型快速判断工作流位置，不替代源码阅读或业务判断。
 
-`spec_guidance_list` 和 `spec_guidance_read` 是按需提醒工具。`spec_init` 和 `spec_bootstrap` 会生成默认的 `specs/guidance/engineering.md`、`specs/guidance/ui-ux.md`、`specs/guidance/spec-writing.md`、`specs/guidance/git-commit.md` 和 `specs/guidance/pr-submit.md`；用户可以直接编辑这些 Markdown。读取 guidance 时，如果目录缺失、目录为空或缺少某个默认文件，工具会先把缺失的内置默认 Markdown 写入项目，再读取项目内容；已有文件不会被覆盖。guidance 内容不塞进 `spec_context`，也不替代 selected specs、open TODO、用户要求或真实源码阅读。
+`spec_guidance_list` 和 `spec_guidance_read` 是按需提醒工具。`spec_init` 和 `spec_bootstrap` 会生成默认的 `specs/guidance/engineering.md`、`specs/guidance/ui-ux.md`、`specs/guidance/spec-writing.md`、`specs/guidance/git-commit.md`、`specs/guidance/pr-submit.md` 和 `specs/guidance/quality-review.md`；用户可以直接编辑这些 Markdown。读取 guidance 时，如果目录缺失、目录为空或缺少某个默认文件，工具会先把缺失的内置默认 Markdown 写入项目，再读取项目内容；已有文件不会被覆盖。guidance 内容不塞进 `spec_context`，也不替代 selected specs、open TODO、用户要求或真实源码阅读。
 
 ### 写操作硬约束
 
@@ -221,6 +223,9 @@ TODO 可以放在 `specs/todo/*.md`，也可以写在 active spec 的 `## TODO` 
 - Current Task Protocol：当前任务必须如何读取 `spec_context`、执行 TODO、记录 checkpoint 和归档 done。
 - Git Commit Workflow：用户要求提交时如何验证、暂存相关文件、避免混入无关变更、选择提交信息语言并报告 hash。
 - PR Submit Workflow：用户要求 PR 时如何发现模板、提交未提交工作、推送分支、生成或创建 PR，并在工具不可用时提供 compare URL。
+- Quality Review Workflow：实现后如何自查代码质量、测试覆盖、架构边界、UI/交互状态、真实定位、首屏对象、Web 端口/截图验收和交付风险。
+
+UI/UX guidance 不再把 Linear / Vercel、暗色、蓝色 accent、8pt grid 或 Aether Vector 当成所有项目的默认外观；这些只作为可选参考。模型设计前应先确认项目真实定位、用户、核心对象、事实来源和 CTA。只有明确是 OSS 或开源组织官网时，才默认优先 GitHub、featured repos、research tracks、contribution guide、docs/roadmap、license/community 和项目状态；普通企业官网或产品官网不能被强行套入开源结构。
 
 提示词协议由 `src/templates/constraints.ts`、`src/templates/prompt-protocol.ts` 和 `src/templates/markdown.ts` 共同生成。
 

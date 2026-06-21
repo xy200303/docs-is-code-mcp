@@ -199,6 +199,68 @@ function renderGuidanceIndex(specsDir: string): string[] {
   ];
 }
 
+function lowerWorkText(input: {
+  selectedSpecs: Array<SpecItem & { text: string }>;
+  openTodos: SpecContext["todos"];
+}): string {
+  return [
+    ...input.selectedSpecs.flatMap((spec) => [spec.title, spec.file, spec.status, spec.source, spec.text]),
+    ...input.openTodos.map((todo) => todo.text)
+  ].join("\n").toLowerCase();
+}
+
+function hasAny(text: string, terms: string[]): boolean {
+  return terms.some((term) => text.includes(term.toLowerCase()));
+}
+
+function guidanceRecommendationLines(input: {
+  specsDir: string;
+  selectedSpecs: Array<SpecItem & { text: string }>;
+  openTodos: SpecContext["todos"];
+  nextTool?: string;
+}): string[] {
+  const text = lowerWorkText(input);
+  const recommendations: string[] = [];
+  const add = (name: string, reason: string) => {
+    const item = guidanceItems(input.specsDir).find((entry) => entry.name === name);
+    if (!item || recommendations.some((line) => line.includes(`\`${name}\``))) return;
+    recommendations.push(`- \`${name}\`（${item.file}）：${reason}`);
+  };
+
+  if (hasAny(text, ["ui", "ux", "前端", "页面", "组件", "交互", "样式", "布局", "表单", "按钮", "loading", "empty", "error", "disabled", "hover", "focus", "官网", "网站", "homepage", "landing", "website", "site", "首屏", "品牌", "视觉", "截图", "移动端"])) {
+    add("ui-ux", "当前任务涉及界面或交互质量。");
+  }
+  if (hasAny(text, ["重构", "架构", "模块", "接口", "性能", "缓存", "并发", "权限", "状态机", "数据库", "api", "代码", "实现"])) {
+    add("engineering", "当前任务涉及工程实现、边界或代码质量。");
+  }
+  if (hasAny(text, ["checkpoint", "done", "行为记录", "最终行为契约", "默认行为", "验收", "验证", "定位", "事实", "文案", "指标", "客户", "cta", "roadmap", "路线图"])) {
+    add("spec-writing", "当前任务需要记录行为、验证或最终契约。");
+  }
+  if (hasAny(text, ["commit", "提交", "git"])) {
+    add("git-commit", "当前任务提到提交或 Git 工作流。");
+  }
+  if (hasAny(text, ["pull request", "pr", "合并请求"])) {
+    add("pr-submit", "当前任务提到 PR 或合并请求。");
+  }
+  if (input.nextTool === "spec_checkpoint" || input.nextTool === "spec_done" || hasAny(text, ["质量", "审查", "自查", "测试", "验证", "交付", "风险", "ui", "ux", "交互", "官网", "网站", "首屏", "oss", "开源", "github", "repo", "文案", "指标", "cta"])) {
+    add("quality-review", "实现后或记录前建议自查代码、测试、UI/交互状态和风险。");
+  }
+
+  if (!recommendations.length) {
+    add("engineering", "默认建议在实现不确定时读取工程原则。");
+    add("quality-review", "完成实现后做一次轻量质量自查。");
+  }
+
+  return [
+    "## Guidance Recommendations",
+    "",
+    "根据当前 spec/TODO 和下一步场景的轻量推荐；只在需要校准时读取，不替代源码阅读和用户要求。",
+    "",
+    ...recommendations,
+    ""
+  ];
+}
+
 function renderRequiredGuards(mode: ContextMode, instructions: string[]): string[] {
   void mode;
   void instructions;
@@ -229,6 +291,18 @@ export function buildSpecContextMarkdown(input: {
     selectedSpecs: input.selectedSpecs,
     openTodos
   });
+  const recommendationState = {
+    projectRoot: input.root,
+    specsDir: input.specsDir,
+    activeSpecs: input.activeSpecs,
+    reviewSpecs: input.reviewSpecs,
+    todoSpecs: input.todoSpecs,
+    doneSpecs: input.doneSpecs,
+    openTodos,
+    selectedSpecs: input.selectedSpecs
+  };
+  const recommendationLines = workflowRecommendationLines(recommendationState);
+  const nextTool = recommendationLines.find((line) => line.startsWith("- nextTool:"))?.match(/`([^`]+)`/)?.[1];
   return [
     "# Spec Coding Context",
     "",
@@ -256,21 +330,18 @@ export function buildSpecContextMarkdown(input: {
     "",
     ...renderTodoLines(openTodos, input.selectedSpecs.length > 0, workState),
     "",
-    ...workflowRecommendationLines({
-      projectRoot: input.root,
-      specsDir: input.specsDir,
-      activeSpecs: input.activeSpecs,
-      reviewSpecs: input.reviewSpecs,
-      todoSpecs: input.todoSpecs,
-      doneSpecs: input.doneSpecs,
-      openTodos,
-      selectedSpecs: input.selectedSpecs
-    }),
+    ...recommendationLines,
     "## Completed TODOs",
     "",
     ...renderCompletedTodoLines(input.todos),
     "",
     ...renderGuidanceIndex(input.specsDir),
+    ...guidanceRecommendationLines({
+      specsDir: input.specsDir,
+      selectedSpecs: input.selectedSpecs,
+      openTodos,
+      nextTool
+    }),
     ...renderSuggestedSearchTargets(input.candidateFiles, input.contextMode),
     ...renderSourceHintsSection(input.source, input.contextMode),
     "## Required Guards",
