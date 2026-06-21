@@ -83,7 +83,7 @@ export function registerWriteTools(server: McpServer, guard: SessionGuardState):
   server.registerTool(
     "spec_done",
     {
-      description: specContextRequiredDescription("Archive verified specs into done. Do not use for partial work."),
+      description: specContextRequiredDescription("Archive verified specs into done. Do not use for partial work. Final behaviorRecords must cover the whole feature for user review, including defaults chosen by the model."),
       inputSchema: SpecDoneSchema
     },
     async ({ projectRoot, specsDir, file, behaviorRecords, note }) =>

@@ -206,6 +206,8 @@ async function testDoneWriterAvoidsOverwrites(): Promise<void> {
     assertIncludes(archivedText, "- status: done", "Expected archived spec meta status to be done.");
     assertIncludes(archivedText, "保留真实业务目标。", "Expected archived spec to keep business content.");
     assertIncludes(archivedText, "## 最终行为契约", "Expected archived spec to include final behavior contract.");
+    assertIncludes(archivedText, "给用户审查功能完整行为", "Expected final behavior contract to explain user review purpose.");
+    assertIncludes(archivedText, "模型自行采用的默认策略也必须写清楚", "Expected final behavior contract to require model-chosen defaults.");
     assertIncludes(archivedText, "未传配置", "Expected archived spec to preserve behavior condition.");
     assertIncludes(archivedText, "触发入口：创建任务时未提供配置", "Expected archived spec to preserve behavior trigger.");
     assertIncludes(archivedText, "输入与前置状态：配置对象为空", "Expected archived spec to preserve behavior input.");
@@ -236,8 +238,11 @@ async function testDoneWriterWarnsWhenBehaviorFactsAreMissing(): Promise<void> {
     });
 
     const archivedText = await readFile(path.join(root, result.specs[0]), "utf8");
+    assert(result.nextSteps.some((step) => step.includes("完整最终行为契约")), "Expected missing behavior warning to require a complete final contract.");
+    assert(result.nextSteps.some((step) => step.includes("模型自行采用的默认策略也要写清")), "Expected missing behavior warning to require model-chosen defaults.");
     assert(result.nextSteps.some((step) => step.includes("不可作为真实行为事实")), "Expected missing behavior warning to be explicit.");
     assertIncludes(archivedText, "未提供已验证行为", "Expected final contract to show missing behavior facts.");
+    assertIncludes(archivedText, "给用户审查功能完整行为", "Expected empty final contract to explain user review purpose.");
     assertIncludes(archivedText, "触发入口：未记录", "Expected final contract to show missing trigger.");
     assertIncludes(archivedText, "执行过程：未记录", "Expected final contract to show missing execution flow.");
     assertIncludes(archivedText, "不可作为真实行为事实", "Expected final contract to reject guessed behavior.");
@@ -309,6 +314,8 @@ async function testGuidanceCreatesDefaultsAndPreservesProjectFiles(): Promise<vo
     assertIncludes(specWriting.content, "## 当前任务协议", "Expected generated spec-writing guidance to include task protocol.");
     assertIncludes(specWriting.content, "## 行为记录要求", "Expected generated spec-writing guidance to include behavior recording rules.");
     assertIncludes(specWriting.content, "行为记录必须描述功能全过程", "Expected generated spec-writing guidance to include full behavior flow guidance.");
+    assertIncludes(specWriting.content, "给用户审查的完整功能全景", "Expected spec-writing guidance to describe final contract review purpose.");
+    assertIncludes(specWriting.content, "模型自己采用的默认行为也必须写清楚", "Expected spec-writing guidance to require model-chosen defaults.");
 
     const uiUx = await readGuidance({ projectRoot: root, specsDir: "specs", name: "ui-ux" });
     assertIncludes(uiUx.content, "Linear / Vercel", "Expected UI/UX guidance to include Linear/Vercel style direction.");

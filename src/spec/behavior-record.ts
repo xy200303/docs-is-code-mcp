@@ -67,6 +67,12 @@ export function behaviorRecordLines(title: string, records: BehaviorRecord[] = [
   return [
     title,
     "",
+    ...(title === "## 最终行为契约"
+      ? [
+          "本节用于给用户审查功能完整行为；必须覆盖所有已知正常、失败、边界、权限、状态、异常、空值和默认行为。模型自行采用的默认策略也必须写清楚。",
+          ""
+        ]
+      : []),
     ...rows.flatMap((record, index) => [
       ...behaviorRecordBlock(record, index),
       ""

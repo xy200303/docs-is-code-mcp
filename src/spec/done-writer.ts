@@ -77,7 +77,7 @@ export async function markSpecDone(input: { projectRoot: string; specsDir?: stri
       "Spec 已归档到 done/。",
       ...(hasBehaviorRecords(input.behaviorRecords)
         ? ["最终行为契约已记录。"]
-        : ["Warning: 未提供来自代码和测试验证的最终行为契约；该 done 记录不可作为真实行为事实。"])
+        : ["Warning: 未提供给用户审查的完整最终行为契约；必须补充整个功能的所有已知正常、失败、边界、权限、状态、异常、空值和默认行为，模型自行采用的默认策略也要写清。该 done 记录不可作为真实行为事实。"])
     ]
   };
 }

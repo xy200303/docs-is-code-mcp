@@ -225,7 +225,7 @@ try {
   assertIncludesAll(harness.description("spec_guidance_list"), ["guidance prompts", "without bloating spec_context"], "Expected guidance list tool to describe on-demand prompts");
   assertIncludesAll(harness.description("spec_guidance_read"), ["Read one editable guidance prompt", "project file"], "Expected guidance read tool to describe project override");
   assertIncludesAll(harness.description("spec_generate_agents"), ["Advanced maintenance helper", "AGENTS.md and CLAUDE.md"], "Expected agent protocol generation to be marked as an advanced helper");
-  assertIncludesAll(harness.description("spec_done"), ["Archive verified specs into done", "Do not use for partial work"], "Expected spec_done to reject partial-work usage");
+  assertIncludesAll(harness.description("spec_done"), ["Archive verified specs into done", "Do not use for partial work", "whole feature for user review"], "Expected spec_done to reject partial-work usage and require reviewable behavior contracts");
   assertToolDescriptionRequiresSpecContext(harness.description("spec_create"));
   assertToolDescriptionRequiresSpecContext(harness.description("spec_done"));
   let blockedMessage = "";
@@ -317,14 +317,17 @@ try {
     "file: `specs/guidance/spec-writing.md`",
     "Spec 与行为记录原则",
     "当前任务协议",
-    "行为记录必须描述功能全过程"
+    "行为记录必须描述功能全过程",
+    "给用户审查的完整功能全景",
+    "模型自己采用的默认行为也必须写清楚"
   ], "Expected guidance read to create and read default project files when guidance files are missing");
   const generatedFallbackGuidance = await readFile(path.join(fallbackGuidanceRoot, "specs", "guidance", "spec-writing.md"), "utf8");
   assertIncludesAll(generatedFallbackGuidance, [
     "Spec 与行为记录原则",
     "用户可以直接编辑本文件",
     "## 当前任务协议",
-    "## 行为记录要求"
+    "## 行为记录要求",
+    "最终行为契约必须覆盖所有已知情况"
   ], "Expected missing guidance files to be written before reading");
   const generatedFallbackGitCommitGuidance = await readFile(path.join(fallbackGuidanceRoot, "specs", "guidance", "git-commit.md"), "utf8");
   assertIncludesAll(generatedFallbackGitCommitGuidance, [
@@ -779,7 +782,7 @@ try {
     throw new Error(`Expected done spec to use ordered readable name, got: ${done.specs[0]}`);
   }
   const doneText = await readFile(path.join(root, done.specs[0]), "utf8");
-  if (!doneText.includes("- status: done") || !doneText.includes("## 最终行为契约") || !doneText.includes("当前用户没有敏感操作权限") || !doneText.includes("触发入口：用户提交敏感操作请求") || !doneText.includes("输入与前置状态：会话缺少敏感操作权限") || !doneText.includes("1. 读取会话权限") || !doneText.includes("输出结果：返回权限不足错误") || !doneText.includes("副作用：不执行业务写入") || !doneText.includes("返回可理解错误")) {
+  if (!doneText.includes("- status: done") || !doneText.includes("## 最终行为契约") || !doneText.includes("给用户审查功能完整行为") || !doneText.includes("模型自行采用的默认策略也必须写清楚") || !doneText.includes("当前用户没有敏感操作权限") || !doneText.includes("触发入口：用户提交敏感操作请求") || !doneText.includes("输入与前置状态：会话缺少敏感操作权限") || !doneText.includes("1. 读取会话权限") || !doneText.includes("输出结果：返回权限不足错误") || !doneText.includes("副作用：不执行业务写入") || !doneText.includes("返回可理解错误")) {
     throw new Error("Expected archived spec meta status to be done.");
   }
   if (doneText.includes("| 场景 | 条件 | 结果 |")) {

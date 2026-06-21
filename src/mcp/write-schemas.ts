@@ -11,8 +11,8 @@ const BehaviorRecordSchema = z.object({
   steps: z.array(z.string()).default([]).describe("End-to-end execution steps."),
   output: z.string().optional().describe("Returned value, UI state, persisted data, or emitted event."),
   sideEffects: z.string().optional().describe("External side effects such as writes, network calls, scheduled work, or no side effect."),
-  defaultBehavior: z.string().optional().describe("Default behavior."),
-  edgeCase: z.string().optional().describe("Edge handling."),
+  defaultBehavior: z.string().optional().describe("Default behavior, including defaults chosen by the model, omitted inputs, configuration fallback, and unchanged baseline behavior."),
+  edgeCase: z.string().optional().describe("Edge handling, including failure, boundary, permission, state, exception, null/empty, and other non-happy paths."),
   verification: z.string().optional().describe("Verification evidence."),
   relatedFiles: z.array(z.string()).default([]).describe("Related files.")
 });
@@ -54,6 +54,6 @@ export const SpecReviewResultSchema = RootSchema.extend({
 
 export const SpecDoneSchema = RootSchema.extend({
   file: z.string().describe("Spec file path."),
-  behaviorRecords: z.array(BehaviorRecordSchema).default([]).describe("Final behavior records."),
+  behaviorRecords: z.array(BehaviorRecordSchema).default([]).describe("Final behavior contract for user review. Cover the whole feature across all known normal, failure, boundary, permission, state, exception, null/empty, and default behavior cases; include defaults chosen by the model."),
   note: z.string().optional()
 });
