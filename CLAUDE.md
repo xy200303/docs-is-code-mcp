@@ -11,7 +11,7 @@ Before code or documentation changes:
 1. Call `spec_context` and read the current workflow state.
 2. Treat selected specs and open TODOs as the only task source.
 3. Execute open TODOs from top to bottom; when none exist, follow the selected spec.
-4. If principles are unclear, call `spec_guidance_list`, then `spec_guidance_read` for the relevant name.
+4. If principles are unclear, call `spec_guidance_list`, then `spec_guidance_read`: engineering rules use `engineering`, UI/UX rules use `ui-ux`.
 5. Record meaningful progress with `spec_checkpoint`.
 6. Call `spec_done` only after implementation, TODO updates, verification, and final behavior records are complete.
 

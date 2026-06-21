@@ -70,6 +70,8 @@ async function testTodoSpecTaskExtraction(): Promise<void> {
   assertIncludes(text, "- [ ] `git diff --check` 通过。", "Expected git verification command to stay executable.");
   assertIncludes(text, "spec_guidance_list", "Expected TODO spec to point to guidance list instead of embedding full guidance.");
   assertIncludes(text, "spec_guidance_read", "Expected TODO spec to point to guidance read instead of embedding full guidance.");
+  assertIncludes(text, "`engineering`（`specs/guidance/engineering.md`）", "Expected TODO spec to map engineering rules to engineering guidance.");
+  assertIncludes(text, "`ui-ux`（`specs/guidance/ui-ux.md`）", "Expected TODO spec to map UI/UX rules to UI/UX guidance.");
   assert(!text.includes("## 工程质量约束"), "Expected TODO spec to avoid embedding full engineering constraints.");
   assert(!text.includes("### Hard Rules"), "Expected TODO spec to avoid embedding hard rule details.");
   assert(!text.includes("## 业务不确定性强制确认"), "Expected TODO spec to avoid embedding business confirmation rules.");
