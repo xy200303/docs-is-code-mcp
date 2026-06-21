@@ -65,6 +65,11 @@ export interface BehaviorRecord {
   scenario: string;
   condition: string;
   result: string;
+  trigger?: string;
+  input?: string;
+  steps?: string[];
+  output?: string;
+  sideEffects?: string;
   defaultBehavior?: string;
   edgeCase?: string;
   verification?: string;

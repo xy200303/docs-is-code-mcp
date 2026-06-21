@@ -119,6 +119,7 @@ try {
     "它不是业务结论，只是交给 AI 阅读源码的任务单",
     "禁止把下面的静态线索当成业务事实",
     "AI 必须打开并阅读相关源码、测试和配置",
+    "功能全过程",
     "AI 阅读源码后填写"
   ], "Expected source generation to produce AI-guided review tasks instead of business conclusions");
 
@@ -420,6 +421,7 @@ try {
     "目标能力",
     "阅读入口",
     "改动文件",
+    "功能全过程",
     "分支处理",
     "默认值/配置",
     "验证命令",
@@ -453,6 +455,7 @@ try {
   assertIncludesAll(todoSpecText, [
     "## 实际行为记录",
     "记录来源",
+    "功能全过程",
     "分支条件",
     "默认参数行为",
     "边界处理结果",
@@ -568,6 +571,11 @@ try {
       scenario: "禁用用户",
       condition: "用户 disabled 为 true",
       result: "不能发起敏感操作",
+      trigger: "用户详情接口返回 disabled 字段后发起敏感操作",
+      input: "当前用户记录 disabled=true，操作请求命中敏感能力",
+      steps: ["读取用户详情", "识别 disabled 状态", "拦截敏感操作"],
+      output: "返回不可继续操作的响应",
+      sideEffects: "不执行敏感操作写入",
       defaultBehavior: "未禁用用户保持原流程",
       edgeCase: "缺少禁用态字段时按未禁用处理",
       verification: "npm test",
@@ -579,7 +587,7 @@ try {
     throw new Error("Expected checkpoint to mark one TODO.");
   }
   const checkpointText = await readFile(path.join(root, todo.specs[0]), "utf8");
-  if (!checkpointText.includes("- [x] 补充禁用态字段") || !checkpointText.includes("## Checkpoint") || !checkpointText.includes("### Summary") || !checkpointText.includes("passed `npm test`") || !checkpointText.includes("1. 禁用用户") || !checkpointText.includes("  - 条件：用户 disabled 为 true") || !checkpointText.includes("  - 结果：不能发起敏感操作")) {
+  if (!checkpointText.includes("- [x] 补充禁用态字段") || !checkpointText.includes("## Checkpoint") || !checkpointText.includes("### Summary") || !checkpointText.includes("passed `npm test`") || !checkpointText.includes("1. 禁用用户") || !checkpointText.includes("  - 条件：用户 disabled 为 true") || !checkpointText.includes("  - 触发入口：用户详情接口返回 disabled 字段后发起敏感操作") || !checkpointText.includes("  - 输入与前置状态：当前用户记录 disabled=true，操作请求命中敏感能力") || !checkpointText.includes("    1. 读取用户详情") || !checkpointText.includes("  - 输出结果：返回不可继续操作的响应") || !checkpointText.includes("  - 副作用：不执行敏感操作写入") || !checkpointText.includes("  - 结果摘要：不能发起敏感操作")) {
     throw new Error("Expected checkpoint to update TODO and append verification.");
   }
 
@@ -596,6 +604,11 @@ try {
       scenario: "默认禁用态",
       condition: "接口未返回禁用态",
       result: "按 false 处理",
+      trigger: "用户详情响应缺少 disabled 字段",
+      input: "响应对象没有禁用态字段",
+      steps: ["读取响应对象", "应用默认禁用态 false", "继续渲染用户详情"],
+      output: "页面按未禁用用户展示",
+      sideEffects: "不额外写入状态",
       verification: "npm test"
     }],
     blockers: ["测试覆盖待补齐"]
@@ -604,7 +617,7 @@ try {
     throw new Error("Expected review result to return structured TODO lists.");
   }
   const reviewText = await readFile(path.join(root, todo.specs[0]), "utf8");
-  if (!reviewText.includes("## Review Result") || !reviewText.includes("### Incomplete TODOs") || !reviewText.includes("测试覆盖待补齐") || !reviewText.includes("接口未返回禁用态") || !reviewText.includes("按 false 处理")) {
+  if (!reviewText.includes("## Review Result") || !reviewText.includes("### Incomplete TODOs") || !reviewText.includes("测试覆盖待补齐") || !reviewText.includes("接口未返回禁用态") || !reviewText.includes("触发入口：用户详情响应缺少 disabled 字段") || !reviewText.includes("1. 读取响应对象") || !reviewText.includes("输出结果：页面按未禁用用户展示") || !reviewText.includes("按 false 处理")) {
     throw new Error("Expected review result to append structured review output.");
   }
 
@@ -617,6 +630,11 @@ try {
       scenario: "权限不足",
       condition: "当前用户没有敏感操作权限",
       result: "返回可理解错误",
+      trigger: "用户提交敏感操作请求",
+      input: "会话缺少敏感操作权限",
+      steps: ["读取会话权限", "匹配敏感操作要求", "拒绝请求并生成错误响应"],
+      output: "返回权限不足错误",
+      sideEffects: "不执行业务写入",
       edgeCase: "不产生未声明副作用",
       verification: "npm test",
       relatedFiles: ["src/routes/users.ts"]
@@ -632,7 +650,7 @@ try {
     throw new Error(`Expected done spec to use ordered readable name, got: ${done.specs[0]}`);
   }
   const doneText = await readFile(path.join(root, done.specs[0]), "utf8");
-  if (!doneText.includes("- status: done") || !doneText.includes("## 最终行为契约") || !doneText.includes("当前用户没有敏感操作权限") || !doneText.includes("返回可理解错误")) {
+  if (!doneText.includes("- status: done") || !doneText.includes("## 最终行为契约") || !doneText.includes("当前用户没有敏感操作权限") || !doneText.includes("触发入口：用户提交敏感操作请求") || !doneText.includes("输入与前置状态：会话缺少敏感操作权限") || !doneText.includes("1. 读取会话权限") || !doneText.includes("输出结果：返回权限不足错误") || !doneText.includes("副作用：不执行业务写入") || !doneText.includes("返回可理解错误")) {
     throw new Error("Expected archived spec meta status to be done.");
   }
   if (doneText.includes("| 场景 | 条件 | 结果 |")) {

@@ -95,6 +95,11 @@ async function testCheckpointWriter(): Promise<void> {
         scenario: "字段补充",
         condition: "字段存在",
         result: "返回新值",
+        trigger: "读取详情接口返回字段",
+        input: "请求命中包含新增字段的数据对象",
+        steps: ["读取原始对象", "补充响应字段", "返回序列化结果"],
+        output: "响应体包含新字段",
+        sideEffects: "不写入数据库",
         defaultBehavior: "字段缺失时保持旧行为",
         verification: "npm test",
         relatedFiles: ["src/demo.ts"]
@@ -107,6 +112,11 @@ async function testCheckpointWriter(): Promise<void> {
     assertIncludes(nextText, "### 实际行为记录", "Expected checkpoint to include behavior records.");
     assertIncludes(nextText, "1. 字段补充", "Expected checkpoint behavior records to render as numbered text.");
     assertIncludes(nextText, "  - 条件：字段存在", "Expected checkpoint behavior record to include condition text.");
+    assertIncludes(nextText, "  - 触发入口：读取详情接口返回字段", "Expected checkpoint behavior record to include trigger.");
+    assertIncludes(nextText, "  - 输入与前置状态：请求命中包含新增字段的数据对象", "Expected checkpoint behavior record to include input.");
+    assertIncludes(nextText, "    1. 读取原始对象", "Expected checkpoint behavior record to include execution steps.");
+    assertIncludes(nextText, "  - 输出结果：响应体包含新字段", "Expected checkpoint behavior record to include output.");
+    assertIncludes(nextText, "  - 副作用：不写入数据库", "Expected checkpoint behavior record to include side effects.");
     assertIncludes(nextText, "字段缺失时保持旧行为", "Expected checkpoint to record actual behavior.");
     assert(result.nextSteps.some((step) => step.includes("未匹配")), "Expected unmatched TODO next step.");
   } finally {
@@ -171,6 +181,11 @@ async function testDoneWriterAvoidsOverwrites(): Promise<void> {
         scenario: "默认配置",
         condition: "未传配置",
         result: "使用系统默认值",
+        trigger: "创建任务时未提供配置",
+        input: "配置对象为空",
+        steps: ["读取配置对象", "回退到系统默认值", "继续创建流程"],
+        output: "返回带默认配置的任务",
+        sideEffects: "只写入最终任务记录",
         verification: "unit"
       }]
     });
@@ -184,6 +199,10 @@ async function testDoneWriterAvoidsOverwrites(): Promise<void> {
     assertIncludes(archivedText, "保留真实业务目标。", "Expected archived spec to keep business content.");
     assertIncludes(archivedText, "## 最终行为契约", "Expected archived spec to include final behavior contract.");
     assertIncludes(archivedText, "未传配置", "Expected archived spec to preserve behavior condition.");
+    assertIncludes(archivedText, "触发入口：创建任务时未提供配置", "Expected archived spec to preserve behavior trigger.");
+    assertIncludes(archivedText, "输入与前置状态：配置对象为空", "Expected archived spec to preserve behavior input.");
+    assertIncludes(archivedText, "1. 读取配置对象", "Expected archived spec to preserve execution steps.");
+    assertIncludes(archivedText, "输出结果：返回带默认配置的任务", "Expected archived spec to preserve behavior output.");
     assertIncludes(archivedText, "使用系统默认值", "Expected archived spec to preserve behavior result.");
     assert(!archivedText.includes("## 执行要求"), "Expected archived spec to omit execution template noise.");
     assert(!archivedText.includes("## 工程质量约束"), "Expected archived spec to omit engineering template noise.");
@@ -211,6 +230,8 @@ async function testDoneWriterWarnsWhenBehaviorFactsAreMissing(): Promise<void> {
     const archivedText = await readFile(path.join(root, result.specs[0]), "utf8");
     assert(result.nextSteps.some((step) => step.includes("不可作为真实行为事实")), "Expected missing behavior warning to be explicit.");
     assertIncludes(archivedText, "未提供已验证行为", "Expected final contract to show missing behavior facts.");
+    assertIncludes(archivedText, "触发入口：未记录", "Expected final contract to show missing trigger.");
+    assertIncludes(archivedText, "执行过程：未记录", "Expected final contract to show missing execution flow.");
     assertIncludes(archivedText, "不可作为真实行为事实", "Expected final contract to reject guessed behavior.");
   } finally {
     await rm(root, { recursive: true, force: true });
