@@ -563,6 +563,10 @@ try {
   const todoSpecText = await readFile(path.join(root, todo.specs[0]), "utf8");
   assertIncludesAll(todoSpecText, [
     "## 实际行为记录",
+    "spec_guidance_list",
+    "spec_guidance_read",
+    "工程、UI/UX、spec 写作、Git 提交或 PR 原则不在本文件展开",
+    "spec_checkpoint",
     "记录来源",
     "功能全过程",
     "分支条件",
@@ -576,6 +580,9 @@ try {
   ], "Expected TODO spec template to guide final behavior recording");
   if (todoSpecText.includes("- [ ] 目标：") || todoSpecText.includes("- [ ] 验收：")) {
     throw new Error("Expected TODO spec generation to skip section titles.");
+  }
+  if (todoSpecText.includes("## 工程质量约束") || todoSpecText.includes("### Hard Rules") || todoSpecText.includes("## 业务不确定性强制确认")) {
+    throw new Error("Expected TODO spec template to point at guidance instead of embedding full engineering rules.");
   }
 
   const listed = await listSpecs({ projectRoot: root, specsDir: "specs" });

@@ -68,6 +68,11 @@ async function testTodoSpecTaskExtraction(): Promise<void> {
   assertIncludes(text, "- [ ] 未完成的用户任务", "Expected unchecked user TODO to stay unchecked.");
   assertIncludes(text, "- [ ] `bun run build` 通过。", "Expected verification command to stay executable.");
   assertIncludes(text, "- [ ] `git diff --check` 通过。", "Expected git verification command to stay executable.");
+  assertIncludes(text, "spec_guidance_list", "Expected TODO spec to point to guidance list instead of embedding full guidance.");
+  assertIncludes(text, "spec_guidance_read", "Expected TODO spec to point to guidance read instead of embedding full guidance.");
+  assert(!text.includes("## 工程质量约束"), "Expected TODO spec to avoid embedding full engineering constraints.");
+  assert(!text.includes("### Hard Rules"), "Expected TODO spec to avoid embedding hard rule details.");
+  assert(!text.includes("## 业务不确定性强制确认"), "Expected TODO spec to avoid embedding business confirmation rules.");
   assert(!text.includes("- [ ] # Goals"), "Expected markdown heading to stay out of generated TODOs.");
   assert(!text.includes("- [ ] 目标："), "Expected section title to stay out of generated TODOs.");
   assert(!text.includes("- [ ] Requirements:"), "Expected English section title to stay out of generated TODOs.");

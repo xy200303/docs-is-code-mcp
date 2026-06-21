@@ -181,11 +181,12 @@ export function todoSpec(title: string, prompt: string): string {
     "",
     "## 执行要求",
     "",
-    "- 开始前必须先调用 `spec_context`，确认当前 TODO 上下文和工程约束。",
+    "- 开始前必须先调用 `spec_context`，确认当前 TODO 上下文。",
     "- AI 必须按未勾选 TODO 从上到下执行。",
+    "- 工程、UI/UX、spec 写作、Git 提交或 PR 原则不在本文件展开；需要时先调用 `spec_guidance_list`，再用 `spec_guidance_read` 读取对应 name。",
     "- 完成任务后把对应项改成 `[x]`。",
     "- 无法完成的任务保持 `[ ]`，并在任务下方写明阻塞原因。",
-    "- 完成后必须记录实际行为：功能全过程、业务分支条件、默认参数行为、边界处理结果和验证结果。",
+    "- 阶段完成后调用 `spec_checkpoint`，记录实际行为、验证结果、风险和阻塞。",
     "",
     "## 实际行为记录",
     "",
@@ -195,10 +196,6 @@ export function todoSpec(title: string, prompt: string): string {
     "- 默认参数行为：完成后补充源码里的默认值、配置来源、覆盖规则以及未传参数时的完整流程。",
     "- 边界处理结果：完成后补充异常、空值、权限、状态等输入如何进入分支、在哪里返回、是否产生副作用。",
     "- 验证结果：完成后记录验证命令、覆盖的流程分支和关联文件。",
-    "- 禁止事项：不要把猜测、常识或“看起来合理”的行为写成事实。",
-    "",
-    ...engineeringConstraintSection(),
-    "",
-    ...businessConfirmationSection()
+    "- 禁止事项：不要把猜测、常识或“看起来合理”的行为写成事实。"
   ].join("\n");
 }
