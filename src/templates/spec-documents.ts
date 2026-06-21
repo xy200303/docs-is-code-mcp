@@ -1,5 +1,5 @@
 /* User-authored spec templates and source-derived review spec templates. */
-import { businessConfirmationSection, list, workflowGuardSection, engineeringConstraintSection } from "./markdown.js";
+import { guidancePointerSection, list, workflowGuardSection } from "./markdown.js";
 import type { SourceScanSummary, SourceSpecCandidate } from "../spec/types.js";
 
 export function specTemplate(kind: "feature" | "bugfix" | "removal"): string {
@@ -57,9 +57,7 @@ export function specTemplate(kind: "feature" | "bugfix" | "removal"): string {
     "",
     ...workflowGuardSection(),
     "",
-    ...engineeringConstraintSection(),
-    "",
-    ...businessConfirmationSection(),
+    ...guidancePointerSection(),
     "",
     "## TODO",
     "",

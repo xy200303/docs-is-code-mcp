@@ -15,6 +15,7 @@ function markArchivedStatus(text: string): string {
 
 const doneArchiveExcludedSections = new Set([
   "## 执行要求",
+  "## Guidance",
   "## 工程质量约束",
   "## 业务不确定性强制确认",
   "## Checkpoint",

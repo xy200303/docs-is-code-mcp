@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { APP_VERSION } from "../src/shared/meta.js";
-import { todoSpec } from "../src/templates/prompt-documents.js";
+import { todoSpec, userPromptSpec } from "../src/templates/prompt-documents.js";
 import { recordSpecCheckpoint } from "../src/spec/checkpoint-writer.js";
 import { markSpecDone } from "../src/spec/done-writer.js";
 import { localDateDirectory } from "../src/spec/spec-files.js";
@@ -83,6 +83,18 @@ async function testTodoSpecTaskExtraction(): Promise<void> {
   const plainText = todoSpec("纯文本任务", "优化 spec_todo 任务提取质量。要求：");
   assert(!plainText.includes("- [ ] 优化 spec_todo 任务提取质量。要求："), "Expected trailing requirement label to be removed.");
   assertIncludes(plainText, "- [ ] 优化 spec_todo 任务提取质量。", "Expected plain task to keep business text.");
+}
+
+function testActiveSpecUsesGuidancePointers(): void {
+  const text = userPromptSpec("用户详情", "用户详情页需要展示禁用态。");
+  assertIncludes(text, "## Guidance", "Expected active spec to include a guidance pointer section.");
+  assertIncludes(text, "spec_guidance_list", "Expected active spec to point to guidance list.");
+  assertIncludes(text, "`engineering`（`specs/guidance/engineering.md`）", "Expected active spec to map engineering rules to engineering guidance.");
+  assertIncludes(text, "`ui-ux`（`specs/guidance/ui-ux.md`）", "Expected active spec to map UI/UX rules to UI/UX guidance.");
+  assert(!text.includes("## 工程质量约束"), "Expected active spec to avoid embedding full engineering constraints.");
+  assert(!text.includes("### Hard Rules"), "Expected active spec to avoid embedding hard rule details.");
+  assert(!text.includes("### Recommended Practices"), "Expected active spec to avoid embedding recommended practice details.");
+  assert(!text.includes("## 业务不确定性强制确认"), "Expected active spec to avoid embedding business confirmation rules.");
 }
 
 async function testCheckpointWriter(): Promise<void> {
@@ -173,6 +185,10 @@ async function testDoneWriterAvoidsOverwrites(): Promise<void> {
       "",
       "- KISS。",
       "",
+      "## Guidance",
+      "",
+      "- 模板指导不进入 done。",
+      "",
       "## Checkpoint",
       "",
       "- summary: 过程记录不进入 done。",
@@ -215,6 +231,7 @@ async function testDoneWriterAvoidsOverwrites(): Promise<void> {
     assertIncludes(archivedText, "输出结果：返回带默认配置的任务", "Expected archived spec to preserve behavior output.");
     assertIncludes(archivedText, "使用系统默认值", "Expected archived spec to preserve behavior result.");
     assert(!archivedText.includes("## 执行要求"), "Expected archived spec to omit execution template noise.");
+    assert(!archivedText.includes("## Guidance"), "Expected archived spec to omit guidance pointer noise.");
     assert(!archivedText.includes("## 工程质量约束"), "Expected archived spec to omit engineering template noise.");
     assert(!archivedText.includes("## Checkpoint"), "Expected archived spec to omit checkpoint history.");
     assert(result.nextSteps.some((step) => step.includes("最终行为契约已记录")), "Expected done result to confirm behavior contract.");
@@ -423,6 +440,7 @@ async function testStatusRecommendationDecisions(): Promise<void> {
 
 await testTodoParsing();
 await testTodoSpecTaskExtraction();
+testActiveSpecUsesGuidancePointers();
 await testCheckpointWriter();
 await testSessionGuard();
 await testDoneWriterAvoidsOverwrites();

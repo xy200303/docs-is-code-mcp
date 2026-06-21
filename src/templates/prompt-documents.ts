@@ -1,5 +1,5 @@
 /* User prompt spec and TODO spec templates. */
-import { businessConfirmationSection, engineeringConstraintSection, workflowGuardSection } from "./markdown.js";
+import { guidancePointerSection, workflowGuardSection } from "./markdown.js";
 
 const TODO_SECTION_TITLES = new Set([
   "acceptance",
@@ -148,9 +148,7 @@ export function userPromptSpec(title: string, prompt: string): string {
     "",
     ...workflowGuardSection(),
     "",
-    ...engineeringConstraintSection(),
-    "",
-    ...businessConfirmationSection(),
+    ...guidancePointerSection(),
     "",
     "## TODO",
     "",
@@ -183,12 +181,11 @@ export function todoSpec(title: string, prompt: string): string {
     "",
     "- 开始前必须先调用 `spec_context`，确认当前 TODO 上下文。",
     "- AI 必须按未勾选 TODO 从上到下执行。",
-    "- 原则不在本文件展开；需要校准时先调用 `spec_guidance_list` 查看索引，再用 `spec_guidance_read` 按 name 读取。",
-    "- 工程原则读取 `engineering`（`specs/guidance/engineering.md`），UI/UX 原则读取 `ui-ux`（`specs/guidance/ui-ux.md`）。",
-    "- spec 写作、Git 提交或 PR 工作流需要时，分别读取 `spec-writing`、`git-commit`、`pr-submit` guidance。",
     "- 完成任务后把对应项改成 `[x]`。",
     "- 无法完成的任务保持 `[ ]`，并在任务下方写明阻塞原因。",
     "- 阶段完成后调用 `spec_checkpoint`，记录实际行为、验证结果、风险和阻塞。",
+    "",
+    ...guidancePointerSection(),
     "",
     "## 实际行为记录",
     "",

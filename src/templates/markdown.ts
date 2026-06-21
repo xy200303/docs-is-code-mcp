@@ -58,6 +58,16 @@ export function businessConfirmationSection(): string[] {
   ];
 }
 
+export function guidancePointerSection(): string[] {
+  return [
+    "## Guidance",
+    "",
+    "- 原则不在本文件展开；需要校准时先调用 `spec_guidance_list` 查看索引，再用 `spec_guidance_read` 按 name 读取。",
+    "- 工程原则读取 `engineering`（`specs/guidance/engineering.md`），UI/UX 原则读取 `ui-ux`（`specs/guidance/ui-ux.md`）。",
+    "- spec 写作、Git 提交或 PR 工作流需要时，分别读取 `spec-writing`、`git-commit`、`pr-submit` guidance。"
+  ];
+}
+
 export function workflowGuardSection(): string[] {
   return [
     "## 开发前置要求",

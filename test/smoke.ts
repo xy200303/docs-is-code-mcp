@@ -160,8 +160,14 @@ try {
   assertIncludesAll(starterSpec, [
     "创建一个简单 CLI 项目",
     "- status: active",
-    "## AI 实现计划"
+    "## AI 实现计划",
+    "## Guidance",
+    "`engineering`（`specs/guidance/engineering.md`）",
+    "`ui-ux`（`specs/guidance/ui-ux.md`）"
   ], "Expected new project bootstrap to create a starter active spec from the initial prompt");
+  if (starterSpec.includes("## 工程质量约束") || starterSpec.includes("### Hard Rules") || starterSpec.includes("### Recommended Practices") || starterSpec.includes("## 业务不确定性强制确认")) {
+    throw new Error("Expected starter active spec to point at guidance instead of embedding full engineering rules.");
+  }
   await rm(newProjectRoot, { recursive: true, force: true });
 
   const agents = await generateAgentsFile({ projectRoot: root, projectName: "用户系统" });
@@ -530,6 +536,11 @@ try {
   assertIncludesAll(createdSpecText, [
     "## AI 实现计划",
     "## 实际行为记录",
+    "## Guidance",
+    "spec_guidance_list",
+    "spec_guidance_read",
+    "`engineering`（`specs/guidance/engineering.md`）",
+    "`ui-ux`（`specs/guidance/ui-ux.md`）",
     "目标能力",
     "阅读入口",
     "改动文件",
@@ -540,6 +551,9 @@ try {
     "待确认问题",
     "不要把猜测、常识或“看起来合理”的行为写成事实"
   ], "Expected active spec template to guide implementation planning and behavior recording");
+  if (createdSpecText.includes("## 工程质量约束") || createdSpecText.includes("### Hard Rules") || createdSpecText.includes("### Recommended Practices") || createdSpecText.includes("## 业务不确定性强制确认")) {
+    throw new Error("Expected active spec template to point at guidance instead of embedding full engineering rules.");
+  }
 
   const todo = await createTodoFromPrompt({
     projectRoot: root,
@@ -784,6 +798,9 @@ try {
   const doneText = await readFile(path.join(root, done.specs[0]), "utf8");
   if (!doneText.includes("- status: done") || !doneText.includes("## 最终行为契约") || !doneText.includes("给用户审查功能完整行为") || !doneText.includes("模型自行采用的默认策略也必须写清楚") || !doneText.includes("当前用户没有敏感操作权限") || !doneText.includes("触发入口：用户提交敏感操作请求") || !doneText.includes("输入与前置状态：会话缺少敏感操作权限") || !doneText.includes("1. 读取会话权限") || !doneText.includes("输出结果：返回权限不足错误") || !doneText.includes("副作用：不执行业务写入") || !doneText.includes("返回可理解错误")) {
     throw new Error("Expected archived spec meta status to be done.");
+  }
+  if (doneText.includes("## Guidance") || doneText.includes("## 工程质量约束") || doneText.includes("### Hard Rules") || doneText.includes("## 业务不确定性强制确认")) {
+    throw new Error("Expected done archive to omit active guidance and engineering-rule template sections.");
   }
   if (doneText.includes("| 场景 | 条件 | 结果 |")) {
     throw new Error("Expected final behavior contract to use readable text instead of a table.");
