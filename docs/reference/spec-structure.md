@@ -15,10 +15,6 @@ specs/
     *.md
   done/
     *.md
-  templates/
-    feature.md
-    bugfix.md
-    removal.md
 ```
 
 ## review
@@ -78,33 +74,16 @@ TODO 使用 Markdown 任务列表：
 
 它会自动把匹配到的未完成 TODO 改成 `[x]`。
 
-## 工程质量约束
+## guidance
 
-新建 spec 和 TODO 会包含工程质量约束，`spec_context` 也会在每次调用时强制输出这些约束。核心要求是：
+`guidance/` 存放可编辑的指导性提示词，例如工程、UI/UX 和 spec 写作原则。
 
-- 这些规则是强制约束，不是建议。
-- 代码结构清晰，避免冗余、重复和无意义注释。
-- 强制遵守 KISS、DRY、SOLID 和 Boy Scout Rule。
-- 文件顶部必须写文件注释，复杂逻辑必须写说明性注释，但不能写废话。
-- 能用成熟库解决的就优先用成熟库，不要自己手搓已有轮子。
-- 遇到不明确、影响面大或高风险的方案时，先向用户询问和确认，不要自己拍板。
-- 遵循现有项目风格和目录约定。
-- 不把所有代码放在一个文件，也不把所有文件放在一个目录。
-- 按功能、层次或领域拆分模块，职责边界分明。
-- UI 交互符合人类直觉，状态和信息层级清楚。
+`spec_context` 只显示 guidance 索引和必要执行护栏，不展开完整原则正文；需要细节时再调用 `spec_guidance_list` / `spec_guidance_read`。
+
+如果 `guidance/` 不存在、为空或缺少默认文件，guidance 工具会自动补齐内置默认 Markdown，已有文件不会被覆盖。
 
 ## done
 
 `done/` 存放已经实现并验证通过的 spec。
 
 归档时保留实现结果和验证记录，方便之后回看为什么某个功能是这样做的。
-
-## templates
-
-`templates/` 存放创建 spec 的模板：
-
-- `feature.md`：新增功能
-- `bugfix.md`：修复问题
-- `removal.md`：删除功能
-
-模板不是强制格式，但建议保持“一个功能点一个文档”。

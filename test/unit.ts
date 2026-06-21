@@ -14,7 +14,7 @@ import { CLI_HELP_LINES, MCP_DIST_ENTRY, MCP_SERVER_NAME, MCP_START_COMMAND, SUP
 import { serverCommand, upsertCodexConfig, upsertContinueConfig, upsertJsonMcpServers, upsertOpenCodeConfig } from "../src/cli/registry-write.js";
 import { STATUS_JSON_SCHEMA_VERSION, decideStatusRecommendation } from "../src/cli/status-recommendation.js";
 import { renderSpecResult } from "../src/mcp/render-spec.js";
-import { guidanceItems, readGuidance } from "../src/spec/guidance.js";
+import { ensureDefaultGuidanceFiles, guidanceItems, readGuidance } from "../src/spec/guidance.js";
 
 function assert(condition: boolean, message: string): void {
   if (!condition) {
@@ -278,20 +278,43 @@ async function testRegistryContracts(): Promise<void> {
   assert(resolved.command === "node" && resolved.args[1] === "serve", "Expected explicit server command to be preserved.");
 }
 
-async function testGuidanceReadsProjectFilesAndBuiltInFallback(): Promise<void> {
+async function testGuidanceCreatesDefaultsAndPreservesProjectFiles(): Promise<void> {
   const root = await mkdtemp(path.join(os.tmpdir(), "spec-coding-guidance-"));
   try {
     const items = guidanceItems("docs/specs");
     assert(items.map((item) => item.name).join(",") === "engineering,ui-ux,spec-writing", "Expected guidance names to stay stable.");
     assert(items[0]?.file === "docs/specs/guidance/engineering.md", "Expected guidance file paths to respect specsDir.");
 
-    const fallback = await readGuidance({ projectRoot: root, specsDir: "specs", name: "engineering" });
-    assert(fallback.source === "builtin", "Expected missing project guidance file to use built-in fallback.");
-    assertIncludes(fallback.content, "工程与代码风格原则", "Expected built-in engineering guidance content.");
+    const created = await ensureDefaultGuidanceFiles(root, "specs");
+    assert(created.filter((file) => file.status === "created").length === 3, "Expected empty guidance directory to be populated with defaults.");
+    const createdAgain = await ensureDefaultGuidanceFiles(root, "specs");
+    assert(createdAgain.every((file) => file.status === "skipped"), "Expected existing guidance files to be preserved.");
+
+    const generated = await readGuidance({ projectRoot: root, specsDir: "specs", name: "engineering" });
+    assert(generated.source === "project", "Expected generated default guidance to be read from the project file.");
+    assert(generated.file === "specs/guidance/engineering.md", "Expected generated guidance path to be relative to root.");
+    assertIncludes(generated.content, "工程与代码风格原则", "Expected generated engineering guidance content.");
+    assertIncludes(generated.content, "### Hard Rules", "Expected generated engineering guidance to include full hard rules.");
+    assertIncludes(generated.content, "### Recommended Practices", "Expected generated engineering guidance to include full recommended practices.");
+    assertIncludes(generated.content, "业务不确定性强制确认", "Expected generated engineering guidance to include business confirmation rules.");
+
+    const specWriting = await readGuidance({ projectRoot: root, specsDir: "specs", name: "spec-writing" });
+    assertIncludes(specWriting.content, "## 当前任务协议", "Expected generated spec-writing guidance to include task protocol.");
+    assertIncludes(specWriting.content, "## 行为记录要求", "Expected generated spec-writing guidance to include behavior recording rules.");
+    assertIncludes(specWriting.content, "行为记录必须描述功能全过程", "Expected generated spec-writing guidance to include full behavior flow guidance.");
+
+    const uiUx = await readGuidance({ projectRoot: root, specsDir: "specs", name: "ui-ux" });
+    assertIncludes(uiUx.content, "Linear / Vercel", "Expected UI/UX guidance to include Linear/Vercel style direction.");
+    assertIncludes(uiUx.content, "8pt grid", "Expected UI/UX guidance to include the 8pt grid rule.");
+    assertIncludes(uiUx.content, "#0B0E14", "Expected UI/UX guidance to include the dark mode base color.");
+    assertIncludes(uiUx.content, "Aether Vector", "Expected UI/UX guidance to include the brand vibe.");
+    assertIncludes(uiUx.content, "loading / pending", "Expected UI/UX guidance to include loading states.");
+    assertIncludes(uiUx.content, "undo", "Expected UI/UX guidance to include undo guidance.");
 
     const projectGuidance = path.join(root, "specs", "guidance", "ui-ux.md");
     await mkdir(path.dirname(projectGuidance), { recursive: true });
     await writeFile(projectGuidance, "# Custom UI Guidance\n\n保持产品语境。\n", "utf8");
+    await ensureDefaultGuidanceFiles(root, "specs");
     const project = await readGuidance({ projectRoot: root, specsDir: "specs", name: "ui-ux" });
     assert(project.source === "project", "Expected project guidance file to override built-in content.");
     assert(project.file === "specs/guidance/ui-ux.md", "Expected project guidance path to be relative to root.");
@@ -381,6 +404,6 @@ await testDoneWriterWarnsWhenBehaviorFactsAreMissing();
 testRendererLimitsToolOutput();
 await testRegistryContracts();
 await testStatusRecommendationDecisions();
-await testGuidanceReadsProjectFilesAndBuiltInFallback();
+await testGuidanceCreatesDefaultsAndPreservesProjectFiles();
 
 console.log("spec-coding unit tests passed");

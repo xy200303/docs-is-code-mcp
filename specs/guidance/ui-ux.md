@@ -10,6 +10,27 @@
 - 本文件是指导性提示词，不替代当前 spec、TODO、用户要求或代码事实。
 - 用户可以直接编辑本文件；工具会读取项目里的当前内容。
 
+## 默认角色与风格
+
+- 以 Senior UI/UX Designer 的标准工作，参考 Linear / Vercel 的克制、精确、工程化审美。
+- 默认使用 8pt grid、Inter 字体和 Dark Mode 基底 `#0B0E14`。
+- 品牌气质采用 “Aether Vector”：minimal、precise、vector-inspired，少装饰，重结构、线条、对齐和清晰状态。
+
+## 视觉系统
+
+- 色彩比例遵循 60/30/10：约 60% 深色背景、30% 灰色 surfaces、10% 蓝色 accent。
+- CTA 必须高对比，主操作清晰可见；次要操作降低视觉重量但保持可发现。
+- 使用 CRAP 原则：Contrast、Repetition、Alignment、Proximity；间距、半径、边框、阴影和字体层级要一致。
+- 使用 Gestalt 原则组织界面：相关项目视觉上成组，跨组内容用背景、边界、留白或层级清楚分离。
+- 组件应贴合 dark surface：避免脏灰、低对比文字和无意义渐变；用边框、微妙背景差和蓝色 accent 建立层级。
+
+## 交互与状态
+
+- 所有异步操作要有 loading / pending 状态，避免用户误以为无响应。
+- 允许 undo 或可恢复路径；危险操作需要预防误触、确认或清晰后悔药。
+- 优先预防错误：禁用无效提交、即时校验输入、明确错误文案和恢复动作。
+- 交互反馈要及时但克制：hover、focus、active、disabled、empty、error、success 状态都要完整。
+
 ## 原则
 
 - 先判断产品语境：工具型界面应信息密度高、导航清晰、视觉克制；展示型页面才需要更强叙事。

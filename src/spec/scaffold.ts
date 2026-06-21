@@ -1,8 +1,8 @@
-/* Spec scaffold generation for README, templates, prompt specs, TODO specs, and source-derived review specs. */
+/* Spec scaffold generation for README, guidance, prompt specs, TODO specs, and source-derived review specs. */
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { agentsMd, specsReadme } from "../templates/agents.js";
-import { reviewIndex, sourceInventory, sourceReviewSpec, specTemplate } from "../templates/spec-documents.js";
+import { reviewIndex, sourceInventory, sourceReviewSpec } from "../templates/spec-documents.js";
 import { todoSpec, userPromptSpec } from "../templates/prompt-documents.js";
 import type { AgentFileResult, GeneratedFile, SpecItem, SpecResult } from "./types.js";
 import { writeDefaultGuidanceFiles } from "./guidance.js";
@@ -32,9 +32,6 @@ export async function initSpecs(input: { projectRoot: string; specsDir?: string;
   const files: GeneratedFile[] = [];
 
   await writeTextFile(root, path.join(specsDir, "README.md"), specsReadme(projectName), overwrite, files);
-  await writeTextFile(root, path.join(specsDir, "templates", "feature.md"), specTemplate("feature"), overwrite, files);
-  await writeTextFile(root, path.join(specsDir, "templates", "bugfix.md"), specTemplate("bugfix"), overwrite, files);
-  await writeTextFile(root, path.join(specsDir, "templates", "removal.md"), specTemplate("removal"), overwrite, files);
   await writeDefaultGuidanceFiles(root, specsDir, overwrite, files);
 
   return {

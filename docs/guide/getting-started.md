@@ -36,11 +36,11 @@ spec_init
 ```text
 specs/
   README.md
+  guidance/
   review/
   active/
   todo/
   done/
-  templates/
 ```
 
 ## 旧项目接入
@@ -85,9 +85,7 @@ spec_done
 spec_review_result
 ```
 
-`spec_context` 会自动附带全局工程质量约束，要求 AI 避免冗余代码，保持项目结构清晰、文件边界分明，并让 UI 交互符合人类直觉。这些规则是强制约束，不是建议。
-
-其中也包括：能用成熟库解决的就优先用成熟库，不要自己手搓已有轮子；遇到不明确、影响面大或高风险的方案时，先向用户询问和确认。
+`spec_context` 会附带当前 spec/TODO、下一步建议、guidance 索引和必要执行护栏。工程、UI/UX、spec 写作等原则详情按需用 `spec_guidance_list` / `spec_guidance_read` 读取。
 
 ## TODO 任务
 

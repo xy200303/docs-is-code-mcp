@@ -3,7 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { bootstrapProject, generateSpecsFromSource, initSpecs, listSpecs } from "../spec/scaffold.js";
 import { specContext } from "../spec/context.js";
-import { guidanceItems, readGuidance } from "../spec/guidance.js";
+import { ensureDefaultGuidanceFiles, guidanceItems, readGuidance } from "../spec/guidance.js";
 import { workflowStateLines } from "../spec/context-markdown.js";
 import { renderSpecItems, renderSpecResult } from "./render-spec.js";
 import { textResult } from "./render-core.js";
@@ -126,6 +126,7 @@ export function registerReadTools(server: McpServer, guard: SessionGuardState): 
       inputSchema: RootSchema
     },
     async ({ projectRoot, specsDir }) => {
+      await ensureDefaultGuidanceFiles(projectRoot, specsDir);
       const items = guidanceItems(specsDir);
       return textResult([
         "# Guidance Prompts",
@@ -134,7 +135,7 @@ export function registerReadTools(server: McpServer, guard: SessionGuardState): 
         `Specs：${specsDir}`,
         "",
         "这些提示词是指导性原则，不替代当前 spec、TODO、用户要求或代码事实。",
-        `用户可编辑 ${specsDir}/guidance/*.md；读取工具会使用项目内当前内容。`,
+        `用户可编辑 ${specsDir}/guidance/*.md；目录缺失、为空或缺少默认文件时，工具会自动补齐内置默认 Markdown。`,
         "",
         "## Available",
         "",

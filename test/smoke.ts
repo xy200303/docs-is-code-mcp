@@ -91,10 +91,16 @@ try {
   if (!init.files.some((file) => file.path.endsWith("specs/guidance/engineering.md"))) {
     throw new Error("Expected spec init to create default guidance prompts.");
   }
+  if (init.files.some((file) => file.path.includes("specs/templates/"))) {
+    throw new Error("Expected spec init to keep reusable templates in src/templates instead of creating specs/templates.");
+  }
   const initGuidanceText = await readFile(path.join(root, "specs", "guidance", "engineering.md"), "utf8");
   assertIncludesAll(initGuidanceText, [
     "工程与代码风格原则",
-    "用户可以直接编辑本文件"
+    "用户可以直接编辑本文件",
+    "### Hard Rules",
+    "### Recommended Practices",
+    "业务不确定性强制确认"
   ], "Expected default guidance prompt to be editable project documentation");
 
   const emptyWorkflowRoot = await mkdtemp(path.join(os.tmpdir(), "spec-coding-empty-workflow-"));
@@ -264,6 +270,12 @@ try {
     "UI/UX 设计美学原则",
     "source: `project`",
     "file: `specs/guidance/ui-ux.md`",
+    "Linear / Vercel",
+    "8pt grid",
+    "#0B0E14",
+    "Aether Vector",
+    "loading / pending",
+    "undo",
     "移动端和桌面都要检查"
   ], "Expected guidance read to use generated project prompt content");
   await writeFile(path.join(root, "specs", "guidance", "ui-ux.md"), "# Custom UI/UX\n\n只记录用户编辑后的提示词。\n", "utf8");
@@ -276,10 +288,19 @@ try {
   const fallbackGuidanceRoot = await mkdtemp(path.join(os.tmpdir(), "spec-coding-guidance-fallback-"));
   const fallbackGuidanceRead = await harness.call("spec_guidance_read", { projectRoot: fallbackGuidanceRoot, specsDir: "specs", name: "spec-writing" });
   assertIncludesAll(fallbackGuidanceRead.content[0]?.text ?? "", [
-    "source: `builtin`",
+    "source: `project`",
+    "file: `specs/guidance/spec-writing.md`",
     "Spec 与行为记录原则",
-    "行为记录要描述功能全过程"
-  ], "Expected guidance read to fall back to built-in defaults when project files are missing");
+    "当前任务协议",
+    "行为记录必须描述功能全过程"
+  ], "Expected guidance read to create and read default project files when guidance files are missing");
+  const generatedFallbackGuidance = await readFile(path.join(fallbackGuidanceRoot, "specs", "guidance", "spec-writing.md"), "utf8");
+  assertIncludesAll(generatedFallbackGuidance, [
+    "Spec 与行为记录原则",
+    "用户可以直接编辑本文件",
+    "## 当前任务协议",
+    "## 行为记录要求"
+  ], "Expected missing guidance files to be written before reading");
   await rm(fallbackGuidanceRoot, { recursive: true, force: true });
 
   const unmatchedContext = await harness.call("spec_context", {
@@ -565,18 +586,24 @@ try {
     "\"completedTodos\":\"<completed TODO text>\"",
     "\"verification\":\"<commands and status>\"",
     "当前有 open TODO",
-    "先读本次 `spec_context`；没有上下文不得实现或改文档。",
-    "Engineering Constraints",
-    "完整工程规则见 `AGENTS.md`",
-    "Business Confirmation Rules",
-    "完整业务确认规则见 `AGENTS.md`",
-    "Current Task Protocol",
+    "Guidance Index",
+    "spec_guidance_list",
+    "spec_guidance_read",
+    "`engineering`",
+    "`ui-ux`",
+    "`spec-writing`",
+    "guidance 是按需提醒",
+    "Required Guards",
+    "写代码或改文档前必须先读本次 `spec_context`",
     "Context mode：`workflow`",
     "按 open TODOs 自上而下执行",
     "阶段完成后调用 `spec_checkpoint`"
-  ], "Expected workflow spec context to include compact engineering guidance");
+  ], "Expected workflow spec context to include guidance indexes and required guards");
   if (engineeringConstraintBullets().every((item) => context.markdown.includes(item)) || currentTaskInstructionBullets().every((item) => context.markdown.includes(item))) {
     throw new Error("Expected workflow mode to avoid expanding every engineering rule and protocol line.");
+  }
+  if (context.markdown.includes("Engineering Constraints") || context.markdown.includes("Business Confirmation Rules") || context.markdown.includes("完整工程规则见 `AGENTS.md`")) {
+    throw new Error("Expected workflow mode to replace long rule sections with guidance indexes.");
   }
   if (context.markdown.includes("```md") || context.markdown.includes("## 执行要求")) {
     throw new Error("Expected workflow mode to render selected specs as an index instead of embedded markdown.");
@@ -594,12 +621,15 @@ try {
     "这些条目只是搜索线索，不是源码事实",
     "Source Hints",
     "package scripts",
-    "完整工程规则见 `AGENTS.md`",
-    "完整业务确认规则见 `AGENTS.md`"
+    "Guidance Index",
+    "spec_guidance_read",
+    "Required Guards"
   ], "Expected full spec context to include expanded indexes without embedding full documents");
   if (
     contextWithHints.markdown.includes("```md") ||
     contextWithHints.markdown.includes("## 执行要求") ||
+    contextWithHints.markdown.includes("Engineering Constraints") ||
+    contextWithHints.markdown.includes("Business Confirmation Rules") ||
     engineeringConstraintBullets().every((item) => contextWithHints.markdown.includes(item)) ||
     currentTaskInstructionBullets().every((item) => contextWithHints.markdown.includes(item))
   ) {

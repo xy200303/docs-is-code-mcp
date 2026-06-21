@@ -33,6 +33,12 @@ export async function writeDefaultGuidanceFiles(root: string, specsDir: string, 
   }
 }
 
+export async function ensureDefaultGuidanceFiles(root: string, specsDir: string): Promise<GeneratedFile[]> {
+  const files: GeneratedFile[] = [];
+  await writeDefaultGuidanceFiles(root, specsDir, false, files);
+  return files;
+}
+
 export async function readGuidance(input: { projectRoot: string; specsDir?: string; name: string }): Promise<GuidanceContent> {
   const root = path.resolve(input.projectRoot);
   const specsDir = input.specsDir ?? "specs";
@@ -46,6 +52,8 @@ export async function readGuidance(input: { projectRoot: string; specsDir?: stri
   if (!item) {
     throw new Error(`Guidance template is not registered: ${template.name}`);
   }
+
+  await ensureDefaultGuidanceFiles(root, specsDir);
 
   if (await pathExists(absolute)) {
     return {

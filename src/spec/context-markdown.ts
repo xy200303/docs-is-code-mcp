@@ -1,6 +1,7 @@
 /* Markdown rendering helpers for spec context assembly. */
 import type { ContextMode, SourceScanSummary, SpecContext, SpecItem } from "./types.js";
 import { currentTaskInstructions } from "../templates/prompt-protocol.js";
+import { guidanceItems } from "./guidance.js";
 import { workflowRecommendationLines } from "./workflow-next-step.js";
 import { APP_VERSION } from "../shared/meta.js";
 
@@ -12,25 +13,12 @@ export function buildContextInstructions(): string[] {
   return currentTaskInstructions;
 }
 
-const compactEngineeringRules = [
-  "- 执行前先读 selected specs 和 open TODOs；不要按旧对话扩范围。",
-  "- 遵守 Fail Fast、风险先确认、成熟库优先、小步修改和测试优先。",
-  "- 代码保持简单、显式、人类可读；避免无收益抽象和无关重构。",
-  "- 完整工程规则见 `AGENTS.md`；本工具不展开长规则。"
-];
-
-const compactBusinessRules = [
-  "- 金额、状态机、并发、幂等、退款、权限、合规等不明确时必须先问用户。",
-  "- 禁止猜业务规则或用常识补边界；说明疑点并给出 2 到 3 种解释。",
-  "- 完整业务确认规则见 `AGENTS.md`；本工具不展开长规则。"
-];
-
-const compactTaskInstructions = [
-  "先读本次 `spec_context`；没有上下文不得实现或改文档。",
-  "按 open TODOs 自上而下执行；无 TODO 时按 selected spec 的目标和验收标准执行。",
-  "源码线索只是搜索入口，修改前必须自行读取相关文件确认。",
-  "风险或业务规则不明确时先问用户，不要猜。",
-  "阶段完成后调用 `spec_checkpoint`；全部完成且验证通过后调用 `spec_done`。"
+const requiredGuards = [
+  "写代码或改文档前必须先读本次 `spec_context`；selected specs 和 open TODOs 是本轮唯一需求源。",
+  "按 open TODOs 自上而下执行；无 TODO 时按 selected specs 的目标、规则和验收标准执行。",
+  "源码线索只是搜索入口，不是事实；修改前必须自行读取相关文件、测试和配置确认。",
+  "金额、状态机、并发、幂等、退款、权限、合规等高风险业务不确定时，先问用户，不要猜。",
+  "阶段完成后调用 `spec_checkpoint`；实现、TODO、验证和最终行为契约都完成后才能调用 `spec_done`。"
 ];
 
 type EmptyWorkState = "done-only" | "empty" | "has-work";
@@ -198,20 +186,23 @@ function renderSourceHintsSection(source: SourceScanSummary | undefined, mode: C
   ];
 }
 
-function renderEngineeringRules(mode: ContextMode): string[] {
-  void mode;
-  return compactEngineeringRules;
+function renderGuidanceIndex(specsDir: string): string[] {
+  return [
+    "## Guidance Index",
+    "",
+    "原则详情不在 `spec_context` 展开；当模型不确定或忘记相关原则时，先调用 `spec_guidance_list` 查看索引，再调用 `spec_guidance_read` 读取对应 name。",
+    "",
+    ...guidanceItems(specsDir).map((item) => `- \`${item.name}\`：${item.purpose}（${item.file}）`),
+    "",
+    "guidance 是按需提醒，不替代 selected specs、open TODO、用户要求或真实源码阅读。",
+    ""
+  ];
 }
 
-function renderBusinessRules(mode: ContextMode): string[] {
-  void mode;
-  return compactBusinessRules;
-}
-
-function renderTaskInstructions(mode: ContextMode, instructions: string[]): string[] {
+function renderRequiredGuards(mode: ContextMode, instructions: string[]): string[] {
   void mode;
   void instructions;
-  return compactTaskInstructions.map((item) => `- ${item}`);
+  return requiredGuards.map((item) => `- ${item}`);
 }
 
 export function buildSpecContextMarkdown(input: {
@@ -279,18 +270,11 @@ export function buildSpecContextMarkdown(input: {
     "",
     ...renderCompletedTodoLines(input.todos),
     "",
-    "## Engineering Constraints",
-    "",
-    ...renderEngineeringRules(input.contextMode),
-    "",
-    "## Business Confirmation Rules",
-    "",
-    ...renderBusinessRules(input.contextMode),
-    "",
+    ...renderGuidanceIndex(input.specsDir),
     ...renderSuggestedSearchTargets(input.candidateFiles, input.contextMode),
     ...renderSourceHintsSection(input.source, input.contextMode),
-    "## Current Task Protocol",
+    "## Required Guards",
     "",
-    ...renderTaskInstructions(input.contextMode, input.instructions)
+    ...renderRequiredGuards(input.contextMode, input.instructions)
   ].join("\n");
 }
