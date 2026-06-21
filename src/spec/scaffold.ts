@@ -5,6 +5,7 @@ import { agentsMd, specsReadme } from "../templates/agents.js";
 import { reviewIndex, sourceInventory, sourceReviewSpec, specTemplate } from "../templates/spec-documents.js";
 import { todoSpec, userPromptSpec } from "../templates/prompt-documents.js";
 import type { AgentFileResult, GeneratedFile, SpecItem, SpecResult } from "./types.js";
+import { writeDefaultGuidanceFiles } from "./guidance.js";
 import { scanSource, specCandidatesFromSource } from "./source-scan.js";
 import { inferProjectName, inferSpecFileName, inferTitle, inferTodoFileName, listSpecsIn, nextSpecDocumentPath } from "./spec-files.js";
 import { writeTextFile } from "./file-writers.js";
@@ -34,6 +35,7 @@ export async function initSpecs(input: { projectRoot: string; specsDir?: string;
   await writeTextFile(root, path.join(specsDir, "templates", "feature.md"), specTemplate("feature"), overwrite, files);
   await writeTextFile(root, path.join(specsDir, "templates", "bugfix.md"), specTemplate("bugfix"), overwrite, files);
   await writeTextFile(root, path.join(specsDir, "templates", "removal.md"), specTemplate("removal"), overwrite, files);
+  await writeDefaultGuidanceFiles(root, specsDir, overwrite, files);
 
   return {
     projectRoot: root,

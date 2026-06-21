@@ -88,6 +88,14 @@ try {
   if (!init.files.some((file) => file.path.endsWith("specs/README.md"))) {
     throw new Error("Expected spec init to create specs README.");
   }
+  if (!init.files.some((file) => file.path.endsWith("specs/guidance/engineering.md"))) {
+    throw new Error("Expected spec init to create default guidance prompts.");
+  }
+  const initGuidanceText = await readFile(path.join(root, "specs", "guidance", "engineering.md"), "utf8");
+  assertIncludesAll(initGuidanceText, [
+    "工程与代码风格原则",
+    "用户可以直接编辑本文件"
+  ], "Expected default guidance prompt to be editable project documentation");
 
   const emptyWorkflowRoot = await mkdtemp(path.join(os.tmpdir(), "spec-coding-empty-workflow-"));
   await initSpecs({ projectRoot: emptyWorkflowRoot, specsDir: "specs", projectName: "空项目" });
@@ -164,6 +172,9 @@ try {
     "src/templates/constraints.ts",
     "src/templates/prompt-protocol.ts",
     "src/templates/markdown.ts",
+    "spec_guidance_list",
+    "spec_guidance_read",
+    "specs/guidance/engineering.md",
     "Hard Rules",
     "Recommended Practices",
     "Business Confirmation Rules",
@@ -184,6 +195,8 @@ try {
   assertIncludesAll(harness.description("spec_bootstrap"), ["PRIMARY ENTRYPOINT", "Use this before spec_init"], "Expected spec_bootstrap to be the primary tool entrypoint");
   assertIncludesAll(harness.description("spec_init"), ["Advanced setup helper", "Prefer spec_bootstrap"], "Expected spec_init to be marked as an advanced helper");
   assertIncludesAll(harness.description("spec_generate_from_source"), ["Advanced existing-project helper", "Prefer spec_bootstrap"], "Expected source generation to be marked as an advanced helper");
+  assertIncludesAll(harness.description("spec_guidance_list"), ["guidance prompts", "without bloating spec_context"], "Expected guidance list tool to describe on-demand prompts");
+  assertIncludesAll(harness.description("spec_guidance_read"), ["Read one editable guidance prompt", "project file"], "Expected guidance read tool to describe project override");
   assertIncludesAll(harness.description("spec_generate_agents"), ["Advanced maintenance helper", "Prefer spec_bootstrap"], "Expected AGENTS generation to be marked as an advanced helper");
   assertIncludesAll(harness.description("spec_done"), ["Archive verified specs into done", "Do not use for partial work"], "Expected spec_done to reject partial-work usage");
   assertToolDescriptionRequiresSpecContext(harness.description("spec_create"));
@@ -236,6 +249,38 @@ try {
     "reason:",
     "afterwards:"
   ], "Expected review-only spec_context to stop direct implementation and recommend creating an active spec");
+
+  const guidanceList = await harness.call("spec_guidance_list", { projectRoot: root, specsDir: "specs" });
+  assertIncludesAll(guidanceList.content[0]?.text ?? "", [
+    "Guidance Prompts",
+    "`engineering`",
+    "`ui-ux`",
+    "`spec-writing`",
+    "specs/guidance/engineering.md",
+    "这些提示词是指导性原则"
+  ], "Expected guidance list to expose editable prompt names and files");
+  const guidanceRead = await harness.call("spec_guidance_read", { projectRoot: root, specsDir: "specs", name: "ui-ux" });
+  assertIncludesAll(guidanceRead.content[0]?.text ?? "", [
+    "UI/UX 设计美学原则",
+    "source: `project`",
+    "file: `specs/guidance/ui-ux.md`",
+    "移动端和桌面都要检查"
+  ], "Expected guidance read to use generated project prompt content");
+  await writeFile(path.join(root, "specs", "guidance", "ui-ux.md"), "# Custom UI/UX\n\n只记录用户编辑后的提示词。\n", "utf8");
+  const editedGuidanceRead = await harness.call("spec_guidance_read", { projectRoot: root, specsDir: "specs", name: "ui-ux" });
+  assertIncludesAll(editedGuidanceRead.content[0]?.text ?? "", [
+    "source: `project`",
+    "Custom UI/UX",
+    "只记录用户编辑后的提示词"
+  ], "Expected guidance read to reflect user-edited project files");
+  const fallbackGuidanceRoot = await mkdtemp(path.join(os.tmpdir(), "spec-coding-guidance-fallback-"));
+  const fallbackGuidanceRead = await harness.call("spec_guidance_read", { projectRoot: fallbackGuidanceRoot, specsDir: "specs", name: "spec-writing" });
+  assertIncludesAll(fallbackGuidanceRead.content[0]?.text ?? "", [
+    "source: `builtin`",
+    "Spec 与行为记录原则",
+    "行为记录要描述功能全过程"
+  ], "Expected guidance read to fall back to built-in defaults when project files are missing");
+  await rm(fallbackGuidanceRoot, { recursive: true, force: true });
 
   const unmatchedContext = await harness.call("spec_context", {
     projectRoot: root,
@@ -366,6 +411,7 @@ try {
     "src/cli/compatibility-contract.ts",
     "src/spec/scaffold.ts",
     "src/templates/agents.ts",
+    "src/templates/guidance.ts",
     "src/templates/prompt-protocol.ts",
     "src/templates/spec-documents.ts",
     "src/templates/prompt-documents.ts",
@@ -385,6 +431,7 @@ try {
     "src/spec/todo-files.ts",
     "src/spec/spec-reader.ts",
     "src/spec/context.ts",
+    "src/spec/guidance.ts",
     "src/spec/context-source.ts",
     "src/spec/context-markdown.ts",
     "src/spec/behavior-record.ts",

@@ -3,6 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { bootstrapProject, generateSpecsFromSource, initSpecs, listSpecs } from "../spec/scaffold.js";
 import { specContext } from "../spec/context.js";
+import { guidanceItems, readGuidance } from "../spec/guidance.js";
 import { workflowStateLines } from "../spec/context-markdown.js";
 import { renderSpecItems, renderSpecResult } from "./render-spec.js";
 import { textResult } from "./render-core.js";
@@ -19,6 +20,10 @@ const ReadContextSchema = RootSchema.extend({
   maxSpecChars: z.number().int().positive().default(8000),
   candidateFileLimit: z.number().int().positive().default(40),
   contextMode: z.enum(["workflow", "hints", "full"]).default("workflow").describe("workflow, hints, or full indexes.")
+});
+
+const GuidanceReadSchema = RootSchema.extend({
+  name: z.string().min(1).describe("Guidance name from spec_guidance_list, such as engineering, ui-ux, or spec-writing.")
 });
 
 export function registerReadTools(server: McpServer, guard: SessionGuardState): void {
@@ -110,6 +115,60 @@ export function registerReadTools(server: McpServer, guard: SessionGuardState): 
           openTodos: [],
           selectedSpecs: []
         }, "inspect")
+      ].join("\n"));
+    }
+  );
+
+  server.registerTool(
+    "spec_guidance_list",
+    {
+      description: "List built-in editable guidance prompts. Use when the model needs reminders such as engineering, UI/UX, or spec-writing principles without bloating spec_context.",
+      inputSchema: RootSchema
+    },
+    async ({ projectRoot, specsDir }) => {
+      const items = guidanceItems(specsDir);
+      return textResult([
+        "# Guidance Prompts",
+        "",
+        `项目：${projectRoot}`,
+        `Specs：${specsDir}`,
+        "",
+        "这些提示词是指导性原则，不替代当前 spec、TODO、用户要求或代码事实。",
+        `用户可编辑 ${specsDir}/guidance/*.md；读取工具会使用项目内当前内容。`,
+        "",
+        "## Available",
+        "",
+        ...items.map((item) => `- \`${item.name}\`：${item.title}；${item.purpose}（${item.file}）`),
+        "",
+        "## Next",
+        "",
+        "- 当需要校准某类原则时，调用 `spec_guidance_read` 并传入对应 name。"
+      ].join("\n"));
+    }
+  );
+
+  server.registerTool(
+    "spec_guidance_read",
+    {
+      description: "Read one editable guidance prompt by name. The project file under specs/guidance wins over the built-in default.",
+      inputSchema: GuidanceReadSchema
+    },
+    async ({ projectRoot, specsDir, name }) => {
+      const item = await readGuidance({ projectRoot, specsDir, name });
+      return textResult([
+        `# ${item.title}`,
+        "",
+        `name: \`${item.name}\``,
+        `source: \`${item.source}\``,
+        `file: \`${item.file}\``,
+        "",
+        "## Purpose",
+        "",
+        item.purpose,
+        "",
+        "## Prompt",
+        "",
+        item.content.trimEnd()
       ].join("\n"));
     }
   );

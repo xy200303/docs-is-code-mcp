@@ -61,6 +61,10 @@ Spec Coding MCP 是一个面向 **spec coding** 的本地 MCP 服务。
 ```text
 specs/
   README.md
+  guidance/
+    engineering.md
+    ui-ux.md
+    spec-writing.md
   review/
     source-inventory.md
     index.md
@@ -81,6 +85,7 @@ specs/
 - `active/`：准备实现或正在实现的 spec。
 - `todo/`：轻量可执行 TODO 清单，适合临时任务、拆分步骤或补充实现顺序。
 - `done/`：已实现并验证通过的 spec。
+- `guidance/`：可编辑的指导性提示词，供模型在忘记工程、UI/UX 或 spec 写作原则时按需读取。
 - `templates/`：新建 spec 的模板。
 
 ## MCP 工具
@@ -92,6 +97,8 @@ specs/
 | `spec_bootstrap` | 首选项目入口：新项目生成 AGENTS、specs 和起步 active spec；旧项目生成 AGENTS、specs 和 AI 源码审查任务 |
 | `spec_context` | 所有写操作前必须调用；返回 spec、TODO、工程约束、可选搜索线索和下一步推荐 |
 | `spec_list` | inspect 阶段查看 review、active、todo、done 状态，并推荐下一步先读取 `spec_context` |
+| `spec_guidance_list` | 列出内置且可编辑的指导性提示词名称、用途和 `specs/guidance/*.md` 路径 |
+| `spec_guidance_read` | 按名称读取一份指导性提示词；项目内 Markdown 存在时优先读取项目内容，缺失时使用内置默认值 |
 
 ### 任务创建工具
 
@@ -161,6 +168,8 @@ specs/
 `spec_list` 和 `spec_context` 的输出头部会显示当前 Spec Coding MCP 版本号。版本号来自 `src/shared/meta.ts` 读取的 `package.json`，用于判断当前运行中的 MCP 服务是否已经重启或更新到最新构建。
 
 两者也会输出 `Workflow State` 摘要，展示 active、todo、review、done、selected spec 和 open TODO 数量。这个摘要只来自当前 specs 状态，帮助模型快速判断工作流位置，不替代源码阅读或业务判断。
+
+`spec_guidance_list` 和 `spec_guidance_read` 是只读的按需提醒工具。`spec_init` 和 `spec_bootstrap` 会生成默认的 `specs/guidance/engineering.md`、`specs/guidance/ui-ux.md` 和 `specs/guidance/spec-writing.md`；用户可以直接编辑这些 Markdown。读取时项目内文件优先，文件缺失时回退到内置默认提示词。guidance 内容不塞进 `spec_context`，也不替代 selected specs、open TODO、用户要求或真实源码阅读。
 
 ### 写操作硬约束
 

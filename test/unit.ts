@@ -14,6 +14,7 @@ import { CLI_HELP_LINES, MCP_DIST_ENTRY, MCP_SERVER_NAME, MCP_START_COMMAND, SUP
 import { serverCommand, upsertCodexConfig, upsertContinueConfig, upsertJsonMcpServers, upsertOpenCodeConfig } from "../src/cli/registry-write.js";
 import { STATUS_JSON_SCHEMA_VERSION, decideStatusRecommendation } from "../src/cli/status-recommendation.js";
 import { renderSpecResult } from "../src/mcp/render-spec.js";
+import { guidanceItems, readGuidance } from "../src/spec/guidance.js";
 
 function assert(condition: boolean, message: string): void {
   if (!condition) {
@@ -277,6 +278,37 @@ async function testRegistryContracts(): Promise<void> {
   assert(resolved.command === "node" && resolved.args[1] === "serve", "Expected explicit server command to be preserved.");
 }
 
+async function testGuidanceReadsProjectFilesAndBuiltInFallback(): Promise<void> {
+  const root = await mkdtemp(path.join(os.tmpdir(), "spec-coding-guidance-"));
+  try {
+    const items = guidanceItems("docs/specs");
+    assert(items.map((item) => item.name).join(",") === "engineering,ui-ux,spec-writing", "Expected guidance names to stay stable.");
+    assert(items[0]?.file === "docs/specs/guidance/engineering.md", "Expected guidance file paths to respect specsDir.");
+
+    const fallback = await readGuidance({ projectRoot: root, specsDir: "specs", name: "engineering" });
+    assert(fallback.source === "builtin", "Expected missing project guidance file to use built-in fallback.");
+    assertIncludes(fallback.content, "工程与代码风格原则", "Expected built-in engineering guidance content.");
+
+    const projectGuidance = path.join(root, "specs", "guidance", "ui-ux.md");
+    await mkdir(path.dirname(projectGuidance), { recursive: true });
+    await writeFile(projectGuidance, "# Custom UI Guidance\n\n保持产品语境。\n", "utf8");
+    const project = await readGuidance({ projectRoot: root, specsDir: "specs", name: "ui-ux" });
+    assert(project.source === "project", "Expected project guidance file to override built-in content.");
+    assert(project.file === "specs/guidance/ui-ux.md", "Expected project guidance path to be relative to root.");
+    assertIncludes(project.content, "Custom UI Guidance", "Expected edited project guidance content.");
+
+    let unknownMessage = "";
+    try {
+      await readGuidance({ projectRoot: root, specsDir: "specs", name: "missing" });
+    } catch (error) {
+      unknownMessage = error instanceof Error ? error.message : String(error);
+    }
+    assertIncludes(unknownMessage, "Available: engineering, ui-ux, spec-writing", "Expected unknown guidance to fail fast with available names.");
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+}
+
 async function testStatusRecommendationDecisions(): Promise<void> {
   const base = { projectRoot: "C:/demo", specsDir: "specs" };
   const spec = (file: string, status: string) => ({ file, title: file, status, source: "unit" });
@@ -349,5 +381,6 @@ await testDoneWriterWarnsWhenBehaviorFactsAreMissing();
 testRendererLimitsToolOutput();
 await testRegistryContracts();
 await testStatusRecommendationDecisions();
+await testGuidanceReadsProjectFilesAndBuiltInFallback();
 
 console.log("spec-coding unit tests passed");

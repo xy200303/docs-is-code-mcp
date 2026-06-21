@@ -1,0 +1,83 @@
+/* Built-in editable guidance prompt templates for on-demand model reminders. */
+export interface GuidanceTemplate {
+  name: string;
+  title: string;
+  purpose: string;
+  fileName: string;
+  content: string;
+}
+
+function guidanceDocument(title: string, purpose: string, bullets: string[]): string {
+  return [
+    `# ${title}`,
+    "",
+    "## 用途",
+    "",
+    purpose,
+    "",
+    "## 使用方式",
+    "",
+    "- 当模型不确定相关原则、开始偏离约束或需要校准输出质量时，读取本文件。",
+    "- 本文件是指导性提示词，不替代当前 spec、TODO、用户要求或代码事实。",
+    "- 用户可以直接编辑本文件；工具会读取项目里的当前内容。",
+    "",
+    "## 原则",
+    "",
+    ...bullets.map((item) => `- ${item}`)
+  ].join("\n");
+}
+
+export const guidanceTemplates: GuidanceTemplate[] = [
+  {
+    name: "engineering",
+    title: "工程与代码风格原则",
+    purpose: "用于提醒模型保持简单、可维护、可测试、边界清晰的工程实现。",
+    fileName: "engineering.md",
+    content: guidanceDocument("工程与代码风格原则", "用于提醒模型保持简单、可维护、可测试、边界清晰的工程实现。", [
+      "先读现有代码和测试，再做小步、聚焦、可回滚的改动。",
+      "优先复用项目已有模式、命名、目录结构和工具命令。",
+      "Fail Fast：尽早校验输入、依赖、前置条件和无效状态。",
+      "KISS + YAGNI：只实现已确认需求，不预埋未确认复杂度。",
+      "保持业务边界清晰，避免在一个文件混合 UI、业务规则和数据访问。",
+      "新增抽象必须服务真实复杂度，不为了模式而模式。",
+      "核心逻辑应可单测；验证命令和结果要记录到 spec/checkpoint。",
+      "不要擅自修改无关文件、重排无意义代码或覆盖用户改动。"
+    ])
+  },
+  {
+    name: "ui-ux",
+    title: "UI/UX 设计美学原则",
+    purpose: "用于提醒模型在前端、页面、组件和交互任务中保持清晰、克制、可用的体验质量。",
+    fileName: "ui-ux.md",
+    content: guidanceDocument("UI/UX 设计美学原则", "用于提醒模型在前端、页面、组件和交互任务中保持清晰、克制、可用的体验质量。", [
+      "先判断产品语境：工具型界面应信息密度高、导航清晰、视觉克制；展示型页面才需要更强叙事。",
+      "首屏应直接承载真实体验或核心对象，不用空泛营销和装饰性布局替代功能。",
+      "交互控件要符合直觉：图标按钮、开关、分段控件、菜单、标签页和输入组件各司其职。",
+      "避免文字重叠、按钮挤压、卡片套卡片和只靠单一色相堆叠层次。",
+      "固定格式元素要有稳定尺寸和响应式约束，避免 hover、加载和动态文本造成布局跳动。",
+      "移动端和桌面都要检查信息层级、触控目标、可读性和空/加载/错误状态。",
+      "优先使用已有设计系统和图标库；新增视觉风格要服务用户任务，不做无意义装饰。",
+      "完成后用截图或实际运行检查关键视口，确认没有遮挡、空白、错位和不可读文本。"
+    ])
+  },
+  {
+    name: "spec-writing",
+    title: "Spec 与行为记录原则",
+    purpose: "用于提醒模型写清楚 spec、TODO、checkpoint 和最终行为契约。",
+    fileName: "spec-writing.md",
+    content: guidanceDocument("Spec 与行为记录原则", "用于提醒模型写清楚 spec、TODO、checkpoint 和最终行为契约。", [
+      "任何改动前先读取 spec_context；selected specs 和 open TODOs 是本轮唯一需求源。",
+      "TODO 按顺序执行，完成后勾选；阻塞项保持未勾选并写明原因。",
+      "源码线索只是入口，不是事实；修改前必须自己读取相关代码和测试。",
+      "行为记录要描述功能全过程：触发入口、输入与前置状态、执行步骤、输出结果、副作用、默认行为、边界处理、验证和关联文件。",
+      "不要把猜测、常识或静态线索写成实际行为；只记录代码、测试或用户确认的事实。",
+      "涉及金额、权限、状态机、并发、幂等、重试、回滚、合规等不明确规则时，先向用户确认。",
+      "checkpoint 记录阶段进展、变更文件、验证结果、风险和阻塞。",
+      "spec_done 只能在实现、TODO、验证和最终行为契约都完成后调用。"
+    ])
+  }
+];
+
+export function guidanceTemplateByName(name: string): GuidanceTemplate | undefined {
+  return guidanceTemplates.find((item) => item.name === name);
+}
