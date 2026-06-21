@@ -1,3 +1,25 @@
+---
+name: 'spec-writing'
+version: '1.1.0'
+title: 'Spec 与行为记录原则'
+description: 'Spec workflow rules for TODO execution, checkpoints, done archives, and behavior contracts.'
+category: 'workflow'
+triggers:
+  - spec
+  - todo
+  - checkpoint
+  - done
+  - behavior-record
+  - handoff
+appliesTo:
+  - specs
+  - todos
+  - checkpoints
+  - behavior-records
+  - done-archives
+updated: '2026-06-21'
+---
+
 # Spec 与行为记录原则
 
 ## 用途

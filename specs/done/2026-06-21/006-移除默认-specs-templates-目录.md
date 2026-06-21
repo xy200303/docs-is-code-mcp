@@ -1,3 +1,24 @@
+---
+name: '006-移除默认-specs-templates-目录'
+version: '1.1.0'
+title: '移除默认 specs templates 目录'
+type: 'done-spec'
+status: 'done'
+source: 'archived-spec'
+description: 'Archived completed spec with implementation record and verification history.'
+category: 'done'
+triggers:
+  - done
+  - archive
+  - behavior-record
+  - verification
+appliesTo:
+  - done-specs
+  - implementation-history
+  - audit
+updated: '2026-06-21'
+---
+
 # 移除默认 specs templates 目录
 
 ## Meta

@@ -1,3 +1,25 @@
+---
+name: 'quality-review'
+version: '1.1.0'
+title: '质量审查原则'
+description: 'Post-implementation review checklist for code quality, tests, architecture, UI/UX, and delivery risk.'
+category: 'quality'
+triggers:
+  - review
+  - self-check
+  - verification
+  - before-done
+  - before-commit
+  - before-pr
+appliesTo:
+  - code-review
+  - tests
+  - ui-review
+  - risk-review
+  - delivery
+updated: '2026-06-21'
+---
+
 # 质量审查原则
 
 ## 用途
@@ -32,15 +54,10 @@
 
 ## UI 与交互质量
 
-- 设计前是否确认真实项目定位、用户、核心对象、事实来源和 CTA；不明确时是否先确认或搜索。
-- 是否避免编造指标、客户、性能数据、邮箱、商业定位、社区规模和路线图承诺。
-- 首屏是否呈现真实对象或核心体验，而不是只呈现抽象视觉和营销文案。
-- 若明确是 OSS 或开源组织官网，是否优先 GitHub、featured repos、research tracks、贡献路径、docs/roadmap、license/community 和项目状态；否则是否使用匹配企业/产品/作品集/文档站的结构。
-- loading、empty、error、success、disabled、hover、focus、active 等状态是否完整。
-- 表单校验、危险操作、防误触、undo/recovery 和错误恢复是否清楚。
-- 移动端和桌面是否检查布局、可读性、触控目标、遮挡、溢出和文本换行。
-- Web 页面是否确认当前端口服务的是当前项目、页面 title/app root 正确、桌面和移动端截图无串项目、空白、遮挡或错位。
-- 视觉层级、间距、对齐、对比度、组件选择和交互反馈是否符合 ui-ux guidance。
+- 如果本次涉及 UI/UX，是否已读取 `ui-ux` guidance 并使用指定的 `ui-ux-pro-max` skill。
+- 如果 skill 未安装，是否调用 `spec_skills_install`；无法安装时是否用 `dryRun: true` 给出命令并说明阻塞。
+- 是否记录实际使用的 skill、安装或 dry-run 结果，以及 skill 输出中被采纳的关键建议。
+- 是否避免在本地 quality-review guidance 中自行补充另一套 UI/UX 设计 checklist。
 
 ## 交付前审查
 

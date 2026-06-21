@@ -7,10 +7,16 @@ import { nowIso, relativePosix } from "../shared/utils.js";
 import { behaviorRecordLines, hasBehaviorRecords } from "./behavior-record.js";
 
 function markArchivedStatus(text: string): string {
-  if (/^-\s*status:\s*.+?\s*$/im.test(text)) {
-    return text.replace(/^-\s*status:\s*.+?\s*$/im, "- status: done");
+  let nextText = text;
+  if (/^---\s*$/m.test(text) && /^status:\s*.+?\s*$/im.test(text)) {
+    nextText = nextText.replace(/^status:\s*.+?\s*$/im, "status: done");
+    nextText = nextText.replace(/^type:\s*.+?\s*$/im, "type: done-spec");
+    nextText = nextText.replace(/^category:\s*.+?\s*$/im, "category: done");
   }
-  return text;
+  if (/^-\s*status:\s*.+?\s*$/im.test(nextText)) {
+    nextText = nextText.replace(/^-\s*status:\s*.+?\s*$/im, "- status: done");
+  }
+  return nextText;
 }
 
 const doneArchiveExcludedSections = new Set([

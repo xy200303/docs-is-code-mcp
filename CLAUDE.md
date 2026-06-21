@@ -1,3 +1,24 @@
+---
+name: 'claude'
+version: '1.1.0'
+title: 'CLAUDE.md'
+type: 'agent-protocol'
+status: 'reference'
+source: 'spec-coding-mcp'
+description: 'Startup protocol for Claude-style coding agents working on Spec Coding MCP.'
+category: 'workflow'
+triggers:
+  - startup
+  - claude
+  - spec-context
+  - guidance
+appliesTo:
+  - agents
+  - model-startup
+  - workflow-routing
+updated: '2026-06-21'
+---
+
 # CLAUDE.md
 
 Project: Spec Coding MCP

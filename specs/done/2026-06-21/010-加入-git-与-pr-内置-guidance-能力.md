@@ -1,3 +1,24 @@
+---
+name: '010-加入-git-与-pr-内置-guidance-能力'
+version: '1.1.0'
+title: '加入 Git 与 PR 内置 guidance 能力'
+type: 'done-spec'
+status: 'done'
+source: 'archived-spec'
+description: 'Archived completed spec with implementation record and verification history.'
+category: 'done'
+triggers:
+  - done
+  - archive
+  - behavior-record
+  - verification
+appliesTo:
+  - done-specs
+  - implementation-history
+  - audit
+updated: '2026-06-21'
+---
+
 # 加入 Git 与 PR 内置 guidance 能力
 
 ## Meta

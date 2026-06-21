@@ -1,3 +1,24 @@
+---
+name: 'source-inventory'
+version: '1.1.0'
+title: '源码审查线索清单'
+type: 'source-inventory'
+status: 'review'
+source: 'static-source-hints'
+description: 'Static source scan inventory for AI review routing; not a business fact source.'
+category: 'review'
+triggers:
+  - source-review
+  - inventory
+  - bootstrap
+  - existing-project
+appliesTo:
+  - review-specs
+  - source-scan
+  - code-reading
+updated: '2026-06-21'
+---
+
 # 源码审查线索清单
 
 生成时间：2026-06-21T10:41:29.818Z

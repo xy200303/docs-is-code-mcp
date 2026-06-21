@@ -1,3 +1,24 @@
+---
+name: '004-将-context-工程原则改为-guidance-索引'
+version: '1.1.0'
+title: '将 context 工程原则改为 guidance 索引'
+type: 'done-spec'
+status: 'done'
+source: 'archived-spec'
+description: 'Archived completed spec with implementation record and verification history.'
+category: 'done'
+triggers:
+  - done
+  - archive
+  - behavior-record
+  - verification
+appliesTo:
+  - done-specs
+  - implementation-history
+  - audit
+updated: '2026-06-21'
+---
+
 # 将 context 工程原则改为 guidance 索引
 
 ## Meta

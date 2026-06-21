@@ -1,3 +1,24 @@
+---
+name: 'mcp-data'
+version: '1.1.0'
+title: 'mcp 源码审查任务'
+type: 'source-review-spec'
+status: 'source-review/needs-ai-summary'
+source: 'static-source-hints'
+description: 'Source-derived review task; AI must read real code before writing business facts.'
+category: 'review'
+triggers:
+  - source-review
+  - code-reading
+  - behavior-summary
+appliesTo:
+  - review-specs
+  - source-code
+  - tests
+  - behavior-records
+updated: '2026-06-21'
+---
+
 # mcp 源码审查任务
 
 ## Meta

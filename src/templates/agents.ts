@@ -1,7 +1,20 @@
 /* Agent protocol and README template generation for spec-coding. */
+import { MARKDOWN_METADATA_UPDATED, MARKDOWN_METADATA_VERSION, withMarkdownMetadata } from "./metadata.js";
 
 function agentProtocolMd(fileName: "AGENTS.md" | "CLAUDE.md", projectName: string): string {
-  return [
+  const name = fileName === "AGENTS.md" ? "agents" : "claude";
+  return withMarkdownMetadata({
+    name,
+    version: MARKDOWN_METADATA_VERSION,
+    title: fileName,
+    type: "agent-protocol",
+    source: "spec-coding-mcp",
+    description: `Startup protocol for AI coding agents working on ${projectName}.`,
+    category: "workflow",
+    triggers: ["startup", "coding-agent", "spec-context", "guidance"],
+    appliesTo: ["agents", "model-startup", "workflow-routing"],
+    updated: MARKDOWN_METADATA_UPDATED
+  }, [
     `# ${fileName}`,
     "",
     `Project: ${projectName}`,
@@ -16,19 +29,21 @@ function agentProtocolMd(fileName: "AGENTS.md" | "CLAUDE.md", projectName: strin
     "2. Treat selected specs and open TODOs as the only task source.",
     "3. Execute open TODOs from top to bottom; when none exist, follow the selected spec.",
     "4. If principles are unclear, call `spec_guidance_list`, then `spec_guidance_read`: engineering rules use `engineering`, UI/UX rules use `ui-ux`.",
-    "5. Record meaningful progress with `spec_checkpoint`.",
-    "6. Call `spec_done` only after implementation, TODO updates, verification, and final behavior records are complete.",
+    "5. For complex tasks, use `spec_skills_search` to find relevant skills; for UI/UX work, ensure `ui-ux-pro-max` is installed with `spec_skills_install`.",
+    "6. Record meaningful progress with `spec_checkpoint`.",
+    "7. Call `spec_done` only after implementation, TODO updates, verification, and final behavior records are complete.",
     "",
     "## Guidance",
     "",
     "- `engineering`：engineering, code style, architecture, and business confirmation rules.",
-    "- `ui-ux`：fact-first, context-sensitive UI/UX design principles.",
+    "- `ui-ux`：fact-first, context-sensitive UI/UX design principles; default UI/UX skill is `ui-ux-pro-max`.",
     "- `spec-writing`：spec workflow, TODO handling, checkpoint, done, and behavior records.",
     "- `git-commit`：safe verification, staging, commit message, and final report workflow.",
     "- `pr-submit`：PR template discovery, branch push, PR body, creation, and fallback workflow.",
     "- `quality-review`：implementation self-review for code quality, tests, architecture, UI/UX states, and delivery risk.",
     "",
     "Read guidance only when needed; do not copy long guidance into normal context.",
+    "`spec_skills_search` searches skills.sh through the official skills CLI. `spec_skills_install` installs skills with `npx skills add`, defaulting to global Codex installation of `ui-ux-pro-max` from `https://github.com/nextlevelbuilder/ui-ux-pro-max-skill`.",
     "",
     "## Hard Stop",
     "",
@@ -40,7 +55,7 @@ function agentProtocolMd(fileName: "AGENTS.md" | "CLAUDE.md", projectName: strin
     "- Do not use stale conversation context over selected specs or open TODOs.",
     "- Do not overwrite user edits or make unrelated reshuffles.",
     "- Keep changes small, focused, and verified."
-  ].join("\n");
+  ]);
 }
 
 export function agentsMd(projectName: string): string {
@@ -52,7 +67,19 @@ export function claudeMd(projectName: string): string {
 }
 
 export function specsReadme(projectName: string): string {
-  return [
+  return withMarkdownMetadata({
+    name: "specs-readme",
+    version: MARKDOWN_METADATA_VERSION,
+    title: `${projectName} Specs`,
+    type: "specs-readme",
+    status: "reference",
+    source: "spec-coding-mcp",
+    description: `Spec workflow index and conventions for ${projectName}.`,
+    category: "workflow",
+    triggers: ["specs", "workflow", "todo", "done", "guidance"],
+    appliesTo: ["specs-directory", "workflow-docs", "agent-reference"],
+    updated: MARKDOWN_METADATA_UPDATED
+  }, [
     `# ${projectName} Specs`,
     "",
     "本目录用于 spec coding：先写清楚规格，再让 AI 按规格修改代码和测试。",
@@ -90,14 +117,21 @@ export function specsReadme(projectName: string): string {
     "",
     "## 指导性提示词",
     "",
-    "`spec_guidance_list` 会列出内置 guidance 名称和对应 Markdown 路径；`spec_guidance_read` 会读取某一份提示词。",
+    "`spec_guidance_list` 会列出内置 guidance 名称、版本、分类、描述、触发词、适用对象和对应 Markdown 路径；`spec_guidance_read` 会读取某一份提示词。",
+    "默认 guidance 文件顶部包含类似 SKILL.md 的 YAML 元信息：`name`、`version`、`title`、`description`、`category`、`triggers`、`appliesTo` 和 `updated`，方便工具和模型检索；普通 README 和 VitePress docs 页面不默认加入这套元信息。",
     "这些提示词只用于在模型忘记工程、UI/UX、spec 写作、Git 提交、PR 工作流或质量审查原则时按需提醒，不替代当前 spec、TODO、用户要求或代码事实。",
     "`spec_context` 只显示 guidance 索引和必要执行护栏，不展开完整原则正文；需要细节时再按 name 读取 guidance。",
     "用户可以直接编辑 `guidance/*.md`；目录缺失、为空或缺少默认文件时，工具会补齐内置默认 Markdown，已有文件不会被覆盖。",
+    "",
+    "## Skills",
+    "",
+    "- `spec_skills_search` 通过官方 skills CLI 搜索 skills.sh，适合复杂任务前寻找专门能力。",
+    "- `spec_skills_install` 通过 `npx skills add` 安装 skill；默认安装 `https://github.com/nextlevelbuilder/ui-ux-pro-max-skill` 中的 `ui-ux-pro-max` 到 Codex 全局 skills 目录。",
+    "- UI/UX 任务默认优先使用 `ui-ux-pro-max` skill，但仍必须服从项目事实、用户语境和当前 `ui-ux` guidance。",
     "",
     "## 命名要求",
     "",
     "- 文件名使用当天递增序号和可读业务名，避免 `todo-9.md` 这类无法审查的名称。",
     "- `done/` 只记录实际代码行为、测试结果或用户确认事实；禁止把猜测写成最终行为。"
-  ].join("\n");
+  ]);
 }

@@ -1,3 +1,22 @@
+---
+name: 'git-commit'
+version: '1.1.0'
+title: 'Git 提交工作流原则'
+description: 'Safe commit workflow for verification, staging relevant files, commit messages, and final reports.'
+category: 'git'
+triggers:
+  - commit
+  - git
+  - stage
+  - verify-before-commit
+appliesTo:
+  - git-status
+  - staging
+  - commit-message
+  - verification-report
+updated: '2026-06-21'
+---
+
 # Git 提交工作流原则
 
 ## 用途

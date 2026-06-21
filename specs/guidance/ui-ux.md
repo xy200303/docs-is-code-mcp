@@ -1,54 +1,53 @@
-# UI/UX 设计美学原则
+---
+name: 'ui-ux'
+version: '1.1.0'
+title: 'UI/UX Skill 路由原则'
+description: 'UI/UX routing guidance that tells models to use the designated ui-ux-pro-max skill instead of maintaining local design rules.'
+category: 'ui-ux'
+triggers:
+  - 'ui'
+  - 'ux'
+  - 'website'
+  - 'component'
+  - 'interaction'
+  - 'copywriting'
+  - 'visual-design'
+appliesTo:
+  - 'frontend'
+  - 'website'
+  - 'components'
+  - 'layout'
+  - 'copy'
+  - 'interaction'
+  - 'responsive-design'
+updated: '2026-06-21'
+---
+
+# UI/UX Skill 路由原则
 
 ## 用途
 
-用于提醒模型在前端、页面、组件和交互任务中保持清晰、克制、可用的体验质量。
+用于提醒模型在 UI/UX 任务中使用指定外部 skill，而不是在本 guidance 内展开设计原则。
 
 ## 使用方式
 
 - 当模型不确定相关原则、开始偏离约束或需要校准输出质量时，读取本文件。
 - 本文件是指导性提示词，不替代当前 spec、TODO、用户要求或代码事实。
+- UI/UX 任务默认优先使用 `ui-ux-pro-max` skill：先用 `spec_skills_install` 确保 `https://github.com/nextlevelbuilder/ui-ux-pro-max-skill` 中的 `ui-ux-pro-max` 已安装到当前编程工具的全局 skills 目录；需要其他专项能力时先用 `spec_skills_search` 搜索 skills.sh。
+- 本 guidance 只负责路由到指定 skill，不再维护本地 UI/UX 设计原则或 checklist。
 - 用户可以直接编辑本文件；工具会读取项目里的当前内容。
 
-## 默认角色与方法
+## 指定 Skill
 
-- 以 Senior UI/UX Designer 的标准工作：先确认真实产品语境、真实用户、真实内容和真实下一步，再选择视觉风格。
-- Linear / Vercel、暗色、蓝色 accent、8pt grid、Inter 字体和 Aether Vector 气质只能作为可选参考，不是所有项目的默认外观。
-- 视觉方向必须服务项目身份：企业官网、产品官网、个人作品集、开源组织和工具文档应使用不同信息架构；工具型产品优先效率和状态；展示型页面才使用更强叙事。
+- UI/UX 设计、实现、评审、修复和优化任务默认使用 `ui-ux-pro-max` skill。
+- 默认来源：`https://github.com/nextlevelbuilder/ui-ux-pro-max-skill`。
+- 默认安装：先调用 `spec_skills_install`；不传参数时会通过 `npx skills add` 将 `ui-ux-pro-max` 安装到 Codex 全局 skills 目录。
+- 需要确认命令但不写入全局目录时，调用 `spec_skills_install` 并传 `dryRun: true`。
+- 需要查找其他 UI/UX 专项能力时，先调用 `spec_skills_search` 搜索 skills.sh，再按用户或任务需要安装。
 
-## 事实优先
+## 模型行为
 
-- 不要编造指标、客户、性能数据、融资、商业定位、邮箱、路线图承诺或社区规模。
-- 文案、CTA 和信息结构必须来自用户输入、仓库内容、项目文档、可验证源码或明确搜索结果；来源不明时先确认或标记待确认。
-- 品牌/组织/产品含义不明确时，先向用户确认或搜索验证，再写首屏文案、导航结构和视觉隐喻。
-- 高级感不能替代真实性；页面可以精致，但必须先做对。
-
-## 视觉系统
-
-- 先沿用项目现有设计系统、品牌色、字体、组件库和图标库；没有现成系统时再建立轻量规则。
-- 色彩、圆角、网格、字体和动效应由项目类型决定，不要把所有页面推成同一种 dark SaaS 风格。
-- CTA 必须高对比，主操作清晰可见；次要操作降低视觉重量但保持可发现。
-- 使用 CRAP 原则：Contrast、Repetition、Alignment、Proximity；间距、半径、边框、阴影和字体层级要一致。
-- 使用 Gestalt 原则组织界面：相关项目视觉上成组，跨组内容用背景、边界、留白或层级清楚分离。
-- 避免脏灰、低对比文字、无意义渐变和单一色相堆叠；用对比、层级、留白和真实内容建立秩序。
-
-## 交互与状态
-
-- 所有异步操作要有 loading / pending 状态，避免用户误以为无响应。
-- 允许 undo 或可恢复路径；危险操作需要预防误触、确认或清晰后悔药。
-- 优先预防错误：禁用无效提交、即时校验输入、明确错误文案和恢复动作。
-- 交互反馈要及时但克制：hover、focus、active、disabled、empty、error、success 状态都要完整。
-
-## 原则
-
-- 先判断产品语境：工具型界面应信息密度高、导航清晰、视觉克制；展示型页面才需要更强叙事。
-- 首屏应直接承载真实体验或核心对象，不用空泛营销和装饰性布局替代功能。
-- 首屏检查：这个项目真实是什么；首屏是否出现 repo、产品截图、项目矩阵、demo、核心交互或真实对象；是否只是抽象视觉和营销文案；CTA 是否对应真实下一步。
-- 只有明确是 OSS 或开源组织官网时，才默认优先 GitHub 入口、featured repos、research tracks、contribution guide、docs/roadmap、license/community links 和项目状态；避免把普通企业官网误套开源结构。
-- 交互控件要符合直觉：图标按钮、开关、分段控件、菜单、标签页和输入组件各司其职。
-- 避免文字重叠、按钮挤压、卡片套卡片和只靠单一色相堆叠层次。
-- 固定格式元素要有稳定尺寸和响应式约束，避免 hover、加载和动态文本造成布局跳动。
-- 移动端和桌面都要检查信息层级、触控目标、可读性和空/加载/错误状态。
-- 优先使用已有设计系统和图标库；新增视觉风格要服务用户任务，不做无意义装饰。
-- 完成后用截图或实际运行检查关键视口，确认没有遮挡、空白、错位和不可读文本。
-- 官网/应用验收必须确认当前端口服务的是当前项目，检查页面 title/app root 内容，桌面和移动端截图，并确认首屏没有错位、遮挡、空白或串项目。
+- 本文件只负责把 UI/UX 工作路由到指定 skill；不要在本文件内继续维护视觉、文案、首屏、官网结构或验收 checklist。
+- 模型不要基于本 guidance 自行设计 UI/UX 规则；读取并使用 `ui-ux-pro-max` skill 的说明来完成设计判断。
+- 如果 `ui-ux-pro-max` skill 与当前用户要求或当前 spec 冲突，以用户要求和当前 spec 为准，并在 checkpoint 或最终回复中说明取舍。
+- 如果 skill 未安装且当前环境不能安装，明确报告阻塞或使用 `dryRun` 给出安装命令，不要伪造已使用 skill。

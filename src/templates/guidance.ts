@@ -6,12 +6,121 @@ export interface GuidanceTemplate {
   title: string;
   purpose: string;
   fileName: string;
+  version: string;
+  description: string;
+  category: string;
+  triggers: string[];
+  appliesTo: string[];
   content: string;
 }
 
-function guidanceDocument(title: string, purpose: string, bodyLines: string[]): string {
+export interface GuidanceMetadata {
+  name: string;
+  version: string;
+  title: string;
+  description: string;
+  category: string;
+  triggers: string[];
+  appliesTo: string[];
+  updated: string;
+}
+
+const GUIDANCE_VERSION = "1.1.0";
+const GUIDANCE_UPDATED = "2026-06-21";
+
+const guidanceMetadatas = {
+  engineering: {
+    name: "engineering",
+    version: GUIDANCE_VERSION,
+    title: "工程与代码风格原则",
+    description: "Engineering rules for simple, maintainable, testable, boundary-conscious implementation.",
+    category: "engineering",
+    triggers: ["architecture", "implementation", "refactor", "business-rule", "error-handling", "testing"],
+    appliesTo: ["code", "tests", "architecture", "business-logic", "project-structure"],
+    updated: GUIDANCE_UPDATED
+  },
+  "ui-ux": {
+    name: "ui-ux",
+    version: GUIDANCE_VERSION,
+    title: "UI/UX Skill 路由原则",
+    description: "UI/UX routing guidance that tells models to use the designated ui-ux-pro-max skill instead of maintaining local design rules.",
+    category: "ui-ux",
+    triggers: ["ui", "ux", "website", "component", "interaction", "copywriting", "visual-design"],
+    appliesTo: ["frontend", "website", "components", "layout", "copy", "interaction", "responsive-design"],
+    updated: GUIDANCE_UPDATED
+  },
+  "spec-writing": {
+    name: "spec-writing",
+    version: GUIDANCE_VERSION,
+    title: "Spec 与行为记录原则",
+    description: "Spec workflow rules for TODO execution, checkpoints, done archives, and behavior contracts.",
+    category: "workflow",
+    triggers: ["spec", "todo", "checkpoint", "done", "behavior-record", "handoff"],
+    appliesTo: ["specs", "todos", "checkpoints", "behavior-records", "done-archives"],
+    updated: GUIDANCE_UPDATED
+  },
+  "git-commit": {
+    name: "git-commit",
+    version: GUIDANCE_VERSION,
+    title: "Git 提交工作流原则",
+    description: "Safe commit workflow for verification, staging relevant files, commit messages, and final reports.",
+    category: "git",
+    triggers: ["commit", "git", "stage", "verify-before-commit"],
+    appliesTo: ["git-status", "staging", "commit-message", "verification-report"],
+    updated: GUIDANCE_UPDATED
+  },
+  "pr-submit": {
+    name: "pr-submit",
+    version: GUIDANCE_VERSION,
+    title: "PR 提交工作流原则",
+    description: "Pull request workflow for template discovery, commits, branch push, PR body, and fallback URLs.",
+    category: "pull-request",
+    triggers: ["pr", "pull-request", "merge-request", "branch-push", "gh-pr-create"],
+    appliesTo: ["pull-requests", "branches", "pr-template", "review-notes"],
+    updated: GUIDANCE_UPDATED
+  },
+  "quality-review": {
+    name: "quality-review",
+    version: GUIDANCE_VERSION,
+    title: "质量审查原则",
+    description: "Post-implementation review checklist for code quality, tests, architecture, UI/UX, and delivery risk.",
+    category: "quality",
+    triggers: ["review", "self-check", "verification", "before-done", "before-commit", "before-pr"],
+    appliesTo: ["code-review", "tests", "ui-review", "risk-review", "delivery"],
+    updated: GUIDANCE_UPDATED
+  }
+} satisfies Record<string, GuidanceMetadata>;
+
+function yamlList(items: string[]): string[] {
+  return items.map((item) => `  - ${yamlScalar(item)}`);
+}
+
+function yamlScalar(value: string): string {
+  return `'${value.replaceAll("'", "''")}'`;
+}
+
+function guidanceMetadataBlock(metadata: GuidanceMetadata): string[] {
   return [
-    `# ${title}`,
+    "---",
+    `name: ${yamlScalar(metadata.name)}`,
+    `version: ${yamlScalar(metadata.version)}`,
+    `title: ${yamlScalar(metadata.title)}`,
+    `description: ${yamlScalar(metadata.description)}`,
+    `category: ${yamlScalar(metadata.category)}`,
+    "triggers:",
+    ...yamlList(metadata.triggers),
+    "appliesTo:",
+    ...yamlList(metadata.appliesTo),
+    `updated: ${yamlScalar(metadata.updated)}`,
+    "---"
+  ];
+}
+
+function guidanceDocument(metadata: GuidanceMetadata, purpose: string, bodyLines: string[]): string {
+  return [
+    ...guidanceMetadataBlock(metadata),
+    "",
+    `# ${metadata.title}`,
     "",
     "## 用途",
     "",
@@ -21,6 +130,10 @@ function guidanceDocument(title: string, purpose: string, bodyLines: string[]): 
     "",
     "- 当模型不确定相关原则、开始偏离约束或需要校准输出质量时，读取本文件。",
     "- 本文件是指导性提示词，不替代当前 spec、TODO、用户要求或代码事实。",
+    ...(metadata.name === "ui-ux" ? [
+      "- UI/UX 任务默认优先使用 `ui-ux-pro-max` skill：先用 `spec_skills_install` 确保 `https://github.com/nextlevelbuilder/ui-ux-pro-max-skill` 中的 `ui-ux-pro-max` 已安装到当前编程工具的全局 skills 目录；需要其他专项能力时先用 `spec_skills_search` 搜索 skills.sh。",
+      "- 本 guidance 只负责路由到指定 skill，不再维护本地 UI/UX 设计原则或 checklist。"
+    ] : []),
     "- 用户可以直接编辑本文件；工具会读取项目里的当前内容。",
     "",
     ...bodyLines
@@ -28,7 +141,7 @@ function guidanceDocument(title: string, purpose: string, bodyLines: string[]): 
 }
 
 function engineeringGuidance(): string {
-  return guidanceDocument("工程与代码风格原则", "用于提醒模型保持简单、可维护、可测试、边界清晰的工程实现。", [
+  return guidanceDocument(guidanceMetadatas.engineering, "用于提醒模型保持简单、可维护、可测试、边界清晰的工程实现。", [
     "## 工程原则",
     "",
     "这些规则是强制约束，不是建议。",
@@ -44,54 +157,26 @@ function engineeringGuidance(): string {
 }
 
 function uiUxGuidance(): string {
-  return guidanceDocument("UI/UX 设计美学原则", "用于提醒模型在前端、页面、组件和交互任务中保持清晰、克制、可用的体验质量。", [
-    "## 默认角色与方法",
+  return guidanceDocument(guidanceMetadatas["ui-ux"], "用于提醒模型在 UI/UX 任务中使用指定外部 skill，而不是在本 guidance 内展开设计原则。", [
+    "## 指定 Skill",
     "",
-    "- 以 Senior UI/UX Designer 的标准工作：先确认真实产品语境、真实用户、真实内容和真实下一步，再选择视觉风格。",
-    "- Linear / Vercel、暗色、蓝色 accent、8pt grid、Inter 字体和 Aether Vector 气质只能作为可选参考，不是所有项目的默认外观。",
-    "- 视觉方向必须服务项目身份：企业官网、产品官网、个人作品集、开源组织和工具文档应使用不同信息架构；工具型产品优先效率和状态；展示型页面才使用更强叙事。",
+    "- UI/UX 设计、实现、评审、修复和优化任务默认使用 `ui-ux-pro-max` skill。",
+    "- 默认来源：`https://github.com/nextlevelbuilder/ui-ux-pro-max-skill`。",
+    "- 默认安装：先调用 `spec_skills_install`；不传参数时会通过 `npx skills add` 将 `ui-ux-pro-max` 安装到 Codex 全局 skills 目录。",
+    "- 需要确认命令但不写入全局目录时，调用 `spec_skills_install` 并传 `dryRun: true`。",
+    "- 需要查找其他 UI/UX 专项能力时，先调用 `spec_skills_search` 搜索 skills.sh，再按用户或任务需要安装。",
     "",
-    "## 事实优先",
+    "## 模型行为",
     "",
-    "- 不要编造指标、客户、性能数据、融资、商业定位、邮箱、路线图承诺或社区规模。",
-    "- 文案、CTA 和信息结构必须来自用户输入、仓库内容、项目文档、可验证源码或明确搜索结果；来源不明时先确认或标记待确认。",
-    "- 品牌/组织/产品含义不明确时，先向用户确认或搜索验证，再写首屏文案、导航结构和视觉隐喻。",
-    "- 高级感不能替代真实性；页面可以精致，但必须先做对。",
-    "",
-    "## 视觉系统",
-    "",
-    "- 先沿用项目现有设计系统、品牌色、字体、组件库和图标库；没有现成系统时再建立轻量规则。",
-    "- 色彩、圆角、网格、字体和动效应由项目类型决定，不要把所有页面推成同一种 dark SaaS 风格。",
-    "- CTA 必须高对比，主操作清晰可见；次要操作降低视觉重量但保持可发现。",
-    "- 使用 CRAP 原则：Contrast、Repetition、Alignment、Proximity；间距、半径、边框、阴影和字体层级要一致。",
-    "- 使用 Gestalt 原则组织界面：相关项目视觉上成组，跨组内容用背景、边界、留白或层级清楚分离。",
-    "- 避免脏灰、低对比文字、无意义渐变和单一色相堆叠；用对比、层级、留白和真实内容建立秩序。",
-    "",
-    "## 交互与状态",
-    "",
-    "- 所有异步操作要有 loading / pending 状态，避免用户误以为无响应。",
-    "- 允许 undo 或可恢复路径；危险操作需要预防误触、确认或清晰后悔药。",
-    "- 优先预防错误：禁用无效提交、即时校验输入、明确错误文案和恢复动作。",
-    "- 交互反馈要及时但克制：hover、focus、active、disabled、empty、error、success 状态都要完整。",
-    "",
-    "## 原则",
-    "",
-    "- 先判断产品语境：工具型界面应信息密度高、导航清晰、视觉克制；展示型页面才需要更强叙事。",
-    "- 首屏应直接承载真实体验或核心对象，不用空泛营销和装饰性布局替代功能。",
-    "- 首屏检查：这个项目真实是什么；首屏是否出现 repo、产品截图、项目矩阵、demo、核心交互或真实对象；是否只是抽象视觉和营销文案；CTA 是否对应真实下一步。",
-    "- 只有明确是 OSS 或开源组织官网时，才默认优先 GitHub 入口、featured repos、research tracks、contribution guide、docs/roadmap、license/community links 和项目状态；避免把普通企业官网误套开源结构。",
-    "- 交互控件要符合直觉：图标按钮、开关、分段控件、菜单、标签页和输入组件各司其职。",
-    "- 避免文字重叠、按钮挤压、卡片套卡片和只靠单一色相堆叠层次。",
-    "- 固定格式元素要有稳定尺寸和响应式约束，避免 hover、加载和动态文本造成布局跳动。",
-    "- 移动端和桌面都要检查信息层级、触控目标、可读性和空/加载/错误状态。",
-    "- 优先使用已有设计系统和图标库；新增视觉风格要服务用户任务，不做无意义装饰。",
-    "- 完成后用截图或实际运行检查关键视口，确认没有遮挡、空白、错位和不可读文本。",
-    "- 官网/应用验收必须确认当前端口服务的是当前项目，检查页面 title/app root 内容，桌面和移动端截图，并确认首屏没有错位、遮挡、空白或串项目。"
+    "- 本文件只负责把 UI/UX 工作路由到指定 skill；不要在本文件内继续维护视觉、文案、首屏、官网结构或验收 checklist。",
+    "- 模型不要基于本 guidance 自行设计 UI/UX 规则；读取并使用 `ui-ux-pro-max` skill 的说明来完成设计判断。",
+    "- 如果 `ui-ux-pro-max` skill 与当前用户要求或当前 spec 冲突，以用户要求和当前 spec 为准，并在 checkpoint 或最终回复中说明取舍。",
+    "- 如果 skill 未安装且当前环境不能安装，明确报告阻塞或使用 `dryRun` 给出安装命令，不要伪造已使用 skill。"
   ]);
 }
 
 function specWritingGuidance(): string {
-  return guidanceDocument("Spec 与行为记录原则", "用于提醒模型写清楚 spec、TODO、checkpoint 和最终行为契约。", [
+  return guidanceDocument(guidanceMetadatas["spec-writing"], "用于提醒模型写清楚 spec、TODO、checkpoint 和最终行为契约。", [
     "## 当前任务协议",
     "",
     ...currentTaskInstructionBullets(),
@@ -115,7 +200,7 @@ function specWritingGuidance(): string {
 }
 
 function gitCommitGuidance(): string {
-  return guidanceDocument("Git 提交工作流原则", "用于提醒模型在用户要求提交代码时安全地验证、暂存、提交并汇报结果。", [
+  return guidanceDocument(guidanceMetadatas["git-commit"], "用于提醒模型在用户要求提交代码时安全地验证、暂存、提交并汇报结果。", [
     "## 触发条件",
     "",
     "- 只有用户明确要求提交、帮我提交、commit、自动提交或等价表达时才使用本指导。",
@@ -176,7 +261,7 @@ function gitCommitGuidance(): string {
 }
 
 function prSubmitGuidance(): string {
-  return guidanceDocument("PR 提交工作流原则", "用于提醒模型在用户要求准备、创建或提交 PR 时安全地发现模板、提交变更、推送分支并生成 PR 内容。", [
+  return guidanceDocument(guidanceMetadatas["pr-submit"], "用于提醒模型在用户要求准备、创建或提交 PR 时安全地发现模板、提交变更、推送分支并生成 PR 内容。", [
     "## 触发条件",
     "",
     "- 只有用户明确要求准备 PR、生成 PR、创建 Pull Request、提交 PR 或等价表达时才使用本指导。",
@@ -259,7 +344,7 @@ function prSubmitGuidance(): string {
 }
 
 function qualityReviewGuidance(): string {
-  return guidanceDocument("质量审查原则", "用于提醒模型在实现后自查代码质量、测试覆盖、架构边界、UI/交互状态和交付风险。", [
+  return guidanceDocument(guidanceMetadatas["quality-review"], "用于提醒模型在实现后自查代码质量、测试覆盖、架构边界、UI/交互状态和交付风险。", [
     "## 使用时机",
     "",
     "- 完成一段实现、准备 checkpoint、准备 done、提交前或 PR 前读取本文件。",
@@ -282,15 +367,10 @@ function qualityReviewGuidance(): string {
     "",
     "## UI 与交互质量",
     "",
-    "- 设计前是否确认真实项目定位、用户、核心对象、事实来源和 CTA；不明确时是否先确认或搜索。",
-    "- 是否避免编造指标、客户、性能数据、邮箱、商业定位、社区规模和路线图承诺。",
-    "- 首屏是否呈现真实对象或核心体验，而不是只呈现抽象视觉和营销文案。",
-    "- 若明确是 OSS 或开源组织官网，是否优先 GitHub、featured repos、research tracks、贡献路径、docs/roadmap、license/community 和项目状态；否则是否使用匹配企业/产品/作品集/文档站的结构。",
-    "- loading、empty、error、success、disabled、hover、focus、active 等状态是否完整。",
-    "- 表单校验、危险操作、防误触、undo/recovery 和错误恢复是否清楚。",
-    "- 移动端和桌面是否检查布局、可读性、触控目标、遮挡、溢出和文本换行。",
-    "- Web 页面是否确认当前端口服务的是当前项目、页面 title/app root 正确、桌面和移动端截图无串项目、空白、遮挡或错位。",
-    "- 视觉层级、间距、对齐、对比度、组件选择和交互反馈是否符合 ui-ux guidance。",
+    "- 如果本次涉及 UI/UX，是否已读取 `ui-ux` guidance 并使用指定的 `ui-ux-pro-max` skill。",
+    "- 如果 skill 未安装，是否调用 `spec_skills_install`；无法安装时是否用 `dryRun: true` 给出命令并说明阻塞。",
+    "- 是否记录实际使用的 skill、安装或 dry-run 结果，以及 skill 输出中被采纳的关键建议。",
+    "- 是否避免在本地 quality-review guidance 中自行补充另一套 UI/UX 设计 checklist。",
     "",
     "## 交付前审查",
     "",
@@ -302,43 +382,37 @@ function qualityReviewGuidance(): string {
 
 export const guidanceTemplates: GuidanceTemplate[] = [
   {
-    name: "engineering",
-    title: "工程与代码风格原则",
+    ...guidanceMetadatas.engineering,
     purpose: "用于提醒模型保持简单、可维护、可测试、边界清晰的工程实现。",
     fileName: "engineering.md",
     content: engineeringGuidance()
   },
   {
-    name: "ui-ux",
-    title: "UI/UX 设计美学原则",
+    ...guidanceMetadatas["ui-ux"],
     purpose: "用于提醒模型在前端、页面、组件和交互任务中保持清晰、克制、可用的体验质量。",
     fileName: "ui-ux.md",
     content: uiUxGuidance()
   },
   {
-    name: "spec-writing",
-    title: "Spec 与行为记录原则",
+    ...guidanceMetadatas["spec-writing"],
     purpose: "用于提醒模型写清楚 spec、TODO、checkpoint 和最终行为契约。",
     fileName: "spec-writing.md",
     content: specWritingGuidance()
   },
   {
-    name: "git-commit",
-    title: "Git 提交工作流原则",
+    ...guidanceMetadatas["git-commit"],
     purpose: "用于提醒模型在用户要求提交代码时安全地验证、暂存、提交并汇报结果。",
     fileName: "git-commit.md",
     content: gitCommitGuidance()
   },
   {
-    name: "pr-submit",
-    title: "PR 提交工作流原则",
+    ...guidanceMetadatas["pr-submit"],
     purpose: "用于提醒模型在用户要求准备、创建或提交 PR 时安全地发现模板、提交变更、推送分支并生成 PR 内容。",
     fileName: "pr-submit.md",
     content: prSubmitGuidance()
   },
   {
-    name: "quality-review",
-    title: "质量审查原则",
+    ...guidanceMetadatas["quality-review"],
     purpose: "用于提醒模型在实现后自查代码质量、测试覆盖、架构边界、UI/交互状态和交付风险。",
     fileName: "quality-review.md",
     content: qualityReviewGuidance()

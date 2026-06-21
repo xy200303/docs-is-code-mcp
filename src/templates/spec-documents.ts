@@ -1,10 +1,23 @@
 /* User-authored spec templates and source-derived review spec templates. */
 import { guidancePointerSection, list, workflowGuardSection } from "./markdown.js";
+import { MARKDOWN_METADATA_UPDATED, MARKDOWN_METADATA_VERSION, withMarkdownMetadata } from "./metadata.js";
 import type { SourceScanSummary, SourceSpecCandidate } from "../spec/types.js";
 
 export function specTemplate(kind: "feature" | "bugfix" | "removal"): string {
   const title = kind === "feature" ? "新增功能" : kind === "bugfix" ? "问题修复" : "移除功能";
-  return [
+  return withMarkdownMetadata({
+    name: `${kind}-spec-template`,
+    version: MARKDOWN_METADATA_VERSION,
+    title,
+    type: "spec-template",
+    status: "draft",
+    source: "user-authored",
+    description: `Editable ${kind} spec template for behavior-driven implementation.`,
+    category: "spec-template",
+    triggers: [kind, "spec", "implementation", "verification"],
+    appliesTo: ["active-specs", "templates", "behavior-records"],
+    updated: MARKDOWN_METADATA_UPDATED
+  }, [
     `# ${title}`,
     "",
     "## Meta",
@@ -49,20 +62,13 @@ export function specTemplate(kind: "feature" | "bugfix" | "removal"): string {
     "- 验证命令：列出计划运行的测试、构建、lint 或人工验证命令。",
     "- 待确认问题：列出业务规则不明确、影响面大或高风险的点；未确认前不要实现。",
     "",
-    "## UI/交互质量检查",
+    "## UI/交互 Skill 路由",
     "",
-    "- 仅当前端、页面、组件或交互受影响时填写；需要原则细节时读取 `ui-ux`（`specs/guidance/ui-ux.md`）和 `quality-review`。",
-    "- 设计前定位：项目真实是什么、用户是谁、核心对象是什么、内容来源在哪里；不明确时先确认或搜索。",
-    "- 首屏真实对象：repo、产品截图、项目矩阵、demo、核心交互、组件或真实数据必须至少命中一种。",
-    "- 首屏反营销检查：不能只有抽象视觉、空泛标语、虚构指标或不可执行 CTA。",
-    "- 官网结构由项目类型决定：企业官网、产品官网、个人作品集、开源组织和工具文档应使用不同信息架构；不明确时先确认。",
-    "- OSS/开源组织才默认考虑 GitHub 入口、Featured repos、Research tracks、Contribution guide、Docs/Roadmap、License/Community 和项目状态。",
-    "- 用户路径：入口、主流程、退出/返回、失败恢复。",
-    "- 状态覆盖：loading、empty、error、success、disabled、hover、focus、active。",
-    "- 输入与防错：表单校验、禁用无效提交、危险操作确认、undo/recovery。",
-    "- 响应式与可读性：桌面/移动端布局、触控目标、文本换行、遮挡、溢出、对比度。",
-    "- Web 验收：确认当前端口服务的是当前项目，检查页面 title/app root 内容，桌面和移动端截图无串项目、空白、错位和遮挡。",
-    "- 验证方式：截图、Playwright、手工路径或组件测试。",
+    "- 仅当前端、页面、组件或交互受影响时填写。",
+    "- UI/UX 工作不要在 spec 中展开本地设计原则或 checklist；读取 `ui-ux` guidance 后使用指定的 `ui-ux-pro-max` skill。",
+    "- 如果 `ui-ux-pro-max` 未安装，先调用 `spec_skills_install`；需要预览命令时使用 `dryRun: true`。",
+    "- 如果需要其他专项 UI/UX skill，先调用 `spec_skills_search` 搜索 skills.sh，再按任务需要安装。",
+    "- 记录实际使用的 skill、安装或 dry-run 结果，以及该 skill 产出的关键设计/验收建议。",
     "",
     "## 实际行为记录",
     "",
@@ -91,12 +97,24 @@ export function specTemplate(kind: "feature" | "bugfix" | "removal"): string {
     "## 代码线索",
     "",
     "- 待补充相关文件、函数、路由、组件或测试。"
-  ].join("\n");
+  ]);
 }
 
 export function sourceInventory(summary: SourceScanSummary, generatedAt: string): string {
   const section = (title: string, items: string[]) => [`## ${title}`, "", ...list(items), ""].join("\n");
-  return [
+  return withMarkdownMetadata({
+    name: "source-inventory",
+    version: MARKDOWN_METADATA_VERSION,
+    title: "源码审查线索清单",
+    type: "source-inventory",
+    status: "review",
+    source: "static-source-hints",
+    description: "Static source scan inventory for AI review routing; not a business fact source.",
+    category: "review",
+    triggers: ["source-review", "inventory", "bootstrap", "existing-project"],
+    appliesTo: ["review-specs", "source-scan", "code-reading"],
+    updated: MARKDOWN_METADATA_UPDATED
+  }, [
     "# 源码审查线索清单",
     "",
     `生成时间：${generatedAt}`,
@@ -111,11 +129,23 @@ export function sourceInventory(summary: SourceScanSummary, generatedAt: string)
     section("路由线索", summary.routeHints),
     section("组件线索", summary.componentHints),
     section("模型线索", summary.modelHints)
-  ].join("\n");
+  ]);
 }
 
 export function reviewIndex(specsDir: string, candidates: SourceSpecCandidate[]): string {
-  return [
+  return withMarkdownMetadata({
+    name: "review-index",
+    version: MARKDOWN_METADATA_VERSION,
+    title: "AI 源码审查任务索引",
+    type: "review-index",
+    status: "review",
+    source: "static-source-hints",
+    description: "Index of source-derived review specs for AI code reading tasks.",
+    category: "review",
+    triggers: ["source-review", "review-index", "bootstrap", "existing-project"],
+    appliesTo: ["review-specs", "source-review", "workflow-routing"],
+    updated: MARKDOWN_METADATA_UPDATED
+  }, [
     "# AI 源码审查任务索引",
     "",
     "| Spec | 文件 | 状态 | 来源 |",
@@ -123,11 +153,23 @@ export function reviewIndex(specsDir: string, candidates: SourceSpecCandidate[])
     ...(candidates.length
       ? candidates.map((item) => `| ${item.title} | \`${specsDir}/review/${item.domain}-${item.name}.md\` | source-review/needs-ai-summary | 静态线索，待 AI 阅读源码 |`)
       : ["| 待补充 | 待补充 | 待审查 | 静态线索，待 AI 阅读源码 |"])
-  ].join("\n");
+  ]);
 }
 
 export function sourceReviewSpec(projectName: string, input: SourceSpecCandidate): string {
-  return [
+  return withMarkdownMetadata({
+    name: `${input.domain}-${input.name}`,
+    version: MARKDOWN_METADATA_VERSION,
+    title: input.title,
+    type: "source-review-spec",
+    status: "source-review/needs-ai-summary",
+    source: "static-source-hints",
+    description: `Source-derived review task for ${projectName}; AI must read real code before writing business facts.`,
+    category: "review",
+    triggers: ["source-review", input.domain, "code-reading", "behavior-summary"],
+    appliesTo: ["review-specs", "source-code", "tests", "behavior-records"],
+    updated: MARKDOWN_METADATA_UPDATED
+  }, [
     `# ${input.title}`,
     "",
     "## Meta",
@@ -209,5 +251,5 @@ export function sourceReviewSpec(projectName: string, input: SourceSpecCandidate
     "- 行为规则、功能全过程、默认参数、边界处理和风险问题已用中文补全。",
     "- 若本 spec 仅用于审查且不需要改动，可保持 `source-review/needs-ai-summary` 状态。",
     "- 若当前功能需要移除，把状态改为 `active/removal` 并写清移除范围。"
-  ].join("\n");
+  ]);
 }

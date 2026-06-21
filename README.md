@@ -37,7 +37,6 @@
   <code>specc init</code>
 </p>
 
----
 
 Spec Coding MCP 是一个面向 **spec coding** 的本地 MCP 服务。
 
@@ -96,8 +95,10 @@ specs/
 | `spec_bootstrap` | 首选项目入口：新项目生成 AGENTS、specs 和起步 active spec；旧项目生成 AGENTS、specs 和 AI 源码审查任务 |
 | `spec_context` | 所有写操作前必须调用；返回 spec、TODO、工程约束、可选搜索线索和下一步推荐 |
 | `spec_list` | inspect 阶段查看 review、active、todo、done 状态，并推荐下一步先读取 `spec_context` |
-| `spec_guidance_list` | 列出内置且可编辑的指导性提示词名称、用途和 `specs/guidance/*.md` 路径 |
+| `spec_guidance_list` | 列出内置且可编辑的指导性提示词名称、版本、分类、描述、触发词、适用对象和 `specs/guidance/*.md` 路径 |
 | `spec_guidance_read` | 按名称读取一份指导性提示词；guidance 目录缺失、为空或缺少默认文件时会先写入内置默认 Markdown，再读取项目内容 |
+| `spec_skills_search` | 通过官方 skills CLI 搜索 skills.sh，用于复杂任务前寻找专项 skill |
+| `spec_skills_install` | 通过 `npx skills add` 安装 skill；默认安装 `ui-ux-pro-max` 到 Codex 全局 skills 目录 |
 
 ### 任务创建工具
 
@@ -168,7 +169,11 @@ specs/
 
 两者也会输出 `Workflow State` 摘要，展示 active、todo、review、done、selected spec 和 open TODO 数量。这个摘要只来自当前 specs 状态，帮助模型快速判断工作流位置，不替代源码阅读或业务判断。
 
-`spec_guidance_list` 和 `spec_guidance_read` 是按需提醒工具。`spec_init` 和 `spec_bootstrap` 会生成默认的 `specs/guidance/engineering.md`、`specs/guidance/ui-ux.md`、`specs/guidance/spec-writing.md`、`specs/guidance/git-commit.md`、`specs/guidance/pr-submit.md` 和 `specs/guidance/quality-review.md`；用户可以直接编辑这些 Markdown。读取 guidance 时，如果目录缺失、目录为空或缺少某个默认文件，工具会先把缺失的内置默认 Markdown 写入项目，再读取项目内容；已有文件不会被覆盖。guidance 内容不塞进 `spec_context`，也不替代 selected specs、open TODO、用户要求或真实源码阅读。
+`spec_guidance_list` 和 `spec_guidance_read` 是按需提醒工具。`spec_init` 和 `spec_bootstrap` 会生成默认的 `specs/guidance/engineering.md`、`specs/guidance/ui-ux.md`、`specs/guidance/spec-writing.md`、`specs/guidance/git-commit.md`、`specs/guidance/pr-submit.md` 和 `specs/guidance/quality-review.md`；用户可以直接编辑这些 Markdown。每份默认 guidance 顶部都有类似 SKILL.md 的 YAML 元信息，包含 `name`、`version`、`title`、`description`、`category`、`triggers`、`appliesTo` 和 `updated`，方便工具和模型按名称、版本、描述、适用场景检索。读取 guidance 时，如果目录缺失、目录为空或缺少某个默认文件，工具会先把缺失的内置默认 Markdown 写入项目，再读取项目内容；已有文件不会被覆盖。guidance 内容不塞进 `spec_context`，也不替代 selected specs、open TODO、用户要求或真实源码阅读。
+
+`spec_skills_search` 和 `spec_skills_install` 用于接入外部 skills。搜索走 skills.sh，安装走官方 `npx skills add`；安装默认使用全局 scope，并默认把 `https://github.com/nextlevelbuilder/ui-ux-pro-max-skill` 中的 `ui-ux-pro-max` 安装到 Codex 全局 skills 目录。UI/UX 任务默认优先使用这个 skill；`ui-ux` guidance 只负责路由到该 skill，不再维护本地设计原则或 checklist。需要先看命令而不改全局目录时，给安装工具传 `dryRun: true`。
+
+YAML 元信息只用于需要被工具读取的文档，例如 `AGENTS.md`、`CLAUDE.md`、`specs/README.md`、`specs/guidance/*.md` 以及 review/active/todo/done specs。普通 `README.md` 和 VitePress `docs/**/*.md` 不默认加入这套 SKILL/spec 风格元信息；VitePress 页面只保留自身需要的 front matter。
 
 ### 写操作硬约束
 
@@ -225,7 +230,7 @@ TODO 可以放在 `specs/todo/*.md`，也可以写在 active spec 的 `## TODO` 
 - PR Submit Workflow：用户要求 PR 时如何发现模板、提交未提交工作、推送分支、生成或创建 PR，并在工具不可用时提供 compare URL。
 - Quality Review Workflow：实现后如何自查代码质量、测试覆盖、架构边界、UI/交互状态、真实定位、首屏对象、Web 端口/截图验收和交付风险。
 
-UI/UX guidance 不再把 Linear / Vercel、暗色、蓝色 accent、8pt grid 或 Aether Vector 当成所有项目的默认外观；这些只作为可选参考。模型设计前应先确认项目真实定位、用户、核心对象、事实来源和 CTA。只有明确是 OSS 或开源组织官网时，才默认优先 GitHub、featured repos、research tracks、contribution guide、docs/roadmap、license/community 和项目状态；普通企业官网或产品官网不能被强行套入开源结构。
+UI/UX guidance 不再内置设计原则、视觉约束、官网结构规则、AI 味 checklist、文案约束或首屏 checklist。模型遇到 UI/UX 任务时，应读取 `ui-ux` guidance，并使用指定的 `ui-ux-pro-max` skill 完成设计判断；本仓库只维护 skill 路由和安装说明。
 
 提示词协议由 `src/templates/constraints.ts`、`src/templates/prompt-protocol.ts` 和 `src/templates/markdown.ts` 共同生成。
 

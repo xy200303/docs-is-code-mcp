@@ -1,3 +1,24 @@
+---
+name: 'review-index'
+version: '1.1.0'
+title: 'AI 源码审查任务索引'
+type: 'review-index'
+status: 'review'
+source: 'static-source-hints'
+description: 'Index of source-derived review specs for AI code reading tasks.'
+category: 'review'
+triggers:
+  - source-review
+  - review-index
+  - bootstrap
+  - existing-project
+appliesTo:
+  - review-specs
+  - source-review
+  - workflow-routing
+updated: '2026-06-21'
+---
+
 # AI 源码审查任务索引
 
 | Spec | 文件 | 状态 | 来源 |

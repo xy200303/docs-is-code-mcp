@@ -1,3 +1,25 @@
+---
+name: 'engineering'
+version: '1.1.0'
+title: '工程与代码风格原则'
+description: 'Engineering rules for simple, maintainable, testable, boundary-conscious implementation.'
+category: 'engineering'
+triggers:
+  - architecture
+  - implementation
+  - refactor
+  - business-rule
+  - error-handling
+  - testing
+appliesTo:
+  - code
+  - tests
+  - architecture
+  - business-logic
+  - project-structure
+updated: '2026-06-21'
+---
+
 # 工程与代码风格原则
 
 ## 用途

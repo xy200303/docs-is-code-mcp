@@ -1,3 +1,25 @@
+---
+name: 'specs-readme'
+version: '1.1.0'
+title: 'Spec Coding MCP Specs'
+type: 'specs-readme'
+status: 'reference'
+source: 'spec-coding-mcp'
+description: 'Spec workflow index and conventions for Spec Coding MCP.'
+category: 'workflow'
+triggers:
+  - specs
+  - workflow
+  - todo
+  - done
+  - guidance
+appliesTo:
+  - specs-directory
+  - workflow-docs
+  - agent-reference
+updated: '2026-06-21'
+---
+
 # Spec Coding MCP Specs
 
 本目录用于 spec coding：先写清楚规格，再让 AI 按规格修改代码和测试。
@@ -35,10 +57,16 @@
 
 ## 指导性提示词
 
-`spec_guidance_list` 会列出内置 guidance 名称和对应 Markdown 路径；`spec_guidance_read` 会读取某一份提示词。
+`spec_guidance_list` 会列出内置 guidance 名称、版本、分类、描述、触发词、适用对象和对应 Markdown 路径；`spec_guidance_read` 会读取某一份提示词。
+默认 guidance 文件顶部包含类似 SKILL.md 的 YAML 元信息：`name`、`version`、`title`、`description`、`category`、`triggers`、`appliesTo` 和 `updated`，方便工具和模型检索。
 这些提示词只用于在模型忘记工程、UI/UX、spec 写作、Git 提交、PR 工作流或质量审查原则时按需提醒，不替代当前 spec、TODO、用户要求或代码事实。
 `spec_context` 只显示 guidance 索引和必要执行护栏，不展开完整原则正文；需要细节时再按 name 读取 guidance。
 用户可以直接编辑 `guidance/*.md`；目录缺失、为空或缺少默认文件时，工具会补齐内置默认 Markdown，已有文件不会被覆盖。
+
+## Markdown 元信息
+
+本目录下的 Markdown 文件默认带 YAML 元信息，放在正文最前面，供工具和模型检索。常见字段包括 `name`、`version`、`title`、`type`、`status`、`source`、`description`、`category`、`triggers`、`appliesTo` 和 `updated`。
+旧的 `## Meta` 仍可保留，作为人类可读摘要和兼容层；工具读取状态时会兼容 YAML front matter 与旧的 `- status:` / `- source:` 写法。
 
 ## 命名要求
 

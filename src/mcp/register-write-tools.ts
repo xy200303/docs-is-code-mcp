@@ -6,9 +6,12 @@ import { recordSpecCheckpoint } from "../spec/checkpoint-writer.js";
 import { recordSpecReviewResult } from "../spec/review-result-writer.js";
 import { renderAgentFileResult, renderReviewResult, renderSpecResult } from "./render-spec.js";
 import { textResult } from "./render-core.js";
+import { RootSchema } from "./tool-schema.js";
 import { SpecCheckpointSchema, SpecDoneSchema, SpecPromptSchema, SpecReviewResultSchema, WriteTextSchema } from "./write-schemas.js";
 import type { SessionGuardState } from "../spec/types.js";
 import { SPEC_CONTEXT_REQUIRED_MESSAGE, requireSpecContext } from "./session-guard.js";
+import { installSkills, renderSkillsResult, UI_UX_PRO_MAX_SKILL_NAME, UI_UX_PRO_MAX_SKILL_SOURCE } from "../skills/skills-cli.js";
+import { z } from "zod";
 
 function withSpecContext<T>(guard: SessionGuardState, action: () => Promise<T>): Promise<T> {
   requireSpecContext(guard);
@@ -18,6 +21,16 @@ function withSpecContext<T>(guard: SessionGuardState, action: () => Promise<T>):
 function specContextRequiredDescription(action: string): string {
   return `${action} Requires prior spec_context.`;
 }
+
+const SkillsInstallSchema = RootSchema.extend({
+  source: z.string().optional().describe(`Skill package or GitHub URL. Defaults to ${UI_UX_PRO_MAX_SKILL_SOURCE}.`),
+  skills: z.array(z.string().min(1)).default([UI_UX_PRO_MAX_SKILL_NAME]).describe("Skill names to install. Defaults to ui-ux-pro-max."),
+  agents: z.array(z.enum(["codex", "claude", "claude-code", "opencode", "cursor", "continue", "windsurf", "*"])).default(["codex"]).describe("Target coding agents. Defaults to codex; claude is mapped to claude-code for the skills CLI."),
+  global: z.boolean().default(true).describe("Install to global user-level skills directories through `npx skills add --global`."),
+  listOnly: z.boolean().default(false).describe("List available skills in the source repository without installing."),
+  copy: z.boolean().default(false).describe("Pass --copy to the skills CLI instead of symlinking."),
+  dryRun: z.boolean().default(false).describe("Return the command without executing it.")
+});
 
 export function registerWriteTools(server: McpServer, guard: SessionGuardState): void {
   server.registerTool(
@@ -77,6 +90,24 @@ export function registerWriteTools(server: McpServer, guard: SessionGuardState):
     async ({ projectRoot, specsDir, file, summary, completedTodos, incompleteTodos, changedFiles, verification, behaviorRecords, risks, blockers, note }) =>
       withSpecContext(guard, async () =>
         textResult(renderReviewResult("Spec Review Result 已记录", await recordSpecReviewResult({ projectRoot, specsDir, file, summary, completedTodos, incompleteTodos, changedFiles, verification, behaviorRecords, risks, blockers, note })))
+      )
+  );
+
+  server.registerTool(
+    "spec_skills_install",
+    {
+      description: specContextRequiredDescription(`Install skills with \`npx skills add\`. Defaults to installing ${UI_UX_PRO_MAX_SKILL_NAME} from ${UI_UX_PRO_MAX_SKILL_SOURCE} into the selected coding tool's global skills directory.`),
+      inputSchema: SkillsInstallSchema
+    },
+    async ({ source, skills, agents, global, listOnly, copy, dryRun }) =>
+      withSpecContext(guard, async () =>
+        textResult(renderSkillsResult(
+          listOnly ? "Skills Available In Source" : "Skills Install",
+          await installSkills({ source, skills, agents, global, listOnly, copy, dryRun }),
+          listOnly
+            ? ["Call `spec_skills_install` again with `listOnly: false` and the chosen `skills` names to install."]
+            : ["Restart or reload the selected coding tool so it can discover newly installed global skills."]
+        ))
       )
   );
 

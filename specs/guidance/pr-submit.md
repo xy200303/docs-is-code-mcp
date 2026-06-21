@@ -1,3 +1,23 @@
+---
+name: 'pr-submit'
+version: '1.1.0'
+title: 'PR 提交工作流原则'
+description: 'Pull request workflow for template discovery, commits, branch push, PR body, and fallback URLs.'
+category: 'pull-request'
+triggers:
+  - pr
+  - pull-request
+  - merge-request
+  - branch-push
+  - gh-pr-create
+appliesTo:
+  - pull-requests
+  - branches
+  - pr-template
+  - review-notes
+updated: '2026-06-21'
+---
+
 # PR 提交工作流原则
 
 ## 用途

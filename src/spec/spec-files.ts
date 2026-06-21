@@ -96,8 +96,13 @@ async function nextDailyIndex(root: string, relativeDirectory: string): Promise<
 }
 
 export function readMeta(text: string, key: string, fallback: string): string {
-  const pattern = new RegExp(`^-\\s*${key}:\\s*(.+?)\\s*$`, "im");
-  return pattern.exec(text)?.[1]?.trim() ?? fallback;
+  const pattern = new RegExp(`^(?:-\\s*)?${key}:\\s*(.+?)\\s*$`, "im");
+  const value = pattern.exec(text)?.[1]?.trim();
+  if (!value) return fallback;
+  if ((value.startsWith("'") && value.endsWith("'")) || (value.startsWith("\"") && value.endsWith("\""))) {
+    return value.slice(1, -1).replace(/''/g, "'");
+  }
+  return value;
 }
 
 export function titleFromMarkdown(text: string, fallback: string): string {

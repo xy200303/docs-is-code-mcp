@@ -12,6 +12,7 @@ import type { SessionGuardState } from "../spec/types.js";
 import { markSpecContextSeen } from "./session-guard.js";
 import { workflowRecommendationLines } from "../spec/workflow-next-step.js";
 import { APP_VERSION } from "../shared/meta.js";
+import { renderSkillsResult, searchSkills, UI_UX_PRO_MAX_SKILL_NAME, UI_UX_PRO_MAX_SKILL_SOURCE } from "../skills/skills-cli.js";
 
 const SPEC_CONTEXT_GATE_DESCRIPTION = "Unlocks guarded write tools for this session.";
 
@@ -24,6 +25,11 @@ const ReadContextSchema = RootSchema.extend({
 
 const GuidanceReadSchema = RootSchema.extend({
   name: z.string().min(1).describe("Guidance name from spec_guidance_list, such as engineering, ui-ux, spec-writing, git-commit, pr-submit, or quality-review.")
+});
+
+const SkillsSearchSchema = RootSchema.extend({
+  query: z.string().min(1).describe("Search query for skills.sh, such as ui/ux, testing, prisma, or react."),
+  maxChars: z.number().int().positive().default(6000).describe("Maximum characters of cleaned search output to return.")
 });
 
 export function registerReadTools(server: McpServer, guard: SessionGuardState): void {
@@ -139,7 +145,12 @@ export function registerReadTools(server: McpServer, guard: SessionGuardState): 
         "",
         "## Available",
         "",
-        ...items.map((item) => `- \`${item.name}\`：${item.title}；${item.purpose}（${item.file}）`),
+        ...items.map((item) => [
+          `- \`${item.name}\` v${item.version} [${item.category}]：${item.title}；${item.purpose}（${item.file}）`,
+          `  - description: ${item.description}`,
+          `  - triggers: ${item.triggers.join(", ")}`,
+          `  - appliesTo: ${item.appliesTo.join(", ")}`
+        ].join("\n")),
         "",
         "## Next",
         "",
@@ -160,8 +171,13 @@ export function registerReadTools(server: McpServer, guard: SessionGuardState): 
         `# ${item.title}`,
         "",
         `name: \`${item.name}\``,
+        `version: \`${item.version}\``,
         `source: \`${item.source}\``,
         `file: \`${item.file}\``,
+        `category: \`${item.category}\``,
+        `description: ${item.description}`,
+        `triggers: ${item.triggers.map((trigger) => `\`${trigger}\``).join(", ")}`,
+        `appliesTo: ${item.appliesTo.map((target) => `\`${target}\``).join(", ")}`,
         "",
         "## Purpose",
         "",
@@ -172,6 +188,19 @@ export function registerReadTools(server: McpServer, guard: SessionGuardState): 
         item.content.trimEnd()
       ].join("\n"));
     }
+  );
+
+  server.registerTool(
+    "spec_skills_search",
+    {
+      description: `Search skills.sh through the official skills CLI. Use this to discover task-specific skills before complex work; UI/UX work should prefer ${UI_UX_PRO_MAX_SKILL_NAME} from ${UI_UX_PRO_MAX_SKILL_SOURCE}.`,
+      inputSchema: SkillsSearchSchema
+    },
+    async ({ query, maxChars }) =>
+      textResult(renderSkillsResult("Skills Search", await searchSkills({ query, maxChars }), [
+        "Install a selected skill with `spec_skills_install`.",
+        `For UI/UX tasks, the recommended default is \`${UI_UX_PRO_MAX_SKILL_NAME}\`.`
+      ]))
   );
 
   server.registerTool(

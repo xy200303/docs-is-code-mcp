@@ -192,7 +192,7 @@ function renderGuidanceIndex(specsDir: string): string[] {
     "",
     "原则详情不在 `spec_context` 展开；当模型不确定或忘记相关原则时，先调用 `spec_guidance_list` 查看索引，再调用 `spec_guidance_read` 读取对应 name。",
     "",
-    ...guidanceItems(specsDir).map((item) => `- \`${item.name}\`：${item.purpose}（${item.file}）`),
+    ...guidanceItems(specsDir).map((item) => `- \`${item.name}\` v${item.version} [${item.category}]：${item.purpose}；${item.description}（${item.file}）`),
     "",
     "guidance 是按需提醒，不替代 selected specs、open TODO、用户要求或真实源码阅读。",
     ""

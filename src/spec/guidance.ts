@@ -10,6 +10,11 @@ export interface GuidanceItem {
   name: string;
   title: string;
   purpose: string;
+  version: string;
+  description: string;
+  category: string;
+  triggers: string[];
+  appliesTo: string[];
   file: string;
 }
 
@@ -23,6 +28,11 @@ export function guidanceItems(specsDir = "specs"): GuidanceItem[] {
     name: item.name,
     title: item.title,
     purpose: item.purpose,
+    version: item.version,
+    description: item.description,
+    category: item.category,
+    triggers: item.triggers,
+    appliesTo: item.appliesTo,
     file: path.posix.join(specsDir, "guidance", item.fileName)
   }));
 }

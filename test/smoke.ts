@@ -97,14 +97,32 @@ try {
   if (init.files.some((file) => file.path.includes("specs/templates/"))) {
     throw new Error("Expected spec init to keep reusable templates in src/templates instead of creating specs/templates.");
   }
+  const initSpecsReadmeText = await readFile(path.join(root, "specs", "README.md"), "utf8");
+  assertIncludesAll(initSpecsReadmeText, [
+    "---",
+    "name: 'specs-readme'",
+    "version: '1.1.0'",
+    "type: 'specs-readme'",
+    "description: 'Spec workflow index",
+    "triggers:",
+    "appliesTo:"
+  ], "Expected specs README to include searchable YAML metadata");
   const initGuidanceText = await readFile(path.join(root, "specs", "guidance", "engineering.md"), "utf8");
   assertIncludesAll(initGuidanceText, [
+    "---",
+    "name: 'engineering'",
+    "version: '1.1.0'",
+    "description: 'Engineering rules",
+    "category: 'engineering'",
+    "triggers:",
+    "appliesTo:",
+    "updated: '2026-06-21'",
     "工程与代码风格原则",
     "用户可以直接编辑本文件",
     "### Hard Rules",
     "### Recommended Practices",
     "业务不确定性强制确认"
-  ], "Expected default guidance prompt to be editable project documentation");
+  ], "Expected default guidance prompt to include searchable metadata and editable project documentation");
 
   const emptyWorkflowRoot = await mkdtemp(path.join(os.tmpdir(), "spec-coding-empty-workflow-"));
   await initSpecs({ projectRoot: emptyWorkflowRoot, specsDir: "specs", projectName: "空项目" });
@@ -132,6 +150,12 @@ try {
   }
   const generatedReviewText = await readFile(path.join(root, generated.specs[0]), "utf8");
   assertIncludesAll(generatedReviewText, [
+    "---",
+    "type: 'source-review-spec'",
+    "status: 'source-review/needs-ai-summary'",
+    "description: 'Source-derived review task",
+    "triggers:",
+    "appliesTo:",
     "source-review/needs-ai-summary",
     "它不是业务结论，只是交给 AI 阅读源码的任务单",
     "禁止把下面的静态线索当成业务事实",
@@ -161,16 +185,20 @@ try {
   }
   const starterSpec = await readFile(path.join(newProjectRoot, newBootstrap.specs[0]), "utf8");
   assertIncludesAll(starterSpec, [
+    "---",
+    "name: 'active-spec'",
+    "version: '1.1.0'",
+    "type: 'active-spec'",
+    "status: 'active'",
+    "description: 'User-requested implementation spec",
     "创建一个简单 CLI 项目",
     "- status: active",
     "## 定位与事实来源",
     "禁止编造",
     "## AI 实现计划",
-    "## UI/交互质量检查",
-    "首屏真实对象",
-    "loading、empty、error",
-    "undo/recovery",
-    "当前端口服务的是当前项目",
+    "## UI/交互 Skill 路由",
+    "ui-ux-pro-max",
+    "spec_skills_install",
     "## Guidance",
     "`engineering`（`specs/guidance/engineering.md`）",
     "`ui-ux`（`specs/guidance/ui-ux.md`）",
@@ -188,6 +216,11 @@ try {
   const agentsText = await readFile(path.join(root, "AGENTS.md"), "utf8");
   const claudeText = await readFile(path.join(root, "CLAUDE.md"), "utf8");
   assertIncludesAll(agentsText, [
+    "---",
+    "name: 'agents'",
+    "version: '1.1.0'",
+    "type: 'agent-protocol'",
+    "description: 'Startup protocol",
     "Startup Protocol",
     "spec_context",
     "spec_guidance_list",
@@ -195,6 +228,11 @@ try {
     "Hard Stop"
   ], "Expected AGENTS.md to be a short startup protocol");
   assertIncludesAll(claudeText, [
+    "---",
+    "name: 'claude'",
+    "version: '1.1.0'",
+    "type: 'agent-protocol'",
+    "description: 'Startup protocol",
     "Startup Protocol",
     "spec_context",
     "spec_guidance_list",
@@ -241,9 +279,12 @@ try {
   assertIncludesAll(harness.description("spec_generate_from_source"), ["Advanced existing-project helper", "Prefer spec_bootstrap"], "Expected source generation to be marked as an advanced helper");
   assertIncludesAll(harness.description("spec_guidance_list"), ["guidance prompts", "without bloating spec_context"], "Expected guidance list tool to describe on-demand prompts");
   assertIncludesAll(harness.description("spec_guidance_read"), ["Read one editable guidance prompt", "project file"], "Expected guidance read tool to describe project override");
+  assertIncludesAll(harness.description("spec_skills_search"), ["Search skills.sh", "ui-ux-pro-max"], "Expected skills search tool to describe skills.sh discovery");
+  assertIncludesAll(harness.description("spec_skills_install"), ["npx skills add", "ui-ux-pro-max", "Requires prior spec_context"], "Expected skills install tool to describe default global skill install and context guard");
   assertIncludesAll(harness.description("spec_generate_agents"), ["Advanced maintenance helper", "AGENTS.md and CLAUDE.md"], "Expected agent protocol generation to be marked as an advanced helper");
   assertIncludesAll(harness.description("spec_done"), ["Archive verified specs into done", "Do not use for partial work", "whole feature for user review"], "Expected spec_done to reject partial-work usage and require reviewable behavior contracts");
   assertToolDescriptionRequiresSpecContext(harness.description("spec_create"));
+  assertToolDescriptionRequiresSpecContext(harness.description("spec_skills_install"));
   assertToolDescriptionRequiresSpecContext(harness.description("spec_done"));
   let blockedMessage = "";
   try {
@@ -270,6 +311,36 @@ try {
   if (contextResult.content[0].text.includes("Source Signals")) {
     throw new Error("Expected default spec_context mode to omit source scan output.");
   }
+  const dryRunSkillInstall = await harness.call("spec_skills_install", {
+    projectRoot: root,
+    specsDir: "specs",
+    dryRun: true
+  });
+  assertIncludesAll(dryRunSkillInstall.content[0]?.text ?? "", [
+    "Skills Install",
+    "dryRun: `true`",
+    "npx",
+    "skills add https://github.com/nextlevelbuilder/ui-ux-pro-max-skill",
+    "--global",
+    "--agent codex",
+    "--skill ui-ux-pro-max",
+    "--yes",
+    "Restart or reload the selected coding tool"
+  ], "Expected dry-run skills install to show default ui-ux-pro-max global Codex command");
+
+  const dryRunCustomSkillInstall = await harness.call("spec_skills_install", {
+    projectRoot: root,
+    specsDir: "specs",
+    source: "vercel-labs/agent-skills",
+    agents: ["claude", "cursor"],
+    skills: ["pr-review"],
+    dryRun: true
+  });
+  assertIncludesAll(dryRunCustomSkillInstall.content[0]?.text ?? "", [
+    "skills add vercel-labs/agent-skills",
+    "--agent claude-code cursor",
+    "--skill pr-review"
+  ], "Expected dry-run custom skills install to map Claude to claude-code and preserve requested skill");
   assertIncludesAll(contextResult.content[0].text, [
     `Spec Coding MCP：\`${APP_VERSION}\``,
     "Workflow State",
@@ -300,31 +371,34 @@ try {
   const guidanceList = await harness.call("spec_guidance_list", { projectRoot: root, specsDir: "specs" });
   assertIncludesAll(guidanceList.content[0]?.text ?? "", [
     "Guidance Prompts",
-    "`engineering`",
+    "`engineering` v1.1.0 [engineering]",
     "`ui-ux`",
     "`spec-writing`",
     "`git-commit`",
     "`pr-submit`",
     "`quality-review`",
+    "description: Engineering rules",
+    "triggers: architecture, implementation",
+    "appliesTo: code, tests",
     "specs/guidance/engineering.md",
     "specs/guidance/git-commit.md",
     "specs/guidance/pr-submit.md",
     "specs/guidance/quality-review.md",
     "这些提示词是指导性原则"
-  ], "Expected guidance list to expose editable prompt names and files");
+  ], "Expected guidance list to expose editable prompt names, files, and searchable metadata");
   const guidanceRead = await harness.call("spec_guidance_read", { projectRoot: root, specsDir: "specs", name: "ui-ux" });
   assertIncludesAll(guidanceRead.content[0]?.text ?? "", [
-    "UI/UX 设计美学原则",
+    "UI/UX Skill 路由原则",
+    "version: `1.1.0`",
     "source: `project`",
     "file: `specs/guidance/ui-ux.md`",
-    "真实产品语境",
-    "只能作为可选参考",
-    "不要编造指标",
-    "只有明确是 OSS 或开源组织官网",
-    "当前端口服务的是当前项目",
-    "loading / pending",
-    "undo",
-    "移动端和桌面都要检查"
+    "category: `ui-ux`",
+    "ui-ux-pro-max",
+    "spec_skills_install",
+    "spec_skills_search",
+    "npx skills add",
+    "只负责把 UI/UX 工作路由到指定 skill",
+    "不要在本文件内继续维护视觉、文案、首屏、官网结构或验收 checklist"
   ], "Expected guidance read to use generated project prompt content");
   await writeFile(path.join(root, "specs", "guidance", "ui-ux.md"), "# Custom UI/UX\n\n只记录用户编辑后的提示词。\n", "utf8");
   const editedGuidanceRead = await harness.call("spec_guidance_read", { projectRoot: root, specsDir: "specs", name: "ui-ux" });
@@ -338,6 +412,11 @@ try {
   assertIncludesAll(fallbackGuidanceRead.content[0]?.text ?? "", [
     "source: `project`",
     "file: `specs/guidance/spec-writing.md`",
+    "version: `1.1.0`",
+    "category: `workflow`",
+    "description: 'Spec workflow rules",
+    "triggers: `spec`, `todo`, `checkpoint`",
+    "appliesTo: `specs`, `todos`, `checkpoints`",
     "Spec 与行为记录原则",
     "当前任务协议",
     "行为记录必须描述功能全过程",
@@ -346,6 +425,14 @@ try {
   ], "Expected guidance read to create and read default project files when guidance files are missing");
   const generatedFallbackGuidance = await readFile(path.join(fallbackGuidanceRoot, "specs", "guidance", "spec-writing.md"), "utf8");
   assertIncludesAll(generatedFallbackGuidance, [
+    "---",
+    "name: 'spec-writing'",
+    "version: '1.1.0'",
+    "description: 'Spec workflow rules",
+    "category: 'workflow'",
+    "triggers:",
+    "appliesTo:",
+    "updated: '2026-06-21'",
     "Spec 与行为记录原则",
     "用户可以直接编辑本文件",
     "## 当前任务协议",
@@ -376,8 +463,10 @@ try {
     "代码质量自查",
     "测试与验证",
     "UI 与交互质量",
-    "真实项目定位",
-    "Web 页面是否确认当前端口"
+    "ui-ux-pro-max",
+    "spec_skills_install",
+    "dryRun: true",
+    "避免在本地 quality-review guidance 中自行补充另一套 UI/UX 设计 checklist"
   ], "Expected quality review guidance read to expose default self-review content");
   await rm(fallbackGuidanceRoot, { recursive: true, force: true });
 
@@ -562,8 +651,14 @@ try {
   }
   const createdSpecText = await readFile(path.join(root, created.specs[0]), "utf8");
   assertIncludesAll(createdSpecText, [
+    "---",
+    "name: 'active-spec'",
+    "version: '1.1.0'",
+    "type: 'active-spec'",
+    "status: 'active'",
+    "source: 'user-prompt'",
     "## AI 实现计划",
-    "## UI/交互质量检查",
+    "## UI/交互 Skill 路由",
     "## 实际行为记录",
     "## Guidance",
     "spec_guidance_list",
@@ -579,8 +674,8 @@ try {
     "默认值/配置",
     "验证命令",
     "待确认问题",
-    "loading、empty、error",
-    "undo/recovery",
+    "ui-ux-pro-max",
+    "spec_skills_install",
     "不要把猜测、常识或“看起来合理”的行为写成事实"
   ], "Expected active spec template to guide implementation planning and behavior recording");
   if (createdSpecText.includes("## 工程质量约束") || createdSpecText.includes("### Hard Rules") || createdSpecText.includes("### Recommended Practices") || createdSpecText.includes("## 业务不确定性强制确认")) {
@@ -611,6 +706,12 @@ try {
   }
   const todoSpecText = await readFile(path.join(root, todo.specs[0]), "utf8");
   assertIncludesAll(todoSpecText, [
+    "---",
+    "name: 'todo-spec'",
+    "version: '1.1.0'",
+    "type: 'todo-spec'",
+    "status: 'todo'",
+    "source: 'user-prompt'",
     "## 实际行为记录",
     "spec_guidance_list",
     "spec_guidance_read",
@@ -689,8 +790,8 @@ try {
     "Guidance Index",
     "spec_guidance_list",
     "spec_guidance_read",
-    "`engineering`",
-    "`ui-ux`",
+    "`engineering` v1.1.0 [engineering]",
+    "`ui-ux` v1.1.0 [ui-ux]",
     "`spec-writing`",
     "`git-commit`",
     "`pr-submit`",
@@ -829,7 +930,7 @@ try {
     throw new Error(`Expected done spec to use ordered readable name, got: ${done.specs[0]}`);
   }
   const doneText = await readFile(path.join(root, done.specs[0]), "utf8");
-  if (!doneText.includes("- status: done") || !doneText.includes("## 最终行为契约") || !doneText.includes("给用户审查功能完整行为") || !doneText.includes("模型自行采用的默认策略也必须写清楚") || !doneText.includes("当前用户没有敏感操作权限") || !doneText.includes("触发入口：用户提交敏感操作请求") || !doneText.includes("输入与前置状态：会话缺少敏感操作权限") || !doneText.includes("1. 读取会话权限") || !doneText.includes("输出结果：返回权限不足错误") || !doneText.includes("副作用：不执行业务写入") || !doneText.includes("返回可理解错误")) {
+  if (!doneText.includes("type: done-spec") || !doneText.includes("status: done") || !doneText.includes("category: done") || !doneText.includes("- status: done") || !doneText.includes("## 最终行为契约") || !doneText.includes("给用户审查功能完整行为") || !doneText.includes("模型自行采用的默认策略也必须写清楚") || !doneText.includes("当前用户没有敏感操作权限") || !doneText.includes("触发入口：用户提交敏感操作请求") || !doneText.includes("输入与前置状态：会话缺少敏感操作权限") || !doneText.includes("1. 读取会话权限") || !doneText.includes("输出结果：返回权限不足错误") || !doneText.includes("副作用：不执行业务写入") || !doneText.includes("返回可理解错误")) {
     throw new Error("Expected archived spec meta status to be done.");
   }
   if (doneText.includes("## Guidance") || doneText.includes("## 工程质量约束") || doneText.includes("### Hard Rules") || doneText.includes("## 业务不确定性强制确认")) {

@@ -1,3 +1,24 @@
+---
+name: '012-强化-done-最终行为契约审查要求'
+version: '1.1.0'
+title: '强化 done 最终行为契约审查要求'
+type: 'done-spec'
+status: 'done'
+source: 'archived-spec'
+description: 'Archived completed spec with implementation record and verification history.'
+category: 'done'
+triggers:
+  - done
+  - archive
+  - behavior-record
+  - verification
+appliesTo:
+  - done-specs
+  - implementation-history
+  - audit
+updated: '2026-06-21'
+---
+
 # 强化 done 最终行为契约审查要求
 
 ## Meta

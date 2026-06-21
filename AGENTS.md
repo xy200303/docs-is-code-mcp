@@ -1,3 +1,24 @@
+---
+name: 'agents'
+version: '1.1.0'
+title: 'AGENTS.md'
+type: 'agent-protocol'
+status: 'reference'
+source: 'spec-coding-mcp'
+description: 'Startup protocol for AI coding agents working on Spec Coding MCP.'
+category: 'workflow'
+triggers:
+  - startup
+  - coding-agent
+  - spec-context
+  - guidance
+appliesTo:
+  - agents
+  - model-startup
+  - workflow-routing
+updated: '2026-06-21'
+---
+
 # AGENTS.md
 
 Project: Spec Coding MCP

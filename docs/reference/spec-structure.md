@@ -17,6 +17,28 @@ specs/
     *.md
 ```
 
+需要被工具读取的 spec/guidance/agent 协议 Markdown 应有文件顶部 YAML 元信息，方便工具和模型检索；普通 README 和 VitePress docs 页面不默认加入这套元信息：
+
+```yaml
+---
+name: todo-spec
+version: 1.1.0
+title: 用户详情 TODO
+type: todo-spec
+status: todo
+source: user-prompt
+description: Lightweight executable TODO spec for ordered task execution and checkpoint recording.
+category: todo
+triggers:
+  - todo
+appliesTo:
+  - todo-specs
+updated: 2026-06-21
+---
+```
+
+旧的 `## Meta` 仍保留为人类可读正文和兼容层；读取器会继续识别 `- status:`、`- source:` 这类旧字段。
+
 ## review
 
 `review/` 存放从源码反推的当前代码事实。

@@ -1,5 +1,6 @@
 /* User prompt spec and TODO spec templates. */
 import { guidancePointerSection, workflowGuardSection } from "./markdown.js";
+import { MARKDOWN_METADATA_UPDATED, MARKDOWN_METADATA_VERSION, withMarkdownMetadata } from "./metadata.js";
 
 const TODO_SECTION_TITLES = new Set([
   "acceptance",
@@ -92,7 +93,19 @@ function todoTasksFromPrompt(prompt: string): PromptTodoTask[] {
 export function userPromptSpec(title: string, prompt: string): string {
   const websiteTask = isWebsitePrompt(`${title}\n${prompt}`);
   const ossTask = isOssPrompt(`${title}\n${prompt}`);
-  return [
+  return withMarkdownMetadata({
+    name: "active-spec",
+    version: MARKDOWN_METADATA_VERSION,
+    title,
+    type: "active-spec",
+    status: "active",
+    source: "user-prompt",
+    description: "User-requested implementation spec with goals, behavior rules, TODOs, and verification requirements.",
+    category: "spec",
+    triggers: ["implementation", "feature", "bugfix", "todo", "verification"],
+    appliesTo: ["active-specs", "coding-tasks", "tests", "behavior-records"],
+    updated: MARKDOWN_METADATA_UPDATED
+  }, [
     `# ${title}`,
     "",
     "## Meta",
@@ -141,25 +154,13 @@ export function userPromptSpec(title: string, prompt: string): string {
     "- 验证命令：列出计划运行的测试、构建、lint 或人工验证命令。",
     "- 待确认问题：列出业务规则不明确、影响面大或高风险的点；未确认前不要实现。",
     "",
-    "## UI/交互质量检查",
+    "## UI/交互 Skill 路由",
     "",
-    "- 仅当前端、页面、组件或交互受影响时填写；需要原则细节时读取 `ui-ux`（`specs/guidance/ui-ux.md`）和 `quality-review`。",
-    "- 设计前定位：项目真实是什么、用户是谁、核心对象是什么、内容来源在哪里；不明确时先确认或搜索。",
-    "- 首屏真实对象：repo、产品截图、项目矩阵、demo、核心交互、组件或真实数据必须至少命中一种。",
-    "- 首屏反营销检查：不能只有抽象视觉、空泛标语、虚构指标或不可执行 CTA。",
-    ...(websiteTask ? [
-      "- 官网结构由项目类型决定：企业官网、产品官网、个人作品集、开源组织和工具文档应使用不同信息架构；不明确时先确认。"
-    ] : []),
-    ...(ossTask ? [
-      "- OSS/开源组织结构：GitHub 入口、Featured repos、Research tracks、Contribution guide、Docs/Roadmap、License/Community、项目状态。",
-      "- OSS/开源组织 CTA：优先 GitHub、Docs、Install、Demo、Contribute、Roadmap 或 Issue；不要默认商业销售 CTA。"
-    ] : []),
-    "- 用户路径：入口、主流程、退出/返回、失败恢复。",
-    "- 状态覆盖：loading、empty、error、success、disabled、hover、focus、active。",
-    "- 输入与防错：表单校验、禁用无效提交、危险操作确认、undo/recovery。",
-    "- 响应式与可读性：桌面/移动端布局、触控目标、文本换行、遮挡、溢出、对比度。",
-    "- Web 验收：确认当前端口服务的是当前项目，检查页面 title/app root 内容，桌面和移动端截图无串项目、空白、错位和遮挡。",
-    "- 验证方式：截图、Playwright、手工路径或组件测试。",
+    "- 仅当前端、页面、组件或交互受影响时填写。",
+    "- UI/UX 工作不要在 spec 中展开本地设计原则或 checklist；读取 `ui-ux` guidance 后使用指定的 `ui-ux-pro-max` skill。",
+    "- 如果 `ui-ux-pro-max` 未安装，先调用 `spec_skills_install`；需要预览命令时使用 `dryRun: true`。",
+    "- 如果需要其他专项 UI/UX skill，先调用 `spec_skills_search` 搜索 skills.sh，再按任务需要安装。",
+    "- 记录实际使用的 skill、安装或 dry-run 结果，以及该 skill 产出的关键设计/验收建议。",
     "",
     "## 实际行为记录",
     "",
@@ -186,7 +187,7 @@ export function userPromptSpec(title: string, prompt: string): string {
     "- [ ] 按本 spec 修改代码。",
     "- [ ] 新增或更新测试。",
     "- [ ] 运行验证命令并记录结果。"
-  ].join("\n");
+  ]);
 }
 
 function isWebsitePrompt(text: string): boolean {
@@ -225,7 +226,19 @@ function isOssPrompt(text: string): boolean {
 
 export function todoSpec(title: string, prompt: string): string {
   const tasks = todoTasksFromPrompt(prompt);
-  return [
+  return withMarkdownMetadata({
+    name: "todo-spec",
+    version: MARKDOWN_METADATA_VERSION,
+    title,
+    type: "todo-spec",
+    status: "todo",
+    source: "user-prompt",
+    description: "Lightweight executable TODO spec for ordered task execution and checkpoint recording.",
+    category: "todo",
+    triggers: ["todo", "task-list", "checkpoint", "verification"],
+    appliesTo: ["todo-specs", "task-execution", "checkpoints"],
+    updated: MARKDOWN_METADATA_UPDATED
+  }, [
     `# ${title}`,
     "",
     "## Meta",
@@ -260,5 +273,5 @@ export function todoSpec(title: string, prompt: string): string {
     "- 边界处理结果：完成后补充异常、空值、权限、状态等输入如何进入分支、在哪里返回、是否产生副作用。",
     "- 验证结果：完成后记录验证命令、覆盖的流程分支和关联文件。",
     "- 禁止事项：不要把猜测、常识或“看起来合理”的行为写成事实。"
-  ].join("\n");
+  ]);
 }
