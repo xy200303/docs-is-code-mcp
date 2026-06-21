@@ -1,56 +1,51 @@
-/* AGENTS.md and README template generation for spec-coding. */
-import { businessConfirmationBullets, currentTaskInstructionBullets, engineeringRuleSections } from "./markdown.js";
+/* Agent protocol and README template generation for spec-coding. */
 
-export function agentsMd(projectName: string): string {
+function agentProtocolMd(fileName: "AGENTS.md" | "CLAUDE.md", projectName: string): string {
   return [
-    "# AGENTS.md",
+    `# ${fileName}`,
     "",
     `Project: ${projectName}`,
     "",
-    "## Operating Rules",
+    "## Startup Protocol",
     "",
-    "1. Before any code or documentation change, call `spec_context` and read its output first.",
-    "2. Treat specs and open TODOs as the source of truth.",
-    "3. Make small, focused, reversible changes.",
-    "4. Follow the engineering and business confirmation rules below.",
-    "5. Preserve compatibility unless the spec says otherwise.",
-    "6. Prefer mature libraries over hand-rolled implementations.",
-    "7. Ask before unclear, risky, or high-impact decisions.",
-    "8. Update TODOs, checkpoints, and verification results after each completed item.",
-    "9. Keep code organized by business meaning and clear boundaries.",
-    "10. Avoid unrelated reshuffles, clever code, and abstraction without benefit.",
+    "This file is only the model startup router. It should stay short.",
     "",
-    "## Engineering Principles",
+    "Before code or documentation changes:",
     "",
-    "These rules are mandatory, not suggestions.",
+    "1. Call `spec_context` and read the current workflow state.",
+    "2. Treat selected specs and open TODOs as the only task source.",
+    "3. Execute open TODOs from top to bottom; when none exist, follow the selected spec.",
+    "4. If principles are unclear, call `spec_guidance_list`, then `spec_guidance_read` for the relevant name.",
+    "5. Record meaningful progress with `spec_checkpoint`.",
+    "6. Call `spec_done` only after implementation, TODO updates, verification, and final behavior records are complete.",
     "",
-    ...engineeringRuleSections(),
+    "## Guidance",
     "",
-    "## Business Confirmation Rules",
+    "- `engineering`：engineering, code style, architecture, and business confirmation rules.",
+    "- `ui-ux`：UI/UX design principles and the Aether Vector visual direction.",
+    "- `spec-writing`：spec workflow, TODO handling, checkpoint, done, and behavior records.",
     "",
-    "These rules are mandatory, not suggestions.",
+    "Read guidance only when needed; do not copy long guidance into normal context.",
     "",
-    ...businessConfirmationBullets(),
+    "## Hard Stop",
     "",
-    "## Current Task Protocol",
+    "Ask the user before implementing unclear or high-risk business rules involving money, permissions, state machines, concurrency, idempotency, retries, rollback, compliance, or role differences.",
     "",
-    ...currentTaskInstructionBullets(),
+    "## Boundaries",
     "",
-    "## Workflow Entry Rules",
-    "",
-    "- New project: call `spec_bootstrap` with `projectKind: \"new\"` to create AGENTS, specs, and a starter active spec.",
-    "- Existing project: call `spec_bootstrap` with `projectKind: \"existing\"` to create AGENTS, specs, and AI source-review tasks.",
-    "- Small task: create or use a TODO spec, execute open TODOs from top to bottom, then checkpoint.",
-    "- Feature work: create or use an active spec with behavior rules and acceptance criteria before editing code.",
-    "- Done archive: call `spec_done` only after implementation, TODO updates, verification, and final behavior contract are recorded.",
-    "",
-    "## Project Notes",
-    "",
-    "- Configuration should be centralized.",
-    "- Example code and production code should stay separate.",
-    "- Readme and decision notes should stay up to date.",
-    "- Tests live in `test/` and core logic should remain easy to unit test."
+    "- Do not guess business rules.",
+    "- Do not use stale conversation context over selected specs or open TODOs.",
+    "- Do not overwrite user edits or make unrelated reshuffles.",
+    "- Keep changes small, focused, and verified."
   ].join("\n");
+}
+
+export function agentsMd(projectName: string): string {
+  return agentProtocolMd("AGENTS.md", projectName);
+}
+
+export function claudeMd(projectName: string): string {
+  return agentProtocolMd("CLAUDE.md", projectName);
 }
 
 export function specsReadme(projectName: string): string {

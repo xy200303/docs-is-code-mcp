@@ -23,12 +23,12 @@ export function registerWriteTools(server: McpServer, guard: SessionGuardState):
   server.registerTool(
     "spec_generate_agents",
     {
-      description: specContextRequiredDescription("Advanced maintenance helper. Prefer spec_bootstrap. Regenerates AGENTS.md."),
+      description: specContextRequiredDescription("Advanced maintenance helper. Prefer spec_bootstrap. Regenerates AGENTS.md and CLAUDE.md."),
       inputSchema: WriteTextSchema
     },
     async ({ projectRoot, projectName, overwrite }) =>
       withSpecContext(guard, async () =>
-        textResult(renderAgentFileResult("AGENTS.md 已生成", await generateAgentsFile({ projectRoot, projectName, overwrite })))
+        textResult(renderAgentFileResult("AGENTS.md / CLAUDE.md 已生成", await generateAgentsFile({ projectRoot, projectName, overwrite })))
       )
   );
 

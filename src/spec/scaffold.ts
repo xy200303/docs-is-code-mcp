@@ -1,7 +1,7 @@
 /* Spec scaffold generation for README, guidance, prompt specs, TODO specs, and source-derived review specs. */
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import { agentsMd, specsReadme } from "../templates/agents.js";
+import { agentsMd, claudeMd, specsReadme } from "../templates/agents.js";
 import { reviewIndex, sourceInventory, sourceReviewSpec } from "../templates/spec-documents.js";
 import { todoSpec, userPromptSpec } from "../templates/prompt-documents.js";
 import type { AgentFileResult, GeneratedFile, SpecItem, SpecResult } from "./types.js";
@@ -230,13 +230,14 @@ export async function generateAgentsFile(input: { projectRoot: string; projectNa
   const projectName = inferProjectName(root, input.projectName);
   const files: GeneratedFile[] = [];
   await writeTextFile(root, "AGENTS.md", agentsMd(projectName), input.overwrite ?? false, files);
+  await writeTextFile(root, "CLAUDE.md", claudeMd(projectName), input.overwrite ?? false, files);
   return {
     projectRoot: root,
     file: "AGENTS.md",
     files,
     nextSteps: [
-      "把 AGENTS.md 放在项目根目录，作为模型的默认工程规范入口。",
-      "必要时继续维护 specs/ 和 AGENTS.md 的一致性。"
+      "把 AGENTS.md 和 CLAUDE.md 放在项目根目录，作为模型的短启动协议入口。",
+      "完整原则放在 specs/guidance/*.md，需要时通过 spec_guidance_list/read 按需读取。"
     ]
   };
 }

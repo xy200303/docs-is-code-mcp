@@ -115,15 +115,15 @@ specs/
 | 工具 | 适用场景 |
 |---|---|
 | `spec_init` | 只初始化或刷新 `specs/` 目录和模板；普通项目接入优先用 `spec_bootstrap` |
-| `spec_generate_agents` | 只重新生成 `AGENTS.md`；普通项目接入优先用 `spec_bootstrap` |
+| `spec_generate_agents` | 只重新生成 `AGENTS.md` 和 `CLAUDE.md`；普通项目接入优先用 `spec_bootstrap` |
 | `spec_generate_from_source` | 只重新生成旧项目的 AI 源码审查任务；普通旧项目接入优先用 `spec_bootstrap` |
 
 ## 推荐工作流
 
 ### 统一入口
 
-1. 新项目先调用 `spec_bootstrap`，传 `projectKind: "new"`，生成 `AGENTS.md`、`specs/` 和起步 active spec。
-2. 旧项目先调用 `spec_bootstrap`，传 `projectKind: "existing"`，生成 `AGENTS.md`、`specs/` 和 AI 源码审查任务。
+1. 新项目先调用 `spec_bootstrap`，传 `projectKind: "new"`，生成 `AGENTS.md`、`CLAUDE.md`、`specs/` 和起步 active spec。
+2. 旧项目先调用 `spec_bootstrap`，传 `projectKind: "existing"`，生成 `AGENTS.md`、`CLAUDE.md`、`specs/` 和 AI 源码审查任务。
 3. 不确定时使用 `projectKind: "auto"`，工具会根据源码线索选择新项目或旧项目流程。
 4. 之后再调用 `spec_context`，按 active spec 或 open TODO 开始开发。
 
@@ -209,9 +209,9 @@ TODO 可以放在 `specs/todo/*.md`，也可以写在 active spec 的 `## TODO` 
 
 工程质量约束的单一可信来源在 `src/templates/constraints.ts`，Markdown 渲染统一由 `src/templates/markdown.ts` 完成。
 
-`spec_context`、`AGENTS.md`、spec 模板和 TODO 模板都应通过这套模板模块输出同一组规则，避免 README、AGENTS 和上下文各自维护一份不一致的长清单。
+`AGENTS.md` 和 `CLAUDE.md` 只保留短启动协议：提醒模型先调用 `spec_context`，按 selected specs/open TODO 执行，并在忘记原则时读取 guidance。完整工程、UI/UX、spec 写作原则放在 `specs/guidance/*.md`，不塞进启动文件。
 
-当前提示词协议分为三层：
+完整 guidance 默认内容分为三层：
 
 - Hard Rules：Fail Fast、风险确认、文件顶部注释、禁止混层、禁止无意义抽象、性能和资源底线。
 - Recommended Practices：KISS、YAGNI、Clean Code、Human Readable、Clean Architecture、DDD、SOLID、SoC、测试优先、成熟库优先、局部小步重构、AI 可生成且人类可维护。
@@ -245,7 +245,7 @@ specc bootstrap --help
 
 `specc status --json` 会输出顶层 `schemaVersion`，用于脚本、CI 和编辑器插件判断机器可读契约版本；当前 `schemaVersion` 为 `1`。JSON 仍保留兼容旧脚本的 `nextStep` 字符串，同时提供机器可读的 `recommendation.nextTool`、`recommendation.alternatives`、`recommendation.arguments`、`recommendation.reason`、`recommendation.when` 和 `recommendation.afterwards`。脚本和编辑器插件应优先读取 `recommendation.nextTool` 与 `recommendation.arguments`，避免解析人类可读文案。
 
-`--project-kind` 支持 `auto`、`new`、`existing`，默认 `auto`。`specc bootstrap` 会生成 `AGENTS.md`、`specs/` 和第一批可执行入口；旧项目会生成 AI 源码审查任务，新项目会生成起步 active spec。
+`--project-kind` 支持 `auto`、`new`、`existing`，默认 `auto`。`specc bootstrap` 会生成 `AGENTS.md`、`CLAUDE.md`、`specs/` 和第一批可执行入口；旧项目会生成 AI 源码审查任务，新项目会生成起步 active spec。
 
 手动配置 Codex 时推荐使用 Node 直连入口：
 

@@ -138,8 +138,8 @@ try {
   ], "Expected source generation to produce AI-guided review tasks instead of business conclusions");
 
   const existingBootstrap = await bootstrapProject({ projectRoot: root, specsDir: "boot-existing", projectName: "用户系统", projectKind: "existing" });
-  if (!existingBootstrap.specs.some((file) => file.includes("boot-existing/review")) || !existingBootstrap.files.some((file) => file.path.endsWith("AGENTS.md"))) {
-    throw new Error("Expected existing project bootstrap to create AGENTS and review tasks.");
+  if (!existingBootstrap.specs.some((file) => file.includes("boot-existing/review")) || !existingBootstrap.files.some((file) => file.path.endsWith("AGENTS.md")) || !existingBootstrap.files.some((file) => file.path.endsWith("CLAUDE.md"))) {
+    throw new Error("Expected existing project bootstrap to create AGENTS, CLAUDE, and review tasks.");
   }
 
   const newProjectRoot = await mkdtemp(path.join(os.tmpdir(), "spec-coding-new-project-"));
@@ -150,8 +150,8 @@ try {
     projectKind: "new",
     initialPrompt: "创建一个简单 CLI 项目。"
   });
-  if (!newBootstrap.specs.some((file) => file.includes("specs/active")) || !newBootstrap.files.some((file) => file.path.endsWith("AGENTS.md"))) {
-    throw new Error("Expected new project bootstrap to create AGENTS and a starter active spec.");
+  if (!newBootstrap.specs.some((file) => file.includes("specs/active")) || !newBootstrap.files.some((file) => file.path.endsWith("AGENTS.md")) || !newBootstrap.files.some((file) => file.path.endsWith("CLAUDE.md"))) {
+    throw new Error("Expected new project bootstrap to create AGENTS, CLAUDE, and a starter active spec.");
   }
   if (!newBootstrap.specs[0]?.includes(`specs/active/${today}/001-`)) {
     throw new Error(`Expected starter active spec to use dated ordered path, got: ${newBootstrap.specs[0]}`);
@@ -165,15 +165,31 @@ try {
   await rm(newProjectRoot, { recursive: true, force: true });
 
   const agents = await generateAgentsFile({ projectRoot: root, projectName: "用户系统" });
-  if (agents.file !== "AGENTS.md" || !agents.files.some((file) => file.path.endsWith("AGENTS.md"))) {
-    throw new Error("Expected AGENTS.md to be generated at the project root.");
+  if (agents.file !== "AGENTS.md" || !agents.files.some((file) => file.path.endsWith("AGENTS.md")) || !agents.files.some((file) => file.path.endsWith("CLAUDE.md"))) {
+    throw new Error("Expected AGENTS.md and CLAUDE.md to be generated at the project root.");
   }
   const agentsText = await readFile(path.join(root, "AGENTS.md"), "utf8");
-  if (!agentsText.includes("Before any code or documentation change, call `spec_context`") || !engineeringConstraintBullets().every((item) => agentsText.includes(item)) || !businessConfirmationBullets().every((item) => agentsText.includes(item))) {
-    throw new Error("Expected AGENTS.md to include project engineering principles.");
+  const claudeText = await readFile(path.join(root, "CLAUDE.md"), "utf8");
+  assertIncludesAll(agentsText, [
+    "Startup Protocol",
+    "spec_context",
+    "spec_guidance_list",
+    "spec_guidance_read",
+    "Hard Stop"
+  ], "Expected AGENTS.md to be a short startup protocol");
+  assertIncludesAll(claudeText, [
+    "Startup Protocol",
+    "spec_context",
+    "spec_guidance_list",
+    "spec_guidance_read",
+    "Hard Stop"
+  ], "Expected CLAUDE.md to be a short startup protocol");
+  if (engineeringConstraintBullets().every((item) => agentsText.includes(item)) || businessConfirmationBullets().every((item) => agentsText.includes(item)) || agentsText.includes("### Hard Rules")) {
+    throw new Error("Expected AGENTS.md to avoid embedding full guidance bodies.");
   }
   const packageReadmeText = await readFile(path.join(process.cwd(), "README.md"), "utf8");
   const packageAgentsText = await readFile(path.join(process.cwd(), "AGENTS.md"), "utf8");
+  const packageClaudeText = await readFile(path.join(process.cwd(), "CLAUDE.md"), "utf8");
   assertIncludesAll(packageReadmeText, [
     "src/templates/constraints.ts",
     "src/templates/prompt-protocol.ts",
@@ -187,10 +203,15 @@ try {
     "Current Task Protocol"
   ], "Expected README to point to the shared template source of truth");
   assertIncludesAll(packageAgentsText, [
-    "Before any code or documentation change, call `spec_context`",
-    "Engineering Principles",
-    "Business Confirmation Rules"
-  ], "Expected root AGENTS.md to match the shared rule output shape");
+    "Startup Protocol",
+    "spec_context",
+    "spec_guidance_read"
+  ], "Expected root AGENTS.md to match the startup protocol shape");
+  assertIncludesAll(packageClaudeText, [
+    "Startup Protocol",
+    "spec_context",
+    "spec_guidance_read"
+  ], "Expected root CLAUDE.md to match the startup protocol shape");
   if (typeof registerClaude !== "function" || typeof registerOpenCode !== "function" || typeof detectProgrammingTools !== "function") {
     throw new Error("Expected registry helpers to stay available after registry refactor.");
   }
@@ -203,7 +224,7 @@ try {
   assertIncludesAll(harness.description("spec_generate_from_source"), ["Advanced existing-project helper", "Prefer spec_bootstrap"], "Expected source generation to be marked as an advanced helper");
   assertIncludesAll(harness.description("spec_guidance_list"), ["guidance prompts", "without bloating spec_context"], "Expected guidance list tool to describe on-demand prompts");
   assertIncludesAll(harness.description("spec_guidance_read"), ["Read one editable guidance prompt", "project file"], "Expected guidance read tool to describe project override");
-  assertIncludesAll(harness.description("spec_generate_agents"), ["Advanced maintenance helper", "Prefer spec_bootstrap"], "Expected AGENTS generation to be marked as an advanced helper");
+  assertIncludesAll(harness.description("spec_generate_agents"), ["Advanced maintenance helper", "AGENTS.md and CLAUDE.md"], "Expected agent protocol generation to be marked as an advanced helper");
   assertIncludesAll(harness.description("spec_done"), ["Archive verified specs into done", "Do not use for partial work"], "Expected spec_done to reject partial-work usage");
   assertToolDescriptionRequiresSpecContext(harness.description("spec_create"));
   assertToolDescriptionRequiresSpecContext(harness.description("spec_done"));
@@ -1017,9 +1038,10 @@ try {
     console.log = originalLog;
   }
   const cliAgentsText = await readFile(path.join(cliBootstrapRoot, "AGENTS.md"), "utf8");
+  const cliClaudeText = await readFile(path.join(cliBootstrapRoot, "CLAUDE.md"), "utf8");
   const cliSpecs = await listSpecs({ projectRoot: cliBootstrapRoot, specsDir: "specs" });
-  if (!bootstrapLines.join("\n").includes("Spec Coding 项目引导完成") || !cliAgentsText.includes("Current Task Protocol") || cliSpecs.active.length !== 1) {
-    throw new Error("Expected CLI bootstrap to generate AGENTS.md and a starter active spec.");
+  if (!bootstrapLines.join("\n").includes("Spec Coding 项目引导完成") || !cliAgentsText.includes("Startup Protocol") || !cliClaudeText.includes("Startup Protocol") || cliAgentsText.includes("### Hard Rules") || cliSpecs.active.length !== 1) {
+    throw new Error("Expected CLI bootstrap to generate short AGENTS/CLAUDE startup protocols and a starter active spec.");
   }
   const activeStatusLines: string[] = [];
   console.log = (...args: unknown[]) => {

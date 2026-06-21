@@ -44,7 +44,7 @@ function assertCompatibilityContract(text) {
   }
 }
 
-function assertDocumentationContract(readmeText, agentsText) {
+function assertDocumentationContract(readmeText, agentsText, claudeText) {
   for (const phrase of [
     "specc serve",
     "specc status",
@@ -80,9 +80,12 @@ function assertDocumentationContract(readmeText, agentsText) {
   ]) {
     assertIncludes(readmeText, phrase, "README.md");
   }
-  for (const phrase of ["Hard Rules", "Recommended Practices", "Business Confirmation Rules", "Current Task Protocol"]) {
+  for (const phrase of ["Startup Protocol", "spec_context", "spec_guidance_list", "spec_guidance_read", "Hard Stop"]) {
     assertIncludes(agentsText, phrase, "AGENTS.md");
+    assertIncludes(claudeText, phrase, "CLAUDE.md");
   }
+  assert(!agentsText.includes("### Hard Rules"), "AGENTS.md must stay a short startup protocol and avoid full guidance bodies.");
+  assert(!claudeText.includes("### Hard Rules"), "CLAUDE.md must stay a short startup protocol and avoid full guidance bodies.");
 }
 
 function assertWorkflowContract(ciText, publishText) {
@@ -130,6 +133,7 @@ const metaText = readText("src/shared/meta.ts");
 const compatibilityText = readText("src/cli/compatibility-contract.ts");
 const readmeText = readText("README.md");
 const agentsText = readText("AGENTS.md");
+const claudeText = readText("CLAUDE.md");
 const contextMarkdownText = readText("src/spec/context-markdown.ts");
 const registerReadToolsText = readText("src/mcp/register-read-tools.ts");
 const workflowNextStepText = readText("src/spec/workflow-next-step.ts");
@@ -140,7 +144,7 @@ const publishText = readText(".github/workflows/publish-npm.yml");
 assertVersionContract(packageJson, packageLock, metaText);
 assertScriptContract(packageJson);
 assertCompatibilityContract(compatibilityText);
-assertDocumentationContract(readmeText, agentsText);
+assertDocumentationContract(readmeText, agentsText, claudeText);
 assertReadToolSourceContract(contextMarkdownText, registerReadToolsText, workflowNextStepText);
 assertManualReleaseContract(manualReleaseText);
 assertWorkflowContract(ciText, publishText);
