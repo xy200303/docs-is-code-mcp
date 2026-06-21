@@ -1,18 +1,25 @@
-# docs_is_code Specs
+# Spec Coding MCP Specs
 
 本目录用于 spec coding：先写清楚规格，再让 AI 按规格修改代码和测试。
 
+## 前置要求
+
+任何代码或文档变更之前，必须先调用 `spec_context` 并读取输出。
+如果当前没有 `spec_context` 结果，就不要直接开始实现。
+
 ## 工作流
 
-1. 没有 spec 的旧系统，先用 MCP 从源码反推 `review/` specs。
-2. 用户审查 `review/*.md`，把源码事实改成真实业务规格。
-3. 要开发时，把 spec 放到 `active/`，或直接让 MCP 读取指定 spec。
-4. Codex 按 spec 修改代码和测试。
-5. 验证通过后，把 spec 移到 `done/`。
+1. 先调用 `spec_bootstrap` 建立项目入口：新项目生成起步 active spec，旧项目生成 AI 源码审查任务。
+2. 再调用 `spec_context`，确认当前任务的 spec、TODO 和工程约束。
+3. AI 必须阅读 `review/*.md` 列出的源码和测试，再把真实行为总结成业务规格。
+4. 小任务放在 `todo/`；功能开发放在 `active/`。
+5. Codex 按 spec 和未勾选 TODO 修改代码和测试。
+6. 阶段完成后调用 `spec_checkpoint` 记录进度、验证和实际行为。
+7. 验证通过且最终行为契约已记录后，才能调用 `spec_done`。
 
 ## 状态
 
-- `source-derived/current-code`：从现有源码反推，表示当前代码大概率已有对应实现，待用户审查。
+- `source-review/needs-ai-summary`：静态源码线索生成的 AI 审查任务，不代表业务事实，必须阅读源码后补全。
 - `draft`：用户正在描述需求，尚未实现。
 - `active`：准备实现或正在实现。
 - `todo`：轻量任务清单，AI 应按未勾选项顺序执行。
@@ -20,7 +27,7 @@
 
 ## 目录
 
-- `review/`：从源码反推的待审查 specs。
+- `review/`：指导 AI 阅读源码并总结真实行为的待审查任务。
 - `active/YYYY-MM-DD/NNN-readable-name.md`：当前要实现的 specs，按日期和当天顺序归档。
 - `todo/YYYY-MM-DD/NNN-readable-name.md`：可执行 TODO 清单，适合拆分小任务或补充实现步骤。
 - `done/YYYY-MM-DD/NNN-readable-name.md`：已经完成的 specs，必须保留来自代码和测试验证的最终行为契约。
