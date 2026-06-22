@@ -14,3 +14,72 @@
   --vp-c-brand-3: #0d9488;
   --vp-c-brand-soft: rgba(45, 212, 191, 0.14);
 }
+/* ── Custom home sections below VitePress Hero + Features ── */
+
+.install-block {
+  max-width: 1152px;
+  margin: 48px auto 0;
+  padding: 0 24px;
+  text-align: center;
+}
+
+.install-title {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--vp-c-text-2);
+  margin-bottom: 12px;
+}
+
+.install-code {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.install-code code {
+  display: inline-block;
+  padding: 8px 18px;
+  font-size: 14px;
+  border-radius: 6px;
+  background: var(--vp-c-bg-soft);
+  border: 1px solid var(--vp-c-divider);
+  white-space: nowrap;
+  overflow-x: auto;
+  max-width: 100%;
+  color: var(--vp-c-text-1);
+  cursor: default;
+}
+
+.workflow-block {
+  max-width: 1152px;
+  margin: 80px auto;
+  padding: 0 24px;
+  text-align: center;
+}
+
+.workflow-eyebrow {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--vp-c-brand-1);
+  margin-bottom: 8px;
+}
+
+.workflow-block h2 {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--vp-c-text-1);
+  margin: 0 0 12px;
+  border: none;
+}
+
+.workflow-block p {
+  font-size: 16px;
+  color: var(--vp-c-text-2);
+  max-width: 560px;
+  margin: 0 auto;
+  line-height: 1.65;
+}
