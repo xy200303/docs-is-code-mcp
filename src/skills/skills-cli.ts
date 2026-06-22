@@ -1,5 +1,5 @@
 /* Thin wrapper around the official skills CLI for search and global agent installs. */
-import { execFile } from "node:child_process";
+import { execFile, type ExecFileOptionsWithStringEncoding } from "node:child_process";
 import { promisify } from "node:util";
 import type { ToolId } from "../cli/registry-types.js";
 
@@ -38,6 +38,16 @@ export interface InstallSkillsInput {
 
 function npxCommand(): string {
   return process.platform === "win32" ? "npx.cmd" : "npx";
+}
+
+export function skillsExecOptions(input: { timeoutMs?: number } = {}): ExecFileOptionsWithStringEncoding {
+  return {
+    encoding: "utf8",
+    timeout: input.timeoutMs ?? 120000,
+    maxBuffer: 1024 * 1024,
+    windowsHide: true,
+    shell: process.platform === "win32"
+  };
 }
 
 function stripAnsi(value: string): string {
@@ -95,11 +105,7 @@ async function runSkillsCommand(args: string[], input: { dryRun?: boolean; timeo
     };
   }
   try {
-    const result = await execFileAsync(npxCommand(), args, {
-      timeout: input.timeoutMs ?? 120000,
-      maxBuffer: 1024 * 1024,
-      windowsHide: true
-    });
+    const result = await execFileAsync(npxCommand(), args, skillsExecOptions({ timeoutMs: input.timeoutMs }));
     return {
       command: npxCommand(),
       args,

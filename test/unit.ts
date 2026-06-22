@@ -15,7 +15,7 @@ import { serverCommand, upsertCodexConfig, upsertContinueConfig, upsertJsonMcpSe
 import { STATUS_JSON_SCHEMA_VERSION, decideStatusRecommendation } from "../src/cli/status-recommendation.js";
 import { renderSpecResult } from "../src/mcp/render-spec.js";
 import { ensureDefaultGuidanceFiles, guidanceItems, readGuidance } from "../src/spec/guidance.js";
-import { buildSkillsInstallArgs, buildSkillsSearchArgs, toSkillsAgent, UI_UX_PRO_MAX_SKILL_NAME, UI_UX_PRO_MAX_SKILL_SOURCE } from "../src/skills/skills-cli.js";
+import { buildSkillsInstallArgs, buildSkillsSearchArgs, skillsExecOptions, toSkillsAgent, UI_UX_PRO_MAX_SKILL_NAME, UI_UX_PRO_MAX_SKILL_SOURCE } from "../src/skills/skills-cli.js";
 
 function assert(condition: boolean, message: string): void {
   if (!condition) {
@@ -462,6 +462,11 @@ function testRendererLimitsToolOutput(): void {
 
 function testSkillsCliContracts(): void {
   assertIncludes(buildSkillsSearchArgs({ query: "ui ux" }).join(" "), "--yes skills find ui ux", "Expected skills search to use npx skills find arguments.");
+  assert(buildSkillsSearchArgs({ query: "ui ux" }).at(-1) === "ui ux", "Expected multi-word skills search query to stay one CLI argument.");
+  const execOptions = skillsExecOptions({ timeoutMs: 1234 });
+  assert(execOptions.timeout === 1234, "Expected skills CLI timeout override to be used.");
+  assert(execOptions.windowsHide === true, "Expected skills CLI process windows to stay hidden.");
+  assert(execOptions.shell === (process.platform === "win32"), "Expected Windows skills CLI execution to use shell for npx.cmd compatibility.");
   assert(toSkillsAgent("claude") === "claude-code", "Expected internal claude tool id to map to skills CLI agent name.");
   assert(toSkillsAgent("codex") === "codex", "Expected codex agent name to pass through.");
 
