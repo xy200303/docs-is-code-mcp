@@ -337,7 +337,7 @@ try {
     dryRun: true
   });
   assertIncludesAll(dryRunCustomSkillInstall.content[0]?.text ?? "", [
-    "skills add vercel-labs/agent-skills",
+    "add vercel-labs/agent-skills",
     "--agent claude-code cursor",
     "--skill pr-review"
   ], "Expected dry-run custom skills install to map Claude to claude-code and preserve requested skill");
