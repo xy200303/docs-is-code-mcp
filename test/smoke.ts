@@ -280,7 +280,7 @@ try {
   assertIncludesAll(harness.description("spec_guidance_list"), ["guidance prompts", "without bloating spec_context"], "Expected guidance list tool to describe on-demand prompts");
   assertIncludesAll(harness.description("spec_guidance_read"), ["Read one editable guidance prompt", "project file"], "Expected guidance read tool to describe project override");
   assertIncludesAll(harness.description("spec_skills_search"), ["Search skills.sh", "ui-ux-pro-max"], "Expected skills search tool to describe skills.sh discovery");
-  assertIncludesAll(harness.description("spec_skills_install"), ["npx skills add", "ui-ux-pro-max", "Requires prior spec_context"], "Expected skills install tool to describe default global skill install and context guard");
+  assertIncludesAll(harness.description("spec_skills_install"), ["bundled official skills CLI", "npx skills add", "ui-ux-pro-max", "Requires prior spec_context"], "Expected skills install tool to describe default global skill install and context guard");
   assertIncludesAll(harness.description("spec_generate_agents"), ["Advanced maintenance helper", "AGENTS.md and CLAUDE.md"], "Expected agent protocol generation to be marked as an advanced helper");
   assertIncludesAll(harness.description("spec_done"), ["Archive verified specs into done", "Do not use for partial work", "whole feature for user review"], "Expected spec_done to reject partial-work usage and require reviewable behavior contracts");
   assertToolDescriptionRequiresSpecContext(harness.description("spec_create"));
@@ -319,8 +319,8 @@ try {
   assertIncludesAll(dryRunSkillInstall.content[0]?.text ?? "", [
     "Skills Install",
     "dryRun: `true`",
-    "npx",
-    "skills add https://github.com/nextlevelbuilder/ui-ux-pro-max-skill",
+    "source: `",
+    "add https://github.com/nextlevelbuilder/ui-ux-pro-max-skill",
     "--global",
     "--agent codex",
     "--skill ui-ux-pro-max",
@@ -396,8 +396,8 @@ try {
     "ui-ux-pro-max",
     "spec_skills_install",
     "spec_skills_search",
-    "npx skills add",
-    "只负责把 UI/UX 工作路由到指定 skill",
+    "official skills CLI",
+    "本文件只负责路由",
     "不要在本文件内继续维护视觉、文案、首屏、官网结构或验收 checklist"
   ], "Expected guidance read to use generated project prompt content");
   await writeFile(path.join(root, "specs", "guidance", "ui-ux.md"), "# Custom UI/UX\n\n只记录用户编辑后的提示词。\n", "utf8");
@@ -418,7 +418,7 @@ try {
     "triggers: `spec`, `todo`, `checkpoint`",
     "appliesTo: `specs`, `todos`, `checkpoints`",
     "Spec 与行为记录原则",
-    "当前任务协议",
+    "工作流",
     "行为记录必须描述功能全过程",
     "给用户审查的完整功能全景",
     "模型自己采用的默认行为也必须写清楚"
@@ -435,8 +435,8 @@ try {
     "updated: '2026-06-21'",
     "Spec 与行为记录原则",
     "用户可以直接编辑本文件",
-    "## 当前任务协议",
-    "## 行为记录要求",
+    "## 工作流",
+    "## 行为记录",
     "最终行为契约必须覆盖所有已知情况"
   ], "Expected missing guidance files to be written before reading");
   const generatedFallbackGitCommitGuidance = await readFile(path.join(fallbackGuidanceRoot, "specs", "guidance", "git-commit.md"), "utf8");
@@ -460,9 +460,9 @@ try {
     "质量审查原则",
     "source: `project`",
     "file: `specs/guidance/quality-review.md`",
-    "代码质量自查",
-    "测试与验证",
-    "UI 与交互质量",
+    "代码质量",
+    "测试验证",
+    "UI/交互",
     "ui-ux-pro-max",
     "spec_skills_install",
     "dryRun: true",

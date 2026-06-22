@@ -5,28 +5,29 @@ title: 'Git 提交工作流原则'
 description: 'Safe commit workflow for verification, staging relevant files, commit messages, and final reports.'
 category: 'git'
 triggers:
-  - commit
-  - git
-  - stage
-  - verify-before-commit
+  - 'commit'
+  - 'git'
+  - 'stage'
+  - 'verify-before-commit'
 appliesTo:
-  - git-status
-  - staging
-  - commit-message
-  - verification-report
+  - 'git-status'
+  - 'staging'
+  - 'commit-message'
+  - 'verification-report'
 updated: '2026-06-21'
 ---
 
 # Git 提交工作流原则
 
-## 用途
+## 使用场景
 
-用于提醒模型在用户要求提交代码时安全地验证、暂存、提交并汇报结果。
+- 用户明确要求提交、帮我提交、commit 或等价表达时读取。
+- 目标是只提交本次任务相关变更，并清楚汇报验证结果。
 
-## 使用方式
+## 执行方式
 
-- 当模型不确定相关原则、开始偏离约束或需要校准输出质量时，读取本文件。
-- 本文件是指导性提示词，不替代当前 spec、TODO、用户要求或代码事实。
+- 提交前先完成实现和验证，再确认工作区里哪些文件属于本次任务。
+- 暂存和提交使用非交互式 git 命令；不要混入无关用户改动。
 - 用户可以直接编辑本文件；工具会读取项目里的当前内容。
 
 ## 触发条件

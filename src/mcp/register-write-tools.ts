@@ -26,7 +26,7 @@ const SkillsInstallSchema = RootSchema.extend({
   source: z.string().optional().describe(`Skill package or GitHub URL. Defaults to ${UI_UX_PRO_MAX_SKILL_SOURCE}.`),
   skills: z.array(z.string().min(1)).default([UI_UX_PRO_MAX_SKILL_NAME]).describe("Skill names to install. Defaults to ui-ux-pro-max."),
   agents: z.array(z.enum(["codex", "claude", "claude-code", "opencode", "cursor", "continue", "windsurf", "*"])).default(["codex"]).describe("Target coding agents. Defaults to codex; claude is mapped to claude-code for the skills CLI."),
-  global: z.boolean().default(true).describe("Install to global user-level skills directories through `npx skills add --global`."),
+  global: z.boolean().default(true).describe("Install to global user-level skills directories through the bundled skills CLI, with npx fallback."),
   listOnly: z.boolean().default(false).describe("List available skills in the source repository without installing."),
   copy: z.boolean().default(false).describe("Pass --copy to the skills CLI instead of symlinking."),
   dryRun: z.boolean().default(false).describe("Return the command without executing it.")
@@ -96,7 +96,7 @@ export function registerWriteTools(server: McpServer, guard: SessionGuardState):
   server.registerTool(
     "spec_skills_install",
     {
-      description: specContextRequiredDescription(`Install skills with \`npx skills add\`. Defaults to installing ${UI_UX_PRO_MAX_SKILL_NAME} from ${UI_UX_PRO_MAX_SKILL_SOURCE} into the selected coding tool's global skills directory.`),
+      description: specContextRequiredDescription(`Install skills with the bundled official skills CLI, falling back to \`npx skills add\` when needed. Defaults to installing ${UI_UX_PRO_MAX_SKILL_NAME} from ${UI_UX_PRO_MAX_SKILL_SOURCE} into the selected coding tool's global skills directory.`),
       inputSchema: SkillsInstallSchema
     },
     async ({ source, skills, agents, global, listOnly, copy, dryRun }) =>

@@ -2,52 +2,54 @@
 name: 'spec-writing'
 version: '1.1.0'
 title: 'Spec 与行为记录原则'
-description: 'Spec workflow rules for TODO execution, checkpoints, done archives, and behavior contracts.'
+description: 'Spec workflow rules for execution checklists, progress records, done archives, and behavior contracts.'
 category: 'workflow'
 triggers:
-  - spec
-  - todo
-  - checkpoint
-  - done
-  - behavior-record
-  - handoff
+  - 'spec'
+  - 'todo'
+  - 'checkpoint'
+  - 'done'
+  - 'behavior-record'
+  - 'handoff'
 appliesTo:
-  - specs
-  - todos
-  - checkpoints
-  - behavior-records
-  - done-archives
+  - 'specs'
+  - 'todos'
+  - 'checkpoints'
+  - 'behavior-records'
+  - 'done-archives'
 updated: '2026-06-21'
 ---
 
 # Spec 与行为记录原则
 
-## 用途
+## 使用场景
 
-用于提醒模型写清楚 spec、TODO、checkpoint 和最终行为契约。
+- 创建、执行、checkpoint、done、handoff 或整理行为记录时读取。
+- 目标是让 spec 成为可执行任务源，让行为记录可供用户审查。
 
-## 使用方式
+## 执行方式
 
-- 当模型不确定相关原则、开始偏离约束或需要校准输出质量时，读取本文件。
-- 本文件是指导性提示词，不替代当前 spec、TODO、用户要求或代码事实。
+- 先读 `spec_context`，再按 selected specs 和 open TODOs 执行。
+- 不把旧对话、猜测或静态线索当成需求事实。
+- 阶段完成写 checkpoint，全部完成并验证后再 done。
 - 用户可以直接编辑本文件；工具会读取项目里的当前内容。
 
-## 当前任务协议
+## 工作流
 
 - 先读本次 `spec_context`；没有上下文不得实现或改文档。
 - 如果项目没有 specs/、AGENTS.md 或可执行 spec，先调用 `spec_bootstrap`：新项目生成起步 active spec，旧项目生成 AI 源码审查任务。
 - selected specs 和 open TODOs 是唯一需求源，不按旧对话扩范围。
-- 小而明确的临时任务用 `spec_todo`；需要设计和验收标准的功能开发用 `spec_create` 或 active spec。
-- 按 open TODOs 自上而下执行；无 TODO 但有 selected specs 时，按 spec 目标、行为规则和验收标准执行。
+- 小而明确的临时任务用 `spec_todo`；需要设计和完成标准的功能开发用 `spec_create` 或 active spec。
+- 按 open TODOs 自上而下执行；无 TODO 但有 selected specs 时，按 spec 目标结果、行为约定和完成标准执行。
 - 每完成一个 TODO，必须勾选 `[x]`；无法完成则保留 `[ ]` 并写明阻塞。
-- 先读目标、规则、验收标准和代码线索，再搜索代码。
+- 先读任务说明、目标结果、行为约定、完成标准和代码线索，再搜索代码。
 - 源码线索只是搜索入口，不是事实来源；修改前必须自行读取相关文件确认。
 - 遵守 Hard Rules、Recommended Practices 和 Business Confirmation Rules；冲突或高风险时先问用户。
 - 高风险业务描述不完整时，停止实现，说明疑点并给出 2 到 3 种解释。
-- 阶段完成后调用 `spec_checkpoint` 记录 TODO、文件、验证、风险和阻塞。
+- 阶段完成后调用 `spec_checkpoint` 记录执行清单、文件、验证、风险和阻塞。
 - `spec_done` 只能在实现完成、TODO 已更新、验证结果和最终行为契约已记录后调用。
 
-## 行为记录要求
+## 行为记录
 
 - 行为记录必须描述功能全过程，不只写一句结果。
 - `spec_done` 的 `## 最终行为契约` 是给用户审查的完整功能全景，不是模型内部摘要。

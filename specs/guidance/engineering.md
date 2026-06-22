@@ -5,34 +5,35 @@ title: '工程与代码风格原则'
 description: 'Engineering rules for simple, maintainable, testable, boundary-conscious implementation.'
 category: 'engineering'
 triggers:
-  - architecture
-  - implementation
-  - refactor
-  - business-rule
-  - error-handling
-  - testing
+  - 'architecture'
+  - 'implementation'
+  - 'refactor'
+  - 'business-rule'
+  - 'error-handling'
+  - 'testing'
 appliesTo:
-  - code
-  - tests
-  - architecture
-  - business-logic
-  - project-structure
+  - 'code'
+  - 'tests'
+  - 'architecture'
+  - 'business-logic'
+  - 'project-structure'
 updated: '2026-06-21'
 ---
 
 # 工程与代码风格原则
 
-## 用途
+## 使用场景
 
-用于提醒模型保持简单、可维护、可测试、边界清晰的工程实现。
+- 实现、重构、错误处理、测试和架构边界不确定时读取。
+- 目标是保持简单、可维护、可测试、边界清晰。
 
-## 使用方式
+## 执行方式
 
-- 当模型不确定相关原则、开始偏离约束或需要校准输出质量时，读取本文件。
-- 本文件是指导性提示词，不替代当前 spec、TODO、用户要求或代码事实。
+- 先服从当前 spec、TODO、用户要求和真实源码；本文件只提供工程判断校准。
+- 高风险或业务规则不清楚时停止实现，先向用户确认。
 - 用户可以直接编辑本文件；工具会读取项目里的当前内容。
 
-## 工程原则
+## 核心规则
 
 这些规则是强制约束，不是建议。
 
@@ -60,7 +61,7 @@ updated: '2026-06-21'
 - Boy Scout Rule：局部顺手清理，不做无关大重构。
 - AI + Human：结构清晰、边界明确，便于 AI 修改和人类维护。
 
-## 业务确认规则
+## 业务确认
 
 这些规则是硬性约束，不是建议。
 

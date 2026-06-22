@@ -15,7 +15,7 @@ import { serverCommand, upsertCodexConfig, upsertContinueConfig, upsertJsonMcpSe
 import { STATUS_JSON_SCHEMA_VERSION, decideStatusRecommendation } from "../src/cli/status-recommendation.js";
 import { renderSpecResult } from "../src/mcp/render-spec.js";
 import { ensureDefaultGuidanceFiles, guidanceItems, readGuidance } from "../src/spec/guidance.js";
-import { buildSkillsInstallArgs, buildSkillsSearchArgs, skillsExecOptions, toSkillsAgent, UI_UX_PRO_MAX_SKILL_NAME, UI_UX_PRO_MAX_SKILL_SOURCE } from "../src/skills/skills-cli.js";
+import { buildSkillsInstallArgs, buildSkillsSearchArgs, skillsCommandForCliPath, skillsExecOptions, toSkillsAgent, UI_UX_PRO_MAX_SKILL_NAME, UI_UX_PRO_MAX_SKILL_SOURCE } from "../src/skills/skills-cli.js";
 
 function assert(condition: boolean, message: string): void {
   if (!condition) {
@@ -462,17 +462,22 @@ function testRendererLimitsToolOutput(): void {
 }
 
 function testSkillsCliContracts(): void {
-  assertIncludes(buildSkillsSearchArgs({ query: "ui ux" }).join(" "), "--yes skills find ui ux", "Expected skills search to use npx skills find arguments.");
+  assertIncludes(buildSkillsSearchArgs({ query: "ui ux" }).join(" "), "find ui ux", "Expected skills search to use direct skills CLI arguments.");
   assert(buildSkillsSearchArgs({ query: "ui ux" }).at(-1) === "ui ux", "Expected multi-word skills search query to stay one CLI argument.");
+  const bundledCommand = skillsCommandForCliPath("C:/demo/node_modules/skills/bin/cli.mjs");
+  assert(bundledCommand.command === process.execPath && bundledCommand.source === "bundled", "Expected bundled skills CLI to run through the current Node executable.");
+  assert(bundledCommand.argsPrefix.at(-1)?.endsWith("cli.mjs"), "Expected bundled skills CLI path to be passed as the first argument.");
+  const fallbackCommand = skillsCommandForCliPath(null);
+  assert(fallbackCommand.source === "npx" && fallbackCommand.argsPrefix.join(" ") === "--yes skills", "Expected missing bundled CLI to fall back to npx skills.");
   const execOptions = skillsExecOptions({ timeoutMs: 1234 });
   assert(execOptions.timeout === 1234, "Expected skills CLI timeout override to be used.");
   assert(execOptions.windowsHide === true, "Expected skills CLI process windows to stay hidden.");
-  assert(execOptions.shell === (process.platform === "win32"), "Expected Windows skills CLI execution to use shell for npx.cmd compatibility.");
+  assert(execOptions.shell === false, "Expected bundled skills CLI execution to avoid shell by default.");
   assert(toSkillsAgent("claude") === "claude-code", "Expected internal claude tool id to map to skills CLI agent name.");
   assert(toSkillsAgent("codex") === "codex", "Expected codex agent name to pass through.");
 
   const defaultInstall = buildSkillsInstallArgs().join(" ");
-  assertIncludes(defaultInstall, `skills add ${UI_UX_PRO_MAX_SKILL_SOURCE}`, "Expected default install source to be ui-ux-pro-max repository.");
+  assertIncludes(defaultInstall, `add ${UI_UX_PRO_MAX_SKILL_SOURCE}`, "Expected default install source to be ui-ux-pro-max repository.");
   assertIncludes(defaultInstall, "--global", "Expected default skill install to target global skills.");
   assertIncludes(defaultInstall, "--agent codex", "Expected default skill install to target Codex.");
   assertIncludes(defaultInstall, `--skill ${UI_UX_PRO_MAX_SKILL_NAME}`, "Expected default skill install to select ui-ux-pro-max.");
@@ -485,14 +490,14 @@ function testSkillsCliContracts(): void {
     global: false,
     copy: true
   }).join(" ");
-  assertIncludes(customInstall, "skills add vercel-labs/agent-skills", "Expected custom skill source to be used.");
+  assertIncludes(customInstall, "add vercel-labs/agent-skills", "Expected custom skill source to be used.");
   assert(!customInstall.includes("--global"), "Expected global flag to be omitted when global is false.");
   assertIncludes(customInstall, "--agent claude-code cursor", "Expected install to pass mapped agent names.");
   assertIncludes(customInstall, "--skill pr-review commit", "Expected install to pass selected skills.");
   assertIncludes(customInstall, "--copy", "Expected install to pass copy option.");
 
   const listOnly = buildSkillsInstallArgs({ source: "demo/repo", listOnly: true }).join(" ");
-  assert(listOnly === "--yes skills add demo/repo --list", "Expected listOnly to list source skills without install flags.");
+  assert(listOnly === "add demo/repo --list", "Expected listOnly to list source skills without install flags.");
 }
 
 async function testRegistryContracts(): Promise<void> {
@@ -551,8 +556,8 @@ async function testGuidanceCreatesDefaultsAndPreservesProjectFiles(): Promise<vo
     assertIncludes(generated.content, "业务不确定性强制确认", "Expected generated engineering guidance to include business confirmation rules.");
 
     const specWriting = await readGuidance({ projectRoot: root, specsDir: "specs", name: "spec-writing" });
-    assertIncludes(specWriting.content, "## 当前任务协议", "Expected generated spec-writing guidance to include task protocol.");
-    assertIncludes(specWriting.content, "## 行为记录要求", "Expected generated spec-writing guidance to include behavior recording rules.");
+    assertIncludes(specWriting.content, "## 工作流", "Expected generated spec-writing guidance to include task workflow.");
+    assertIncludes(specWriting.content, "## 行为记录", "Expected generated spec-writing guidance to include behavior recording rules.");
     assertIncludes(specWriting.content, "行为记录必须描述功能全过程", "Expected generated spec-writing guidance to include full behavior flow guidance.");
     assertIncludes(specWriting.content, "给用户审查的完整功能全景", "Expected spec-writing guidance to describe final contract review purpose.");
     assertIncludes(specWriting.content, "模型自己采用的默认行为也必须写清楚", "Expected spec-writing guidance to require model-chosen defaults.");
@@ -561,8 +566,8 @@ async function testGuidanceCreatesDefaultsAndPreservesProjectFiles(): Promise<vo
     assertIncludes(uiUx.content, "ui-ux-pro-max", "Expected UI/UX guidance to default to ui-ux-pro-max skill.");
     assertIncludes(uiUx.content, "spec_skills_install", "Expected UI/UX guidance to mention skill installation.");
     assertIncludes(uiUx.content, "spec_skills_search", "Expected UI/UX guidance to mention skills search.");
-    assertIncludes(uiUx.content, "npx skills add", "Expected UI/UX guidance to mention official skills CLI install.");
-    assertIncludes(uiUx.content, "只负责把 UI/UX 工作路由到指定 skill", "Expected UI/UX guidance to be a skill router.");
+    assertIncludes(uiUx.content, "official skills CLI", "Expected UI/UX guidance to mention bundled official skills CLI install.");
+    assertIncludes(uiUx.content, "本文件只负责路由", "Expected UI/UX guidance to be a skill router.");
     assert(!uiUx.content.includes("真实产品语境"), "Expected UI/UX guidance to avoid local product-context design rules.");
     assert(!uiUx.content.includes("不要编造指标"), "Expected UI/UX guidance to avoid local fact-first checklist rules.");
     assert(!uiUx.content.includes("只有明确是 OSS 或开源组织官网"), "Expected UI/UX guidance to avoid local website structure rules.");
@@ -584,9 +589,9 @@ async function testGuidanceCreatesDefaultsAndPreservesProjectFiles(): Promise<vo
 
     const qualityReview = await readGuidance({ projectRoot: root, specsDir: "specs", name: "quality-review" });
     assertIncludes(qualityReview.content, "质量审查原则", "Expected quality review guidance content.");
-    assertIncludes(qualityReview.content, "代码质量自查", "Expected quality review guidance to include code quality checks.");
-    assertIncludes(qualityReview.content, "测试与验证", "Expected quality review guidance to include verification checks.");
-    assertIncludes(qualityReview.content, "UI 与交互质量", "Expected quality review guidance to include UI interaction checks.");
+    assertIncludes(qualityReview.content, "代码质量", "Expected quality review guidance to include code quality checks.");
+    assertIncludes(qualityReview.content, "测试验证", "Expected quality review guidance to include verification checks.");
+    assertIncludes(qualityReview.content, "UI/交互", "Expected quality review guidance to include UI interaction checks.");
     assertIncludes(qualityReview.content, "ui-ux-pro-max", "Expected quality review guidance to check designated UI/UX skill usage.");
     assertIncludes(qualityReview.content, "spec_skills_install", "Expected quality review guidance to mention skill installation.");
     assertIncludes(qualityReview.content, "dryRun: true", "Expected quality review guidance to mention dry-run installation evidence.");

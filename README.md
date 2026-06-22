@@ -98,7 +98,7 @@ specs/
 | `spec_guidance_list` | 列出内置且可编辑的指导性提示词名称、版本、分类、描述、触发词、适用对象和 `specs/guidance/*.md` 路径 |
 | `spec_guidance_read` | 按名称读取一份指导性提示词；guidance 目录缺失、为空或缺少默认文件时会先写入内置默认 Markdown，再读取项目内容 |
 | `spec_skills_search` | 通过官方 skills CLI 搜索 skills.sh，用于复杂任务前寻找专项 skill |
-| `spec_skills_install` | 通过 `npx skills add` 安装 skill；默认安装 `ui-ux-pro-max` 到 Codex 全局 skills 目录 |
+| `spec_skills_install` | 使用随包 official skills CLI 安装 skill，必要时回退 `npx skills add`；默认安装 `ui-ux-pro-max` 到 Codex 全局 skills 目录 |
 
 ### 任务创建工具
 
@@ -171,7 +171,7 @@ specs/
 
 `spec_guidance_list` 和 `spec_guidance_read` 是按需提醒工具。`spec_init` 和 `spec_bootstrap` 会生成默认的 `specs/guidance/engineering.md`、`specs/guidance/ui-ux.md`、`specs/guidance/spec-writing.md`、`specs/guidance/git-commit.md`、`specs/guidance/pr-submit.md` 和 `specs/guidance/quality-review.md`；用户可以直接编辑这些 Markdown。每份默认 guidance 顶部都有类似 SKILL.md 的 YAML 元信息，包含 `name`、`version`、`title`、`description`、`category`、`triggers`、`appliesTo` 和 `updated`，方便工具和模型按名称、版本、描述、适用场景检索。读取 guidance 时，如果目录缺失、目录为空或缺少某个默认文件，工具会先把缺失的内置默认 Markdown 写入项目，再读取项目内容；已有文件不会被覆盖。guidance 内容不塞进 `spec_context`，也不替代 selected specs、open TODO、用户要求或真实源码阅读。
 
-`spec_skills_search` 和 `spec_skills_install` 用于接入外部 skills。搜索走 skills.sh，安装走官方 `npx skills add`；安装默认使用全局 scope，并默认把 `https://github.com/nextlevelbuilder/ui-ux-pro-max-skill` 中的 `ui-ux-pro-max` 安装到 Codex 全局 skills 目录。UI/UX 任务默认优先使用这个 skill；`ui-ux` guidance 只负责路由到该 skill，不再维护本地设计原则或 checklist。需要先看命令而不改全局目录时，给安装工具传 `dryRun: true`。
+`spec_skills_search` 和 `spec_skills_install` 用于接入外部 skills。搜索走 skills.sh，安装优先使用随包安装的 official skills CLI，找不到或执行失败时回退 `npx skills add`；安装默认使用全局 scope，并默认把 `https://github.com/nextlevelbuilder/ui-ux-pro-max-skill` 中的 `ui-ux-pro-max` 安装到 Codex 全局 skills 目录。UI/UX 任务默认优先使用这个 skill；`ui-ux` guidance 只负责路由到该 skill，不再维护本地设计原则或 checklist。需要先看命令而不改全局目录时，给安装工具传 `dryRun: true`。
 
 YAML 元信息只用于需要被工具读取的文档，例如 `AGENTS.md`、`CLAUDE.md`、`specs/README.md`、`specs/guidance/*.md` 以及 review/active/todo/done specs。普通 `README.md` 和 VitePress `docs/**/*.md` 不默认加入这套 SKILL/spec 风格元信息；VitePress 页面只保留自身需要的 front matter。
 

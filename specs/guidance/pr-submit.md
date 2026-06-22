@@ -5,29 +5,30 @@ title: 'PR 提交工作流原则'
 description: 'Pull request workflow for template discovery, commits, branch push, PR body, and fallback URLs.'
 category: 'pull-request'
 triggers:
-  - pr
-  - pull-request
-  - merge-request
-  - branch-push
-  - gh-pr-create
+  - 'pr'
+  - 'pull-request'
+  - 'merge-request'
+  - 'branch-push'
+  - 'gh-pr-create'
 appliesTo:
-  - pull-requests
-  - branches
-  - pr-template
-  - review-notes
+  - 'pull-requests'
+  - 'branches'
+  - 'pr-template'
+  - 'review-notes'
 updated: '2026-06-21'
 ---
 
 # PR 提交工作流原则
 
-## 用途
+## 使用场景
 
-用于提醒模型在用户要求准备、创建或提交 PR 时安全地发现模板、提交变更、推送分支并生成 PR 内容。
+- 用户明确要求准备、创建或提交 PR/MR 时读取。
+- 目标是按项目模板、安全提交相关变更、推送分支并生成可审查 PR 内容。
 
-## 使用方式
+## 执行方式
 
-- 当模型不确定相关原则、开始偏离约束或需要校准输出质量时，读取本文件。
-- 本文件是指导性提示词，不替代当前 spec、TODO、用户要求或代码事实。
+- 先检查分支、remote、base branch、工作区和 PR 模板。
+- 需要提交时先遵守 `git-commit` guidance；不能安全推断时先问用户。
 - 用户可以直接编辑本文件；工具会读取项目里的当前内容。
 
 ## 触发条件
