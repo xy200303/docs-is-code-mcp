@@ -102,8 +102,21 @@ function testPlainDocsAvoidSearchableMetadata(): void {
 
   const docsIndex = readFileSync(path.join(root, "docs/index.md"), "utf8");
   assert(docsIndex.replace(/\r\n/g, "\n").startsWith("---\nlayout: home"), "Expected docs/index.md to keep VitePress home front matter.");
+  assert(!docsIndex.includes("layout: page"), "Expected docs/index.md not to use the docs page layout for the homepage.");
   assert(!/^name:\s*'index'/m.test(docsIndex), "Expected docs/index.md to omit generic searchable metadata.");
   assert(!/^source:\s*'vitepress-docs'/m.test(docsIndex), "Expected docs/index.md to omit generic VitePress metadata.");
+  assert(!docsIndex.includes("真实对象"), "Expected docs/index.md to avoid internal UI review wording.");
+  assert(!docsIndex.includes("没有虚构"), "Expected docs/index.md to avoid internal fact-check wording.");
+  assert(!docsIndex.includes("假 dashboard"), "Expected docs/index.md to avoid internal anti-pattern wording.");
+  assert(!docsIndex.includes("套用通用设计套路"), "Expected docs/index.md to avoid internal design-process wording.");
+  assert(docsIndex.includes("<span>specc</span><span>init</span>"), "Expected docs/index.md install panel to show specc init.");
+  assert(!docsIndex.includes("<span>specc</span><span>bootstrap</span><span>--project-root</span>"), "Expected docs/index.md install panel to avoid the long bootstrap command.");
+
+  const siteCss = readFileSync(path.join(root, "docs/public/site.css"), "utf8");
+  assertIncludes(siteCss, ".VPContent.is-home .VPSidebar", "Expected homepage CSS to guard against a VitePress sidebar on the homepage.");
+  assertIncludes(siteCss, ".VPContent.is-home .vp-doc.container", "Expected homepage CSS to reset the VitePress markdown container on the homepage.");
+  assertIncludes(siteCss, "max-width: 100vw", "Expected homepage CSS to constrain mobile width to the viewport.");
+  assertIncludes(siteCss, ".command-line", "Expected homepage commands to use responsive command-line blocks.");
 }
 
 async function testTodoParsing(): Promise<void> {
