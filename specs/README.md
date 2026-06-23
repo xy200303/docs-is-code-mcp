@@ -1,11 +1,11 @@
 ---
 name: 'specs-readme'
-version: '1.1.0'
+version: '1.3.0'
 title: 'Spec Coding MCP Specs'
 type: 'specs-readme'
 status: 'reference'
 source: 'spec-coding-mcp'
-description: 'Spec workflow index and conventions for Spec Coding MCP.'
+description: 'Spec workflow index, vault conventions, verifiers, watch TODOs, and feedback loops for Spec Coding MCP.'
 category: 'workflow'
 triggers:
   - specs
@@ -17,7 +17,7 @@ appliesTo:
   - specs-directory
   - workflow-docs
   - agent-reference
-updated: '2026-06-21'
+updated: '2026-06-23'
 ---
 
 # Spec Coding MCP Specs
@@ -55,6 +55,24 @@ updated: '2026-06-21'
 - `done/YYYY-MM-DD/NNN-readable-name.md`：已经完成的 specs，必须保留来自代码和测试验证的最终行为契约。
 - `guidance/*.md`：可编辑的指导性提示词，供 `spec_guidance_list` 和 `spec_guidance_read` 按需读取。
 
+## Vault 机制
+
+`specs/` 目录作为持久化 Vault（纯文本文件夹），在不同会话、不同 Agent 之间共享上下文：
+
+```
+specs/
+├── README.md          # vault 索引与约定
+├── active/            # 当前工作进行中
+├── todo/              # 轻量执行清单
+├── done/              # 已完成 spec + 最终行为契约
+├── review/            # 源码审查任务
+└── guidance/          # 可编辑 Agent 指导性提示词
+```
+
+Vault 原则：
+- Spec 是共享记忆：不要把上下文锁在单次聊天记录里。
+- 只追加不覆写：新 checkpoint 追加，不重写历史。
+- 无新内容不编辑：没有实质性新上下文时不改文件。
 ## 指导性提示词
 
 `spec_guidance_list` 会列出内置 guidance 名称、版本、分类、描述、触发词、适用对象和对应 Markdown 路径；`spec_guidance_read` 会读取某一份提示词。
@@ -70,8 +88,9 @@ updated: '2026-06-21'
 
 ## 正文结构
 
-- `任务说明`：保留用户输入、问题背景或审查说明。
-- `执行清单`：使用 Markdown checkbox 表达本轮要按顺序完成的任务。
+- `任务说明`：保留用户原始输入、问题背景或审查说明。不过度整理，保留语气和未成型思路。
+- `执行清单`：使用 Markdown checkbox 表达本轮要按顺序完成的任务。支持 `[watch]` 前缀用于监听型任务。
+- `验证器`：可衡量的成功标准（测试套件、性能基准、可复现 Bug、验证矩阵、E2E 工作流）。
 - `执行协议`：说明 AI 如何读取 context、执行清单、记录进度和处理阻塞。
 - `执行记录`：记录来自代码、测试或用户确认的实际行为。
 - `进度记录`：`spec_checkpoint` 追加的阶段性摘要、变更、验证、风险和阻塞。

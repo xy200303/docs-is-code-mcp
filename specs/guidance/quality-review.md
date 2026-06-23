@@ -1,6 +1,6 @@
 ---
 name: 'quality-review'
-version: '1.1.0'
+version: '1.2.0'
 title: '质量审查原则'
 description: 'Post-implementation review checklist for code quality, tests, architecture, UI/UX, and delivery risk.'
 category: 'quality'
@@ -17,7 +17,7 @@ appliesTo:
   - 'ui-review'
   - 'risk-review'
   - 'delivery'
-updated: '2026-06-21'
+updated: '2026-06-23'
 ---
 
 # 质量审查原则
@@ -59,7 +59,20 @@ updated: '2026-06-21'
 - 如果 skill 未安装，是否调用 `spec_skills_install`；无法安装时是否用 `dryRun: true` 给出命令并说明阻塞。
 - 是否记录实际使用的 skill、安装或 dry-run 结果，以及 skill 输出中被采纳的关键建议。
 - 是否避免在本地 quality-review guidance 中自行补充另一套 UI/UX 设计 checklist。
+- 是否对 UI 产出物进行了视觉验收（桌面和移动端截图、侧边栏审查），确认无错位、遮挡、空白和串项目。
 
+## 视觉验收
+
+- UI/前端改动必须产出视觉证据：桌面端截图（1440px 起）、移动端截图（390px 起），或用 Codex 侧边栏原地审查渲染页面。
+- Codex 侧边栏支持四种审查模式，应优先使用而非导出文件后切换工具：
+  - 检查生成文件：HTML 页面、PDF、幻灯片、表格在侧边栏直接预览。
+  - 标注修改位置：在渲染页面上直接标记需要改的地方。
+  - 操作网页界面：在侧边栏内交互、填表、点击，验证行为。
+  - 审查代码变更：diff 视图与预览并排，边看代码边看效果。
+- 截图必须确认：首屏无错位、无遮挡、无空白区域、无串项目、文本不溢出、响应式布局正常。
+- 三维或 Canvas 场景需额外确认：场景非空白、正确帧渲染、交互响应、引用资源正常加载。
+- 视觉验收结果记录在 checkpoint 的验证部分，附截图路径或审查记录。
+- 未做视觉验收的 UI 改动不得 done、commit 或提 PR。
 ## 交付审查
 
 - checkpoint/done 是否记录真实行为、默认行为、边界处理和验证结果。
