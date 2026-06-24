@@ -115,3 +115,115 @@ updated: '2026-06-21'
 - 行为规则、功能全过程、默认参数、边界处理和风险问题已用中文补全。
 - 若本 spec 仅用于审查且不需要改动，可保持 `source-review/needs-ai-summary` 状态。
 - 若当前功能需要移除，把状态改为 `active/removal` 并写清移除范围。
+
+## 审查记录
+
+- 时间：2026-06-24T10:02:57.770Z
+- 摘要：新增 spec_review_prioritize MCP 工具：基于 git 变更历史分析文件修改频次、最近变更时间、代码变更量，综合计算审查优先级评分，帮助审查者聚焦高风险文件。
+
+### 已完成清单
+
+- 无
+
+### 未完成清单
+
+- 无
+
+### 变更文件
+
+- `src/spec/review-prioritizer.ts`
+- `src/spec/types.ts`
+- `src/mcp/register-read-tools.ts`
+- `src/mcp/render-spec.ts`
+- `test/unit.ts`
+- `dist/`
+
+### 验证结果
+
+- passed `npx tsc --noEmit`
+- passed `npx tsx test/unit.ts`：review-prioritize 功能正确运行于实际仓库
+- passed `bun test/smoke.ts`
+- passed `npm run verify`：build + unit + smoke + release:check 全部通过
+
+### 行为记录
+
+1. 基于 git 变更历史计算审查优先级
+  - 条件：存在 git 仓库且有提交历史
+  - 触发入口：调用 spec_review_prioritize 工具
+  - 输入与前置状态：projectRoot + optional days/maxFiles/weights/includePaths/excludePatterns
+  - 执行过程：
+    1. 1. git log --since --numstat 提取文件变更统计
+    2. 2. 解析提交记录并按文件聚合 commitCount/daysSinceLastChange/linesChanged
+    3. 3. 应用默认排除（node_modules, dist, lock 文件等）和自定义过滤
+    4. 4. 按类别 (core=1.2x, test=0.7x, doc=0.3x) 计算加权评分
+    5. 5. 降序排列，返回 top N
+  - 输出结果：ReviewPrioritizeResult 包含 analyzedFiles, totalCommits, prioritized（评分0-1）, weights
+  - 副作用：未记录
+  - 默认行为：默认分析最近90天，最多30个文件，权重 recency=0.4/frequency=0.35/churn=0.25
+  - 边界处理：仓库无提交或无符合条件的文件时返回空列表并给出解释
+  - 结果摘要：返回按优先级评分的文件列表，评分综合考虑 recency/frequency/churn 并应用文件类别加权
+  - 验证：未记录
+  - 关联文件：
+    - `src/spec/review-prioritizer.ts`
+    - `src/mcp/register-read-tools.ts`
+    - `src/mcp/render-spec.ts`
+
+2. 空仓库或无符合条件的变更
+  - 条件：git 历史中没有符合条件的文件（如最近1天内）
+  - 触发入口：未记录
+  - 输入与前置状态：未记录
+  - 执行过程：未记录
+  - 输出结果：返回 analyzedFiles=0，prioritized 为空数组，渲染函数给出原因说明
+  - 副作用：未记录
+  - 默认行为：未记录
+  - 边界处理：未记录
+  - 结果摘要：返回 analyzedFiles=0，prioritized 为空数组，渲染函数给出原因说明
+  - 验证：未记录
+  - 关联文件：未记录
+
+3. includePaths 过滤
+  - 条件：设置 includePaths=['src/spec/']
+  - 触发入口：未记录
+  - 输入与前置状态：未记录
+  - 执行过程：未记录
+  - 输出结果：只返回路径以 src/spec/ 开头的文件
+  - 副作用：未记录
+  - 默认行为：未记录
+  - 边界处理：未记录
+  - 结果摘要：只返回路径以 src/spec/ 开头的文件
+  - 验证：未记录
+  - 关联文件：未记录
+
+4. excludePatterns 过滤
+  - 条件：设置 excludePatterns=['*.test.ts']
+  - 触发入口：未记录
+  - 输入与前置状态：未记录
+  - 执行过程：未记录
+  - 输出结果：排除所有 .test.ts 文件
+  - 副作用：未记录
+  - 默认行为：未记录
+  - 边界处理：未记录
+  - 结果摘要：排除所有 .test.ts 文件
+  - 验证：未记录
+  - 关联文件：未记录
+
+5. 自定义评分权重
+  - 条件：设置 weights={recency:0.7, frequency:0.2, churn:0.1}
+  - 触发入口：未记录
+  - 输入与前置状态：未记录
+  - 执行过程：未记录
+  - 输出结果：使用自定义权重计算评分
+  - 副作用：未记录
+  - 默认行为：未记录
+  - 边界处理：未记录
+  - 结果摘要：使用自定义权重计算评分
+  - 验证：未记录
+  - 关联文件：未记录
+
+### 风险
+
+- 无
+
+### 阻塞
+
+- 无

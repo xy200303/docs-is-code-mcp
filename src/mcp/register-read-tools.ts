@@ -5,7 +5,7 @@ import { bootstrapProject, generateSpecsFromSource, initSpecs, listSpecs } from 
 import { specContext } from "../spec/context.js";
 import { ensureDefaultGuidanceFiles, guidanceItems, readGuidance } from "../spec/guidance.js";
 import { workflowStateLines } from "../spec/context-markdown.js";
-import { renderSpecItems, renderSpecResult } from "./render-spec.js";
+import { renderReviewPrioritizeResult, renderSpecItems, renderSpecResult } from "./render-spec.js";
 import { textResult } from "./render-core.js";
 import { RootSchema } from "./tool-schema.js";
 import type { SessionGuardState } from "../spec/types.js";
@@ -13,9 +13,9 @@ import { markSpecContextSeen } from "./session-guard.js";
 import { workflowRecommendationLines } from "../spec/workflow-next-step.js";
 import { APP_VERSION } from "../shared/meta.js";
 import { renderSkillsResult, searchSkills, UI_UX_PRO_MAX_SKILL_NAME, UI_UX_PRO_MAX_SKILL_SOURCE } from "../skills/skills-cli.js";
+import { reviewPrioritize } from "../spec/review-prioritizer.js";
 
 const SPEC_CONTEXT_GATE_DESCRIPTION = "Unlocks guarded write tools for this session.";
-
 const ReadContextSchema = RootSchema.extend({
   files: z.array(z.string()).default([]).describe("Spec files to select."),
   maxSpecChars: z.number().int().positive().default(8000),
@@ -215,4 +215,25 @@ export function registerReadTools(server: McpServer, guard: SessionGuardState): 
       return textResult(context.markdown);
     }
   );
+
+  server.registerTool(
+    "spec_review_prioritize",
+    {
+      description: "Prioritize code review by analyzing git change history. Scores files by recency, frequency, and churn of changes to help reviewers focus on the highest-risk files first.",
+      inputSchema: RootSchema.extend({
+        days: z.number().int().positive().default(90).describe("Only consider commits within this many days."),
+        maxFiles: z.number().int().positive().default(30).describe("Maximum files to return."),
+        weights: z.object({
+          recency: z.number().min(0).max(1).default(0.4).describe("Weight for change recency (0-1)."),
+          frequency: z.number().min(0).max(1).default(0.35).describe("Weight for change frequency (0-1)."),
+          churn: z.number().min(0).max(1).default(0.25).describe("Weight for change volume/churn (0-1).")
+        }).optional().describe("Custom weights for the priority scoring formula."),
+        includePaths: z.array(z.string()).default([]).describe("Optional path prefixes to include (e.g., [\"src/\", \"lib/\"])."),
+        excludePatterns: z.array(z.string()).default([]).describe("Optional patterns to exclude (e.g., [\"*.test.ts\", \"docs/\"]).")
+      })
+    },
+    async ({ projectRoot, days, maxFiles, weights, includePaths, excludePatterns }) =>
+      textResult(renderReviewPrioritizeResult(await reviewPrioritize({ projectRoot, days, maxFiles, weights, includePaths, excludePatterns })))
+  );
+
 }

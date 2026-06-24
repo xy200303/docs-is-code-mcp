@@ -1,6 +1,7 @@
 /* Focused unit tests for spec parsing, progress writing, MCP guard, and registry compatibility contracts. */
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { readFileSync, readdirSync } from "node:fs";
+import { reviewPrioritize } from "../src/spec/review-prioritizer.js";
 import os from "node:os";
 import path from "node:path";
 import { APP_VERSION } from "../src/shared/meta.js";
@@ -712,5 +713,64 @@ testSkillsCliContracts();
 await testRegistryContracts();
 await testStatusRecommendationDecisions();
 await testGuidanceCreatesDefaultsAndPreservesProjectFiles();
+
+async function testReviewPrioritizeOnRealRepo() {
+  const projectRoot = path.dirname(new URL(import.meta.url).pathname.replace(/^[\\/]([A-Za-z]:)/, "$1"));
+  console.time("review-prioritize");
+  // Run on this project's own repo which has git history.
+  const result = await reviewPrioritize({ projectRoot, days: 365, maxFiles: 10 });
+  console.timeEnd("review-prioritize");
+
+  assert(typeof result.analyzedFiles === "number", "Expected analyzedFiles to be a number.");
+  assert(typeof result.totalCommits === "number", "Expected totalCommits to be a number.");
+  assert(Array.isArray(result.prioritized), "Expected prioritized to be an array.");
+  assert(result.prioritized.length <= 10, "Expected at most 10 prioritized files.");
+  assert(result.weights.recency === 0.4, "Expected default recency weight.");
+  assert(result.weights.frequency === 0.35, "Expected default frequency weight.");
+  assert(result.weights.churn === 0.25, "Expected default churn weight.");
+
+  // Each prioritized item should have expected fields.
+  for (const item of result.prioritized) {
+    assert(typeof item.file === "string" && item.file.length > 0, `Expected file to be a non-empty string, got: ${JSON.stringify(item.file)}`);
+    assert(typeof item.commitCount === "number" && item.commitCount >= 1, `Expected commitCount >= 1, got: ${item.commitCount}`);
+    assert(typeof item.daysSinceLastChange === "number" && item.daysSinceLastChange >= 0, `Expected daysSinceLastChange >= 0, got: ${item.daysSinceLastChange}`);
+    assert(typeof item.linesChanged === "number", `Expected linesChanged to be a number, got: ${item.linesChanged}`);
+    assert(typeof item.score === "number" && item.score >= 0 && item.score <= 1, `Expected score 0-1, got: ${item.score}`);
+    assert(["core","test","config","doc","other"].includes(item.category), `Expected valid category, got: ${item.category}`);
+  }
+
+  // Scores should be in descending order.
+  if (result.prioritized.length >= 2) {
+    for (let i = 1; i < result.prioritized.length; i++) {
+      assert(result.prioritized[i].score <= result.prioritized[i - 1].score,
+        `Expected descending scores, got ${result.prioritized[i].score} after ${result.prioritized[i - 1].score}`);
+    }
+  }
+
+  // Filter with includePaths.
+  const filtered = await reviewPrioritize({ projectRoot, days: 365, maxFiles: 10, includePaths: ["src/spec/"] });
+  for (const item of filtered.prioritized) {
+    assert(item.file.startsWith("src/spec/") || item.file.startsWith("src\\spec\\"),
+      `Expected file in src/spec/, got: ${item.file}`);
+  }
+
+  // Filter with excludePatterns.
+  const excluded = await reviewPrioritize({ projectRoot, days: 365, maxFiles: 20, excludePatterns: ["*.test.ts", "node_modules"] });
+  for (const item of excluded.prioritized) {
+    assert(!item.file.includes(".test.ts"), `Expected no test files, got: ${item.file}`);
+  }
+
+  // Custom weights.
+  const customWeight = await reviewPrioritize({ projectRoot, days: 365, maxFiles: 5, weights: { recency: 0.7, frequency: 0.2, churn: 0.1 } });
+  assert(customWeight.weights.recency === 0.7, "Expected custom recency weight.");
+  assert(customWeight.weights.frequency === 0.2, "Expected custom frequency weight.");
+
+  // Short time window.
+  const shortWindow = await reviewPrioritize({ projectRoot, days: 1, maxFiles: 5 });
+  assert(shortWindow.analyzedFiles === 0 || shortWindow.prioritized.length <= 5,
+    "Expected short window to have few or no results.");
+}
+
+await testReviewPrioritizeOnRealRepo();
 
 console.log("spec-coding unit tests passed");

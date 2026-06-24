@@ -131,3 +131,29 @@ export interface ReviewResult {
 export interface SessionGuardState {
   specContextSeen: boolean;
 }
+
+/** Per-file change statistics extracted from git history for review prioritization. */
+export interface FileChangeStat {
+  file: string;
+  commitCount: number;
+  daysSinceLastChange: number;
+  linesChanged: number;
+  score: number;
+  category: FileCategory;
+}
+
+export type FileCategory = "core" | "test" | "config" | "doc" | "other";
+
+export interface PriorityWeights {
+  recency: number;
+  frequency: number;
+  churn: number;
+}
+
+export interface ReviewPrioritizeResult {
+  projectRoot: string;
+  analyzedFiles: number;
+  totalCommits: number;
+  prioritized: FileChangeStat[];
+  weights: PriorityWeights;
+}
